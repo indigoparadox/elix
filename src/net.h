@@ -4,10 +4,11 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "bstrlib.h"
 
 int net_open_socket();
-int net_send( uint8_t* buffer, size_t len );
-int net_poll( uint8_t* buffer );
+int net_send( bstring buffer );
+bstring net_poll();
 
 #endif /* NET_H */
 
