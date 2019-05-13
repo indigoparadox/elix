@@ -46,6 +46,9 @@ void arp_print_packet( struct arp_header* header, int packet_len ) {
       printf( "%hhu ", *(arp_packet_data++) );
    }
    printf( "\n   Protocol: %02X %02X\n", prototype[0], prototype[1]  );
+
+cleanup:
+   bdestroy( buffer );
 }
 
 /* Accept the header because it could be any kind of ARP packet. */

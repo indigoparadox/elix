@@ -110,6 +110,9 @@ void net_print_frame( struct ether_frame* frame, size_t frame_len ) {
       printf( "%02X ", frame->header.dest_mac[i] );
    }
    printf( "\nType: %02X %02X\n", type[0], type[1]  );
+
+cleanup:
+   bdestroy( buffer );
 }
 
 int net_send_frame( 
@@ -130,6 +133,8 @@ int net_send_frame(
       perror( "Unable to send frame" );
    }
 
+cleanup:
+   bdestroy( buffer );
    return sent;
 }
 
