@@ -73,6 +73,11 @@ int main( int argc, char** argv ) {
                      frame_len - sizeof( struct ether_header ),
                      src_mac, ETHER_ADDRLEN, g_src_ip, ETHER_ADDRLEN_IPV4 );
                }
+               mem_free( frame );
+               continue;
+
+            default:
+               mem_free( frame );
                continue;
          }
       }
