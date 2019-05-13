@@ -14,12 +14,12 @@ int main( int argc, char** argv ) {
    bstring if_name = NULL;
    //bstring send_buffer = NULL;
    uint8_t src_mac[6] = { 0 };
-   struct ether_packet* packet = NULL;
+   struct ether_frame* frame = NULL;
    enum ether_type type = ETHER_TYPE_ARP;
    int retval = 0;
    int if_idx = 0;
    struct arp_packet_ipv4* arp = NULL;
-   size_t packet_len = 0;
+   size_t frame_len = 0;
 
    if_name = bfromcstr( "eth0" );
 
@@ -35,35 +35,35 @@ int main( int argc, char** argv ) {
    arp = ether_new_arp_packet_ipv4(
       ARP_REQUEST, src_mac, g_bcast_mac, g_src_ip, NULL );
 
-   /* Create a packet using the MAC from the socket above. */
-   packet = ether_new_packet(
+   /* Create a frame using the MAC from the socket above. */
+   frame = ether_new_frame(
       src_mac, g_bcast_mac, type, arp, sizeof( struct arp_packet_ipv4 ) );
-   if( NULL == packet ) {
-      do_error( "Unable to create packet" );
+   if( NULL == frame ) {
+      do_error( "Unable to create frame" );
       retval = 1;
       goto cleanup;
    }
 
-   /* Flatten the packet into a buffer and send it. */
-   packet_len =
+   /* Flatten the frame into a buffer and send it. */
+   frame_len =
       sizeof( struct ether_header ) + sizeof( struct arp_packet_ipv4 );
    /*send_buffer = blk2bstr( packet, packet_len );
    if( NULL == send_buffer ) {
       perror( "Unable to allocate packet data buffer" );
       goto cleanup;
    }*/
-   net_send_packet( sockfd, if_idx, packet, packet_len );
-   mem_free( packet );
+   net_send_frame( sockfd, if_idx, frame, frame_len );
+   mem_free( frame );
 
    while( 1 ) {
-      packet = net_poll_packet( sockfd );
-      if( NULL != packet ) {
-         net_print_packet( packet, sizeof( struct ether_header ) );
+      frame = net_poll_frame( sockfd );
+      if( NULL != frame ) {
+         net_print_frame( frame, sizeof( struct ether_header ) );
       }
    }
 
 cleanup:
-   mem_free( packet );
+   mem_free( frame );
    net_close_socket( sockfd );
    return retval;
 }

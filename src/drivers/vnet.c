@@ -84,25 +84,25 @@ void net_close_socket( int socket ) {
    }
 }
 
-void net_print_packet( struct ether_packet* pkt, size_t pkg_len ) {
+void net_print_frame( struct ether_frame* frame, size_t frame_len ) {
    int i = 0;
    uint8_t type[2] = { 0 };
 
-   *(uint16_t*)type = ether_ntohs( pkt->header.type );
+   *(uint16_t*)type = ether_ntohs( frame->header.type );
 
    printf( "Packet Information:\nSource MAC: " );
    for( i = 0 ; ETHER_ADDRLEN > i ; i++ ) {
-      printf( "%02X ", pkt->header.src_mac[i] );
+      printf( "%02X ", frame->header.src_mac[i] );
    }
    printf( "\nDest MAC: " );
    for( i = 0 ; ETHER_ADDRLEN > i ; i++ ) {
-      printf( "%02X ", pkt->header.dest_mac[i] );
+      printf( "%02X ", frame->header.dest_mac[i] );
    }
    printf( "\nType: %02X %02X\n", type[0], type[1]  );
 }
 
-int net_send_packet( 
-   int socket, int if_idx, struct ether_packet* pkt, size_t pkt_len
+int net_send_frame( 
+   int socket, int if_idx, struct ether_frame* frame, size_t frame_len
 ) {
    size_t sent = 0;
    struct sockaddr_ll socket_address = { 0 };
@@ -112,7 +112,7 @@ int net_send_packet(
 #endif /* NET_CON_ECHO */
 
 #ifdef NET_CON_ECHO
-   buffer = blk2bstr( pkt, pkt_len );
+   buffer = blk2bstr( frame, frame_len );
    for( i = 0 ; blength( buffer ) > i ; i++ ) {
       if( '\0' == bchar( buffer, i ) ) {
          printf( "%02X", (unsigned int)(unsigned char)bchar( buffer, i ) );
@@ -121,37 +121,37 @@ int net_send_packet(
       }
    }
    printf( "\n" );
-   net_print_packet( pkt, pkt_len );
+   net_print_frame( frame, frame_len );
 #endif /* NET_CON_ECHO */
 
    socket_address.sll_halen = ETHER_ADDRLEN;
    socket_address.sll_ifindex = if_idx;
-   memcpy( socket_address.sll_addr, pkt->header.src_mac, ETHER_ADDRLEN );
+   memcpy( socket_address.sll_addr, frame->header.src_mac, ETHER_ADDRLEN );
 
    if( 0 > sendto( socket, bdata( buffer ), blength( buffer ), 0,
       (struct sockaddr*)&socket_address, sizeof( struct sockaddr_ll ) )
    ) {
-      perror( "Unable to send packet" );
+      perror( "Unable to send frame" );
    }
 
    return sent;
 }
 
-struct ether_packet* net_poll_packet( int socket ) {
-   struct ether_packet* pkt = NULL;
+struct ether_frame* net_poll_frame( int socket ) {
+   struct ether_frame* frame = NULL;
    const uint8_t* buffer = NULL;
-   struct pcap_pkthdr pkt_pcap_hdr = { 0 };
+   struct pcap_pkthdr frame_pcap_hdr = { 0 };
 
-   buffer = pcap_next( g_listen_socket, &pkt_pcap_hdr );
+   buffer = pcap_next( g_listen_socket, &frame_pcap_hdr );
    if( NULL == buffer ) {
       /* Nothing to read. */
       goto cleanup;
    }
 
-   pkt = calloc( pkt_pcap_hdr.len, 1 );
-   memcpy( pkt, buffer, pkt_pcap_hdr.len );
+   frame = calloc( frame_pcap_hdr.len, 1 );
+   memcpy( frame, buffer, frame_pcap_hdr.len );
 
 cleanup:
-   return pkt;
+   return frame;
 }
 
