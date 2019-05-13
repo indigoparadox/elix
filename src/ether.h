@@ -30,7 +30,7 @@ struct ether_header {
    uint16_t type;
 } __attribute__((packed));
 
-struct ether_packet {
+struct ether_frame {
    struct ether_header header;
    char data[];
 } __attribute__((packed));
@@ -54,7 +54,7 @@ struct arp_packet_ipv4 {
 #define ether_htons( input ) ether_ntohs( input )
 #define ether_htonl( input ) ether_ntohl( input )
 
-struct ether_packet* ether_new_packet(
+struct ether_frame* ether_new_frame(
    uint8_t src_mac[6], uint8_t dest_mac[6], enum ether_type type,
    void* data, size_t data_len );
 struct arp_packet_ipv4* ether_new_arp_packet_ipv4(

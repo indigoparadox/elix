@@ -12,10 +12,10 @@
 
 int net_open_socket( bstring if_name, int* if_idx, uint8_t* src_mac );
 void net_close_socket( int socket );
-int net_send_packet(
-   int socket, int if_idx, struct ether_packet* pkt, size_t pkt_len );
-struct ether_packet* net_poll_packet( int socket );
-void net_print_packet( struct ether_packet* pkt, size_t pkg_len );
+int net_send_frame(
+   int socket, int if_idx, struct ether_frame* pkt, size_t pkt_len );
+struct ether_frame* net_poll_frame( int socket );
+void net_print_frame( struct ether_frame* pkt, size_t pkg_len );
 
 #endif /* NET_H */
 

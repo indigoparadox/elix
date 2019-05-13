@@ -19,29 +19,29 @@ START_TEST( test_ether_htons ) {
 }
 END_TEST
 
-START_TEST( test_ether_new_packet ) {
-   struct ether_packet* packet = NULL;
+START_TEST( test_ether_new_frame ) {
+   struct ether_frame* frame = NULL;
    enum ether_type type = ETHER_TYPE_ARP;
    int i = 0;
    uint8_t test_data[10] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
 
-   packet = ether_new_packet( g_src_mac, g_bcast_mac, type, test_data, 10 );
+   frame = ether_new_frame( g_src_mac, g_bcast_mac, type, test_data, 10 );
 
-   ck_assert_int_eq( packet->header.type, ether_ntohs( (uint16_t)type ) );
+   ck_assert_int_eq( frame->header.type, ether_ntohs( (uint16_t)type ) );
 
    for( i = 0 ; 6 > i ; i++ ) {
-      ck_assert_int_eq( packet->header.src_mac[i], g_src_mac[i] );
+      ck_assert_int_eq( frame->header.src_mac[i], g_src_mac[i] );
    }
 
    for( i = 0 ; 6 > i ; i++ ) {
-      ck_assert_int_eq( packet->header.dest_mac[i], g_bcast_mac[i] );
+      ck_assert_int_eq( frame->header.dest_mac[i], g_bcast_mac[i] );
    }
 
    for( i = 0 ; 10 > i ; i++ ) {
-      ck_assert_int_eq( packet->data[i], test_data[i] );
+      ck_assert_int_eq( frame->data[i], test_data[i] );
    }
 
-   //free( packet );
+   //free( frame );
 }
 END_TEST
 
@@ -55,7 +55,7 @@ Suite* ether_suite( void ) {
    tc_core = tcase_create( "Core" );
 
    tcase_add_test( tc_core, test_ether_htons );
-   tcase_add_test( tc_core, test_ether_new_packet );
+   tcase_add_test( tc_core, test_ether_new_frame );
 
    suite_add_tcase( s, tc_core );
 
