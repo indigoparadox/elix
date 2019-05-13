@@ -21,6 +21,7 @@ int main( int argc, char** argv ) {
    int if_idx = 0;
    struct arp_packet_ipv4* arp = NULL;
    int frame_len = 0;
+   int response_len = 0;
 
    if_name = bfromcstr( "eth0" );
 
@@ -66,7 +67,8 @@ int main( int argc, char** argv ) {
                   arp_respond( 
                      (struct arp_header*)(frame->data),
                      frame_len - sizeof( struct ether_header ),
-                     src_mac, ETHER_ADDRLEN, g_src_ip, ETHER_ADDRLEN_IPV4 );
+                     src_mac, ETHER_ADDRLEN, g_src_ip, ETHER_ADDRLEN_IPV4,
+                     &response_len );
                }
                mem_free( frame );
                continue;

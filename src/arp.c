@@ -56,9 +56,10 @@ void arp_print_packet( struct arp_header* header, int packet_len ) {
 /* Accept the header because it could be any kind of ARP packet. */
 struct arp_header* arp_respond( 
    struct arp_header* header, int packet_len,
-   uint8_t* my_mac, size_t my_mac_len, uint8_t* my_ip, size_t my_ip_len
+   uint8_t* my_mac, int my_mac_len, uint8_t* my_ip, int my_ip_len,
+   int* response_len
 ) {
-   struct arp_header* header_ret = NULL;
+   struct arp_header* response = NULL;
    uint8_t* arp_packet_data = (uint8_t*)header;
 
    if( my_ip_len != header->protosize || my_mac_len < header->hwsize ) {
@@ -74,12 +75,20 @@ struct arp_header* arp_respond(
    arp_packet_data += header->hwsize;
    arp_packet_data += header->protosize;
    arp_packet_data += header->hwsize;
-   if( 0 == memcmp( arp_packet_data, my_ip, my_ip_len ) ) {
-      printf( "It's me!\n" );
+   if( 0 != memcmp( arp_packet_data, my_ip, my_ip_len ) ) {
+      goto cleanup;
    }
+   arp_packet_data += header->protosize;
+
+   *response_len = (2 * header->hwsize) + (2 * header->protosize) +
+      sizeof( struct arp_header );
+
+   response = mem_alloc( 1, *response_len );
+
+   printf( "It's me!\n" );
 
 cleanup:
-   return header_ret;
+   return response;
 }
 
 struct arp_packet_ipv4* arp_new_packet_ipv4(
