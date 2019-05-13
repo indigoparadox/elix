@@ -22,7 +22,7 @@ struct ether_packet* ether_new_packet(
 
    memcpy( header_out->src_mac, src_mac, 6 );
    memcpy( header_out->dest_mac, dest_mac, 6 );
-   header_out->type = ether_ntohs( (uint16_t)type );
+   header_out->type = ether_htons( (uint16_t)type );
    memcpy( packet_out->data, data, data_len );
 
 cleanup:
@@ -43,8 +43,8 @@ struct arp_packet_ipv4* ether_new_arp_packet_ipv4(
    }
    arp_hdr_out = (struct arp_header*)arp_packet_out;
 
-   arp_hdr_out->hwtype = ether_ntohs( (uint16_t)ETHER_TYPE_ETHER );
-   arp_hdr_out->prototype = ether_ntohs( (uint16_t)ETHER_TYPE_IPV4 );
+   arp_hdr_out->hwtype = ether_htons( (uint16_t)ETHER_TYPE_ETHER );
+   arp_hdr_out->prototype = ether_htons( (uint16_t)ETHER_TYPE_IPV4 );
    arp_hdr_out->hwsize = 6;
    arp_hdr_out->protosize = 4;
    arp_hdr_out->opcode = ether_ntohs( (uint16_t)op );

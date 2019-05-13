@@ -15,7 +15,7 @@ int main( int argc, char** argv ) {
    //bstring send_buffer = NULL;
    uint8_t src_mac[6] = { 0 };
    struct ether_packet* packet = NULL;
-   enum ether_type type = ETHER_TYPE_IPV4;
+   enum ether_type type = ETHER_TYPE_ARP;
    int retval = 0;
    int if_idx = 0;
    struct arp_packet_ipv4* arp = NULL;
