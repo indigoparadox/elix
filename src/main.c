@@ -22,6 +22,7 @@ int main( int argc, char** argv ) {
    struct arp_packet_ipv4* arp = NULL;
    int frame_len = 0;
    int response_len = 0;
+   int mac_len = 0;
 
    if_name = bfromcstr( "eth0" );
 
@@ -74,14 +75,17 @@ int main( int argc, char** argv ) {
                   if( NULL == arp ) {
                      continue;
                   }
+
+                  /* Send ARP response inside of a new ethernet frame. */
                   frame = ether_new_frame(
-                     src_mac, arp_get, type, arp,
+                     src_mac, arp_get_dest_mac( &mac_len, arp ), type, arp,
                      sizeof( struct arp_packet_ipv4 ) );
                   if( NULL == frame ) {
                      do_error( "Unable to create frame" );
                      retval = 1;
                      goto cleanup;
                   }
+                  net_send_frame( sockfd, if_idx, frame, frame_len );
 
                }
                continue;

@@ -53,6 +53,26 @@ void arp_print_packet( struct arp_header* header, int packet_len ) {
 }
 #endif /* NET_CON_ECHO */
 
+uint8_t* arp_get_dest_mac( int* mac_len, struct arp_header* arp ) {
+   uint8_t* arp_packet_data = (uint8_t*)arp;
+   uint8_t* mac_out = NULL;
+
+   *mac_len = arp->hwsize;
+   mac_out = calloc( *mac_len, 1 );
+   if( NULL == mac_out ) {
+      perror( "Unable to allocate MAC buffer" );
+      goto cleanup;
+   }
+
+   arp_packet_data += sizeof( struct arp_header );
+   arp_packet_data += arp->hwsize;
+   arp_packet_data += arp->protosize;
+   memcpy( mac_out, arp_packet_data, arp->hwsize );
+
+cleanup:
+   return mac_out;
+}
+
 /* Accept the header because it could be any kind of ARP packet. */
 struct arp_header* arp_respond( 
    struct arp_header* header, int packet_len,
