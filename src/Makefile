@@ -5,10 +5,10 @@ DEPS=tcp.o drivers/vnet.o bstrlib.o ether.o vm.o
 all: alixnet tests
 
 alixnet: main.o $(DEPS)
-	$(CC) -o $@ $^ $(CFLAGS)
+	$(CC) -o $@ $^ $(CFLAGS) -lpcap
 
 tests: $(DEPS) ../tests/check.c ../tests/check_ether.c
-	$(CC) -o $@ $^ $(CFLAGS) -lcheck -lpthread -lm -lrt
+	$(CC) -o $@ $^ $(CFLAGS) -lcheck -lpthread -lm -lrt -lpcap
 
 %.o: %.c
 	$(CC) -c -o $@ $< $(CFLAGS)
