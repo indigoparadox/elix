@@ -1,11 +1,14 @@
 
 CFLAGS=-Wall -g -DNET_CON_ECHO
-DEPS=main.o tcp.o drivers/vnet.o bstrlib.o ether.o vm.o
+DEPS=tcp.o drivers/vnet.o bstrlib.o ether.o vm.o
 
-all: alixnet
+all: alixnet tests
 
-alixnet: $(DEPS)
+alixnet: main.o $(DEPS)
 	$(CC) -o $@ $^ $(CFLAGS)
+
+tests: $(DEPS) ../tests/check.c ../tests/check_ether.c
+	$(CC) -o $@ $^ $(CFLAGS) -lcheck -lpthread -lm -lrt
 
 %.o: %.c
 	$(CC) -c -o $@ $< $(CFLAGS)
@@ -13,5 +16,5 @@ alixnet: $(DEPS)
 .PHONY: clean
 
 clean:
-	rm -f *.o ; rm -f drivers/*.o ; rm alixnet
+	rm -f *.o ; rm -f drivers/*.o ; rm -f ../tests/*.o ; rm tests ; rm alixnet
 
