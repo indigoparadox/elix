@@ -30,6 +30,7 @@ enum arp_opcode {
 };
 
 void arp_print_packet( struct arp_header* header, int packet_len );
+uint8_t* arp_get_dest_mac( int* mac_len, struct arp_header* arp );
 struct arp_header* arp_respond(
    struct arp_header* header, int packet_len,
    uint8_t* my_mac, int my_mac_len, uint8_t* my_ip, int my_ip_len,
