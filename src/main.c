@@ -5,6 +5,7 @@
 #include "net.h"
 #include "ether.h"
 #include "mem.h"
+#include "arp.h"
 
 uint8_t g_bcast_mac[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 uint8_t g_src_ip[4] = { 192, 168, 1, 22 };
@@ -32,7 +33,7 @@ int main( int argc, char** argv ) {
    }
 
    /* Create an ARP request. */
-   arp = ether_new_arp_packet_ipv4(
+   arp = arp_new_packet_ipv4(
       ARP_REQUEST, src_mac, g_bcast_mac, g_src_ip, NULL );
 
    /* Create a frame using the MAC from the socket above. */
@@ -59,6 +60,10 @@ int main( int argc, char** argv ) {
       frame = net_poll_frame( sockfd );
       if( NULL != frame ) {
          net_print_frame( frame, sizeof( struct ether_header ) );
+      }
+      switch( frame->header.type ) {
+         //1case ETHER_TYPE_ARP:
+           // break;
       }
    }
 
