@@ -11,17 +11,17 @@
 
 enum ether_type {
    ETHER_TYPE_ETHER = 1,
-   ETHER_TYPE_IPV4  = 0x0400,
+   ETHER_TYPE_IPV4  = 0x0800,
    ETHER_TYPE_ARP   = 0x0806,
    ETHER_TYPE_IPX   = 0x8137,
    ETHER_TYPE_IPV6  = 0x86dd
 };
 
 enum arp_opcode {
-   ARP_REQUEST    = 0x1,
-   ARP_REPLY      = 0x2,
-   ARP_RARP       = 0x3,
-   ARP_RARP_REPLY = 0x4
+   ARP_REQUEST    = 0x0001,
+   ARP_REPLY      = 0x0002,
+   ARP_RARP       = 0x0003,
+   ARP_RARP_REPLY = 0x0004
 };
 
 struct ether_header {
