@@ -14,8 +14,11 @@
 #include <sys/socket.h>
 #include <net/if.h>
 #include <sys/ioctl.h>
-//#include <netinet/ether.h>
 #include <unistd.h>
+#include <pcap.h>
+
+pcap_t* g_listen_socket = NULL;
+char g_pcap_errbuff[PCAP_ERRBUF_SIZE] = { 0 };
 
 /* Open a socket and get the MAC address the socket will send from. */
 int net_open_socket( bstring ifname, int* if_idx, uint8_t mac_addr[6] ) {
@@ -60,8 +63,25 @@ int net_open_socket( bstring ifname, int* if_idx, uint8_t mac_addr[6] ) {
       mac_addr[i] = ((uint8_t*)&if_mac.ifr_hwaddr.sa_data)[i];
    }
 
+   /* Open up a listening "socket" with PCAP. */
+   g_listen_socket = pcap_open_live( bdata( ifname ), RECV_BUFFER_LEN, 0, 512,
+      g_pcap_errbuff );
+   if( NULL == g_listen_socket ) {
+      perror( "Unable to open listening socket" );
+      goto cleanup;
+   }
+
 cleanup:
    return sockfd_out;
+}
+
+void net_close_socket( int socket ) {
+   if( NULL != g_listen_socket ) {
+      pcap_close( g_listen_socket );
+   }
+   if( 0 != socket ) {
+      close( socket );
+   }
 }
 
 void net_print_packet( struct ether_packet* pkt, size_t pkg_len ) {
@@ -78,7 +98,7 @@ void net_print_packet( struct ether_packet* pkt, size_t pkg_len ) {
    for( i = 0 ; ETHER_ADDRLEN > i ; i++ ) {
       printf( "%02X ", pkt->header.dest_mac[i] );
    }
-   printf( "\nType: %02X %02X", type[0], type[1]  );
+   printf( "\nType: %02X %02X\n", type[0], type[1]  );
 }
 
 int net_send_packet( 
@@ -117,9 +137,21 @@ int net_send_packet(
    return sent;
 }
 
-bstring net_poll() {
-   bstring rcvd = NULL;
+struct ether_packet* net_poll_packet( int socket ) {
+   struct ether_packet* pkt = NULL;
+   const uint8_t* buffer = NULL;
+   struct pcap_pkthdr pkt_pcap_hdr = { 0 };
 
-   return rcvd;
+   buffer = pcap_next( g_listen_socket, &pkt_pcap_hdr );
+   if( NULL == buffer ) {
+      /* Nothing to read. */
+      goto cleanup;
+   }
+
+   pkt = calloc( pkt_pcap_hdr.len, 1 );
+   memcpy( pkt, buffer, pkt_pcap_hdr.len );
+
+cleanup:
+   return pkt;
 }
 

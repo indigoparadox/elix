@@ -53,9 +53,18 @@ int main( int argc, char** argv ) {
       goto cleanup;
    }*/
    net_send_packet( sockfd, if_idx, packet, packet_len );
+   mem_free( packet );
+
+   while( 1 ) {
+      packet = net_poll_packet( sockfd );
+      if( NULL != packet ) {
+         net_print_packet( packet, sizeof( struct ether_header ) );
+      }
+   }
 
 cleanup:
    mem_free( packet );
+   net_close_socket( sockfd );
    return retval;
 }
 
