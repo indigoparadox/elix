@@ -64,13 +64,26 @@ int main( int argc, char** argv ) {
                   ARP_REQUEST == ether_ntohs(
                      ((struct arp_header*)(frame->data))->opcode )
                ) {
-                  arp_respond( 
+                  arp = arp_respond( 
                      (struct arp_header*)(frame->data),
                      frame_len - sizeof( struct ether_header ),
                      src_mac, ETHER_ADDRLEN, g_src_ip, ETHER_ADDRLEN_IPV4,
                      &response_len );
+
+                  mem_free( frame );
+                  if( NULL == arp ) {
+                     continue;
+                  }
+                  frame = ether_new_frame(
+                     src_mac, arp_get, type, arp,
+                     sizeof( struct arp_packet_ipv4 ) );
+                  if( NULL == frame ) {
+                     do_error( "Unable to create frame" );
+                     retval = 1;
+                     goto cleanup;
+                  }
+
                }
-               mem_free( frame );
                continue;
 
             default:
