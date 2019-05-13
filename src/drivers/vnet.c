@@ -84,6 +84,7 @@ void net_close_socket( int socket ) {
    }
 }
 
+#ifdef NET_CON_ECHO
 void net_print_frame( struct ether_frame* frame, size_t frame_len ) {
    int i = 0;
    uint8_t type[2] = { 0 };
@@ -93,11 +94,7 @@ void net_print_frame( struct ether_frame* frame, size_t frame_len ) {
 
    buffer = blk2bstr( frame, frame_len );
    for( i = 0 ; blength( buffer ) > i ; i++ ) {
-      //if( '\0' == bchar( buffer, i ) ) {
-         printf( "%02X ", (unsigned int)(unsigned char)bchar( buffer, i ) );
-      //} else {
-      //   printf( "%c", bchar( buffer, i ) );
-      //}
+      printf( "%02X ", (unsigned int)(unsigned char)bchar( buffer, i ) );
    }
    printf( "\n" );
  
@@ -111,9 +108,10 @@ void net_print_frame( struct ether_frame* frame, size_t frame_len ) {
    }
    printf( "\nType: %02X %02X\n", type[0], type[1]  );
 
-cleanup:
+/* cleanup: */
    bdestroy( buffer );
 }
+#endif /* NET_CON_ECHO */
 
 int net_send_frame( 
    int socket, int if_idx, struct ether_frame* frame, size_t frame_len
@@ -133,7 +131,7 @@ int net_send_frame(
       perror( "Unable to send frame" );
    }
 
-cleanup:
+/* cleanup: */
    bdestroy( buffer );
    return sent;
 }
@@ -141,7 +139,7 @@ cleanup:
 struct ether_frame* net_poll_frame( int socket, int* frame_len ) {
    struct ether_frame* frame = NULL;
    const uint8_t* buffer = NULL;
-   struct pcap_pkthdr frame_pcap_hdr = { 0 };
+   struct pcap_pkthdr frame_pcap_hdr;
 
    buffer = pcap_next( g_listen_socket, &frame_pcap_hdr );
    if( NULL == buffer ) {
@@ -149,6 +147,7 @@ struct ether_frame* net_poll_frame( int socket, int* frame_len ) {
       goto cleanup;
    }
 
+   /* Copy the frame to a disposable buffer for use elsewhere. */
    *frame_len = frame_pcap_hdr.len;
    frame = calloc( frame_pcap_hdr.len, 1 );
    memcpy( frame, buffer, frame_pcap_hdr.len );

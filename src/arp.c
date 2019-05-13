@@ -5,6 +5,7 @@
 
 #include "mem.h"
 
+#ifdef NET_CON_ECHO
 void arp_print_packet( struct arp_header* header, int packet_len ) {
    int i = 0;
    uint8_t hwtype[2] = { 0 };
@@ -47,9 +48,10 @@ void arp_print_packet( struct arp_header* header, int packet_len ) {
    }
    printf( "\n   Protocol: %02X %02X\n", prototype[0], prototype[1]  );
 
-cleanup:
+/* cleanup: */
    bdestroy( buffer );
 }
+#endif /* NET_CON_ECHO */
 
 /* Accept the header because it could be any kind of ARP packet. */
 struct arp_header* arp_respond( 
@@ -64,7 +66,9 @@ struct arp_header* arp_respond(
       goto cleanup;
    }
 
+#ifdef NET_CON_ECHO
    arp_print_packet( header, packet_len );
+#endif /* NET_CON_ECHO */
 
    arp_packet_data += sizeof( struct arp_header );
    arp_packet_data += header->hwsize;
@@ -97,6 +101,8 @@ struct arp_packet_ipv4* arp_new_packet_ipv4(
    arp_hdr_out->hwsize = 6;
    arp_hdr_out->protosize = 4;
    arp_hdr_out->opcode = ether_ntohs( (uint16_t)op );
+
+   /* Fill out whatever addresses we were given. */
 
    if( NULL != src_mac ) {
       memcpy( arp_packet_out->src_mac, src_mac, ETHER_ADDRLEN );
