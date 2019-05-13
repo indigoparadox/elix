@@ -14,7 +14,6 @@ uint8_t g_search_ip[4] = { 10, 137, 2, 11 };
 int main( int argc, char** argv ) {
    int sockfd = 0;
    bstring if_name = NULL;
-   //bstring send_buffer = NULL;
    uint8_t src_mac[6] = { 0 };
    struct ether_frame* frame = NULL;
    enum ether_type type = ETHER_TYPE_ARP;
@@ -49,14 +48,10 @@ int main( int argc, char** argv ) {
    /* Flatten the frame into a buffer and send it. */
    frame_len =
       sizeof( struct ether_header ) + sizeof( struct arp_packet_ipv4 );
-   /*send_buffer = blk2bstr( packet, packet_len );
-   if( NULL == send_buffer ) {
-      perror( "Unable to allocate packet data buffer" );
-      goto cleanup;
-   }*/
    net_send_frame( sockfd, if_idx, frame, frame_len );
    mem_free( frame );
 
+   /* Listen for and handle incoming packets. */
    while( 1 ) {
       frame = net_poll_frame( sockfd, &frame_len );
       if( NULL != frame ) {
