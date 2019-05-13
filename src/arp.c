@@ -61,6 +61,10 @@ struct arp_header* arp_respond(
 ) {
    struct arp_header* response = NULL;
    uint8_t* arp_packet_data = (uint8_t*)header;
+   uint8_t* incoming_mac = NULL;
+   uint8_t* incoming_ip = NULL;
+
+   *response_len = 0;
 
    if( my_ip_len != header->protosize || my_mac_len < header->hwsize ) {
       /* Weird address size. Nothing to do with us! */
@@ -71,21 +75,41 @@ struct arp_header* arp_respond(
    arp_print_packet( header, packet_len );
 #endif /* NET_CON_ECHO */
 
+   /* Bump the pointer out to the "target" layer-3 address and compare. */
    arp_packet_data += sizeof( struct arp_header );
+   incoming_mac = arp_packet_data; /* Use for response below. */
    arp_packet_data += header->hwsize;
+   incoming_ip = arp_packet_data; /* Use for response below. */
    arp_packet_data += header->protosize;
    arp_packet_data += header->hwsize;
    if( 0 != memcmp( arp_packet_data, my_ip, my_ip_len ) ) {
       goto cleanup;
    }
-   arp_packet_data += header->protosize;
 
-   *response_len = (2 * header->hwsize) + (2 * header->protosize) +
-      sizeof( struct arp_header );
-
+   /* Create a response packet and fill it out. */
+   /* *response_len = (2 * header->hwsize) + (2 * header->protosize) +
+      sizeof( struct arp_header ); */
+   *response_len = packet_len;
    response = mem_alloc( 1, *response_len );
+   memcpy( response, header, *response_len );
+   response->opcode = ARP_REPLY;
 
+   /* Move to the packet body and fill it out using info from above. Packets
+    * should be near-identical in this case, due to testing above.
+    */
+   arp_packet_data = (uint8_t*)response;
+   arp_packet_data += sizeof( struct arp_header );
+   memcpy( arp_packet_data, my_mac, my_mac_len );
+   arp_packet_data += header->hwsize;
+   memcpy( arp_packet_data, my_ip, my_ip_len );
+   arp_packet_data += header->protosize;
+   memcpy( arp_packet_data, incoming_mac, header->hwsize );
+   arp_packet_data += header->hwsize;
+   memcpy( arp_packet_data, incoming_ip, header->protosize );
+
+#ifdef NET_CON_ECHO
    printf( "It's me!\n" );
+#endif /* NET_CON_ECHO */
 
 cleanup:
    return response;
