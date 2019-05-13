@@ -5,8 +5,74 @@
 
 #include "mem.h"
 
-void ether_arp_respond( struct arp_packet_ipv4* packet ) {
+void arp_print_packet( struct arp_header* header, int packet_len ) {
+   int i = 0;
+   uint8_t hwtype[2] = { 0 };
+   uint8_t prototype[2] = { 0 };
+   bstring buffer = NULL;
+   uint8_t* arp_packet_data = (uint8_t*)header;
 
+   *(uint16_t*)hwtype = ether_ntohs( header->hwtype );
+   *(uint16_t*)prototype = ether_ntohs( header->prototype );
+
+   buffer = blk2bstr( header, packet_len );
+   printf( "   " );
+   for( i = 0 ; blength( buffer ) > i ; i++ ) {
+      printf( "%02X ", (unsigned int)(unsigned char)bchar( buffer, i ) );
+      if( 0 == i % 8 && 0 != i ) {
+         printf( "\n   " );
+      }
+   }
+   printf( "\n" );
+
+   printf( "   *Packet Information:\n   Hardware: %02X %02X\n",
+      hwtype[0], hwtype[1] );
+
+   arp_packet_data += sizeof( struct arp_header );
+   printf( "   Source MAC: " );
+   for( i = 0 ; header->hwsize > i ; i++ ) {
+      printf( "%02X ", *(arp_packet_data++) );
+   }
+   printf( "\n   Source IP: " );
+   for( i = 0 ; header->protosize > i ; i++ ) {
+      printf( "%hhu ", *(arp_packet_data++) );
+   }
+   printf( "\n   Dest MAC: " );
+   for( i = 0 ; header->hwsize > i ; i++ ) {
+      printf( "%02X ", *(arp_packet_data++) );
+   }
+   printf( "\n   Dest IP: " );
+   for( i = 0 ; header->protosize > i ; i++ ) {
+      printf( "%hhu ", *(arp_packet_data++) );
+   }
+   printf( "\n   Protocol: %02X %02X\n", prototype[0], prototype[1]  );
+}
+
+/* Accept the header because it could be any kind of ARP packet. */
+struct arp_header* arp_respond( 
+   struct arp_header* header, int packet_len,
+   uint8_t* my_mac, size_t my_mac_len, uint8_t* my_ip, size_t my_ip_len
+) {
+   struct arp_header* header_ret = NULL;
+   uint8_t* arp_packet_data = (uint8_t*)header;
+
+   if( my_ip_len != header->protosize || my_mac_len < header->hwsize ) {
+      /* Weird address size. Nothing to do with us! */
+      goto cleanup;
+   }
+
+   arp_print_packet( header, packet_len );
+
+   arp_packet_data += sizeof( struct arp_header );
+   arp_packet_data += header->hwsize;
+   arp_packet_data += header->protosize;
+   arp_packet_data += header->hwsize;
+   if( 0 == memcmp( arp_packet_data, my_ip, my_ip_len ) ) {
+      printf( "It's me!\n" );
+   }
+
+cleanup:
+   return header_ret;
 }
 
 struct arp_packet_ipv4* arp_new_packet_ipv4(

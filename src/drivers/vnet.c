@@ -87,10 +87,21 @@ void net_close_socket( int socket ) {
 void net_print_frame( struct ether_frame* frame, size_t frame_len ) {
    int i = 0;
    uint8_t type[2] = { 0 };
+   bstring buffer = NULL;
 
    *(uint16_t*)type = ether_ntohs( frame->header.type );
 
-   printf( "Packet Information:\nSource MAC: " );
+   buffer = blk2bstr( frame, frame_len );
+   for( i = 0 ; blength( buffer ) > i ; i++ ) {
+      //if( '\0' == bchar( buffer, i ) ) {
+         printf( "%02X ", (unsigned int)(unsigned char)bchar( buffer, i ) );
+      //} else {
+      //   printf( "%c", bchar( buffer, i ) );
+      //}
+   }
+   printf( "\n" );
+ 
+   printf( "*Frame Information:\nSource MAC: " );
    for( i = 0 ; ETHER_ADDRLEN > i ; i++ ) {
       printf( "%02X ", frame->header.src_mac[i] );
    }
@@ -106,28 +117,13 @@ int net_send_frame(
 ) {
    size_t sent = 0;
    struct sockaddr_ll socket_address = { 0 };
-#ifdef NET_CON_ECHO
-   int i = 0;
    bstring buffer = NULL;
-#endif /* NET_CON_ECHO */
-
-#ifdef NET_CON_ECHO
-   buffer = blk2bstr( frame, frame_len );
-   for( i = 0 ; blength( buffer ) > i ; i++ ) {
-      if( '\0' == bchar( buffer, i ) ) {
-         printf( "%02X", (unsigned int)(unsigned char)bchar( buffer, i ) );
-      } else {
-         printf( "%c", bchar( buffer, i ) );
-      }
-   }
-   printf( "\n" );
-   net_print_frame( frame, frame_len );
-#endif /* NET_CON_ECHO */
 
    socket_address.sll_halen = ETHER_ADDRLEN;
    socket_address.sll_ifindex = if_idx;
    memcpy( socket_address.sll_addr, frame->header.src_mac, ETHER_ADDRLEN );
 
+   buffer = blk2bstr( frame, frame_len );
    if( 0 > sendto( socket, bdata( buffer ), blength( buffer ), 0,
       (struct sockaddr*)&socket_address, sizeof( struct sockaddr_ll ) )
    ) {
@@ -137,7 +133,7 @@ int net_send_frame(
    return sent;
 }
 
-struct ether_frame* net_poll_frame( int socket ) {
+struct ether_frame* net_poll_frame( int socket, int* frame_len ) {
    struct ether_frame* frame = NULL;
    const uint8_t* buffer = NULL;
    struct pcap_pkthdr frame_pcap_hdr = { 0 };
@@ -148,6 +144,7 @@ struct ether_frame* net_poll_frame( int socket ) {
       goto cleanup;
    }
 
+   *frame_len = frame_pcap_hdr.len;
    frame = calloc( frame_pcap_hdr.len, 1 );
    memcpy( frame, buffer, frame_pcap_hdr.len );
 
