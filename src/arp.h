@@ -29,6 +29,10 @@ enum arp_opcode {
    ARP_RARP_REPLY = 0x0004
 };
 
+void arp_print_packet( struct arp_header* header, int packet_len );
+struct arp_header* arp_respond(
+   struct arp_header* header, int packet_len,
+   uint8_t* my_mac, size_t my_mac_len, uint8_t* my_ip, size_t my_ip_len );
 struct arp_packet_ipv4* arp_new_packet_ipv4(
    enum arp_opcode op, const uint8_t* src_mac, const uint8_t* dest_mac,
    const uint8_t* src_ip, const uint8_t* dest_ip );

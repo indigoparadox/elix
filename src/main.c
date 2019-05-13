@@ -8,7 +8,8 @@
 #include "arp.h"
 
 uint8_t g_bcast_mac[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
-uint8_t g_src_ip[4] = { 192, 168, 1, 22 };
+uint8_t g_src_ip[4] = { 10, 137, 2, 88 };
+uint8_t g_search_ip[4] = { 10, 137, 2, 11 };
 
 int main( int argc, char** argv ) {
    int sockfd = 0;
@@ -20,7 +21,7 @@ int main( int argc, char** argv ) {
    int retval = 0;
    int if_idx = 0;
    struct arp_packet_ipv4* arp = NULL;
-   size_t frame_len = 0;
+   int frame_len = 0;
 
    if_name = bfromcstr( "eth0" );
 
@@ -34,7 +35,7 @@ int main( int argc, char** argv ) {
 
    /* Create an ARP request. */
    arp = arp_new_packet_ipv4(
-      ARP_REQUEST, src_mac, g_bcast_mac, g_src_ip, NULL );
+      ARP_REQUEST, src_mac, g_bcast_mac, g_src_ip, g_search_ip );
 
    /* Create a frame using the MAC from the socket above. */
    frame = ether_new_frame(
@@ -57,13 +58,23 @@ int main( int argc, char** argv ) {
    mem_free( frame );
 
    while( 1 ) {
-      frame = net_poll_frame( sockfd );
+      frame = net_poll_frame( sockfd, &frame_len );
       if( NULL != frame ) {
-         net_print_frame( frame, sizeof( struct ether_header ) );
-      }
-      switch( frame->header.type ) {
-         //1case ETHER_TYPE_ARP:
-           // break;
+         net_print_frame( frame, frame_len );
+         switch( ether_ntohs( frame->header.type ) ) {
+            case ETHER_TYPE_ARP:
+               /* Shuck the Ethernet frame and handle the packet. */
+               if(
+                  ARP_REQUEST == ether_ntohs(
+                     ((struct arp_header*)(frame->data))->opcode )
+               ) {
+                  arp_respond( 
+                     (struct arp_header*)(frame->data),
+                     frame_len - sizeof( struct ether_header ),
+                     src_mac, ETHER_ADDRLEN, g_src_ip, ETHER_ADDRLEN_IPV4 );
+               }
+               continue;
+         }
       }
    }
 
