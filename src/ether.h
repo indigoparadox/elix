@@ -51,6 +51,9 @@ struct arp_packet_ipv4 {
    uint8_t dest_ip[ETHER_ADDRLEN_IPV4];
 } __attribute__((packed));
 
+#define ether_htons( input ) ether_ntohs( input )
+#define ether_htonl( input ) ether_ntohl( input )
+
 struct ether_packet* ether_new_packet(
    uint8_t src_mac[6], uint8_t dest_mac[6], enum ether_type type,
    void* data, size_t data_len );

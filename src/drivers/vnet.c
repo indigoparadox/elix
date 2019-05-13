@@ -24,6 +24,7 @@ int net_open_socket( bstring ifname, int* if_idx, uint8_t mac_addr[6] ) {
    struct ifreq if_mac;
    char* if_name_c = NULL;
    size_t if_name_len = 0;
+   int i = 0;
    
    /* Open a raw socket from the host OS. */
    if( -1 == (sockfd_out = socket( AF_PACKET, SOCK_RAW, IPPROTO_RAW)) ) {
@@ -55,9 +56,29 @@ int net_open_socket( bstring ifname, int* if_idx, uint8_t mac_addr[6] ) {
       sockfd_out = -1;
       goto cleanup;
    }
+   for( i = 0 ; ETHER_ADDRLEN > i ; i++ ) {
+      mac_addr[i] = ((uint8_t*)&if_mac.ifr_hwaddr.sa_data)[i];
+   }
 
 cleanup:
    return sockfd_out;
+}
+
+void net_print_packet( struct ether_packet* pkt, size_t pkg_len ) {
+   int i = 0;
+   uint8_t type[2] = { 0 };
+
+   *(uint16_t*)type = ether_ntohs( pkt->header.type );
+
+   printf( "Packet Information:\nSource MAC: " );
+   for( i = 0 ; ETHER_ADDRLEN > i ; i++ ) {
+      printf( "%02X ", pkt->header.src_mac[i] );
+   }
+   printf( "\nDest MAC: " );
+   for( i = 0 ; ETHER_ADDRLEN > i ; i++ ) {
+      printf( "%02X ", pkt->header.dest_mac[i] );
+   }
+   printf( "\nType: %02X %02X", type[0], type[1]  );
 }
 
 int net_send_packet( 
@@ -80,6 +101,7 @@ int net_send_packet(
       }
    }
    printf( "\n" );
+   net_print_packet( pkt, pkt_len );
 #endif /* NET_CON_ECHO */
 
    socket_address.sll_halen = ETHER_ADDRLEN;
