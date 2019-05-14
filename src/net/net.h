@@ -4,7 +4,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include "bstrlib.h"
+#include "../bstrlib.h"
 
 #include "ether.h"
 

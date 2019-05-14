@@ -1,6 +1,6 @@
 
 CFLAGS=-Wall -g -DNET_CON_ECHO
-DEPS=tcp.o drivers/vnet.o bstrlib.o ether.o vm.o arp.o
+DEPS=net/tcp.o drivers/vnet.o bstrlib.o net/ether.o vm.o net/arp.o
 
 all: alixnet tests
 

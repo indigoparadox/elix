@@ -1,7 +1,7 @@
 
 #include "ether.h"
 
-#include "mem.h"
+#include "../mem.h"
 
 struct ether_frame* ether_new_frame(
    uint8_t src_mac[6], uint8_t dest_mac[6], enum ether_type type,

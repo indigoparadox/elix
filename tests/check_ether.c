@@ -1,7 +1,7 @@
 
 #include <check.h>
 #include <stdint.h>
-#include "../src/ether.h"
+#include "../src/net/ether.h"
 
 uint8_t g_src_mac[6] = { 0x01, 0x12, 0x23, 0x34, 0x45, 0x56 };
 uint8_t g_bcast_mac[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
