@@ -2,7 +2,7 @@
 MD=mkdir
 
 CFLAGS=-Wall -g -DNET_CON_ECHO
-SOURCES=./net/tcp.c ./bstrlib.c ./net/ether.c ./vm.c ./net/arp.c
+SOURCES=./net/tcp.c ./net/ether.c ./vm.c ./net/arp.c ./mem.c
 OBJECTS=$(subst .c,.o,$(SOURCES))
 LDFLAGS=
 
