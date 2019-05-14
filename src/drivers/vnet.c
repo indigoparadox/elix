@@ -60,7 +60,10 @@ void net_print_frame( struct ether_frame* frame, int frame_len ) {
 
    buffer_c = (char*)frame;
    for( i = 0 ; frame_len > i ; i++ ) {
-      printf( "%02X ",  buffer_c[i] );
+      printf( "%02X ", (uint8_t)buffer_c[i] );
+      if( 0 == (i + 1) % 16 ) {
+         printf( "\n" );
+      }
    }
    printf( "\n" );
  
