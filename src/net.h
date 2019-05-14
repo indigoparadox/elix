@@ -8,14 +8,16 @@
 
 #include "ether.h"
 
+#define NET_SOCK void*
+
 #define RECV_BUFFER_LEN 65535
 
-int net_open_socket( bstring if_name, int* if_idx, uint8_t* src_mac );
-void net_close_socket( int socket );
+NET_SOCK net_open_socket( bstring if_name );
+void net_close_socket( NET_SOCK socket );
 int net_send_frame(
-   int socket, int if_idx, struct ether_frame* pkt, size_t pkt_len );
-struct ether_frame* net_poll_frame( int socket, int* frame_len );
-void net_print_frame( struct ether_frame* pkt, size_t pkg_len );
+   NET_SOCK socket, struct ether_frame* frame, size_t frame_len );
+struct ether_frame* net_poll_frame( NET_SOCK socket, int* frame_len );
+void net_print_frame( struct ether_frame* frame, size_t frame_len );
 
 #endif /* NET_H */
 
