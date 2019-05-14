@@ -1,20 +1,47 @@
 
+MD=mkdir
+
 CFLAGS=-Wall -g -DNET_CON_ECHO
-DEPS=net/tcp.o drivers/vnet.o bstrlib.o net/ether.o vm.o net/arp.o
+SOURCES=./net/tcp.c ./bstrlib.c ./net/ether.c ./vm.c ./net/arp.c
+OBJECTS=$(subst .c,.o,$(SOURCES))
+LDFLAGS=
 
-all: alixnet tests
+lalixnet: CFLAGS += -DNET_CON_ECHO -g
+lalixnet: LDFLAGS += -lpcap
+lalixnet: OBJDIR := ../obj/linux
 
-alixnet: main.o $(DEPS)
-	$(CC) -o $@ $^ $(CFLAGS) -lpcap
+walixnet.exe: CC := i686-w64-mingw32-gcc
+walixnet.exe: CFLAGS += -DNET_CON_ECHO -g
+walixnet.exe: LDFLAGS += -lwpcap
+walixnet.exe: OBJDIR := ../obj/windows
 
-tests: $(DEPS) ../tests/check.c ../tests/check_ether.c
-	$(CC) -o $@ $^ $(CFLAGS) -lcheck -lpthread -lm -lrt -lpcap
+alix.bin: CFLAGS += -ffreestanding
+alix.bin: OBJDIR := ../obj/os
+alix.bin: LDFLAGS := -Ttext 0x0 --oformat binary
+
+tests: LDFLAGS += -lcheck -lpthread -lm -lrt -lpcap
+tests: OBJDIR := ../obj/tests
+
+all:
+
+lalixnet: $(OBJECTS) main.o drivers/vnet.o
+	$(CC) -o $@ $(addprefix $(OBJDIR)/,$^) $(LDFLAGS)
+
+walixnet.exe: $(OBJECTS) main.o drivers/vnet.o
+	$(CC) -o $@ $(addprefix $(OBJDIR)/,$^) $(LDFLAGS)
+
+alix.bin: $(OBJECTS)
+	$(LD) -o $@ $(addprefix $(OBJDIR)/,$^) $(LDFLAGS)
+
+tests: $(OBJECTS) drivers/vnet.o ../tests/check.o ../tests/check_ether.o
+	$(CC) -o $@ $(addprefix $(OBJDIR)/,$(subst ../tests,,$^)) $(LDFLAGS)
 
 %.o: %.c
-	$(CC) -c -o $@ $< $(CFLAGS)
+	$(MD) -p $(OBJDIR)/$(dir $@)
+	$(CC) -c -o $(OBJDIR)/$@ $< $(CFLAGS)
 
 .PHONY: clean
 
 clean:
-	rm -f *.o ; rm -f drivers/*.o ; rm -f ../tests/*.o ; rm tests ; rm alixnet
+	rm -rf ../obj ; rm tests ; rm lalixnet ; rm walixnet.exe
 
