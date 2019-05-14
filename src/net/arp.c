@@ -3,7 +3,7 @@
 
 #include <string.h>
 
-#include "mem.h"
+#include "../mem.h"
 
 #ifdef NET_CON_ECHO
 void arp_print_packet( struct arp_header* header, int packet_len ) {

@@ -2,10 +2,10 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "bstrlib.h"
-#include "net.h"
-#include "ether.h"
+#include "net/net.h"
+#include "net/ether.h"
 #include "mem.h"
-#include "arp.h"
+#include "net/arp.h"
 
 uint8_t g_bcast_mac[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 //uint8_t g_bcast_mac[6] = { 0xfe, 0xff, 0xff, 0xff, 0xff, 0xff };

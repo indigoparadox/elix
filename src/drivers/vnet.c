@@ -1,10 +1,10 @@
 
-#include "../net.h"
+#include "../net/net.h"
 
 /* This driver relies on a host OS anyway. */
 #include <stdio.h>
 
-#include "../ether.h"
+#include "../net/ether.h"
 #include "../mem.h"
 #ifdef NET_CON_ECHO
 #include "../bstrlib.h"

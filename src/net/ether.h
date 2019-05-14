@@ -3,7 +3,7 @@
 #define ETHER_H
 
 #include <stdint.h>
-#include "bstrlib.h"
+#include "../bstrlib.h"
 
 #define ETHER_BUFFER_SIZE 1024
 #define ETHER_ADDRLEN 6
