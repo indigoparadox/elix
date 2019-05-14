@@ -9,78 +9,45 @@
 #ifdef NET_CON_ECHO
 #include "../bstrlib.h"
 #endif /* NET_CON_ECHO */
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <arpa/inet.h>
 #include <linux/if_packet.h>
 #include <sys/socket.h>
 #include <net/if.h>
 #include <sys/ioctl.h>
+#endif /* _WIN32 */
 #include <unistd.h>
 #include <pcap.h>
 
-pcap_t* g_listen_socket = NULL;
 char g_pcap_errbuff[PCAP_ERRBUF_SIZE] = { 0 };
 
 /* Open a socket and get the MAC address the socket will send from. */
-int net_open_socket( bstring ifname, int* if_idx, uint8_t mac_addr[6] ) {
-   int sockfd_out = 0;
-   struct ifreq if_idx_req;
-   struct ifreq if_mac;
-   char* if_name_c = NULL;
-   size_t if_name_len = 0;
-   int i = 0;
+NET_SOCK net_open_socket( bstring ifname ) {
+   pcap_t* socket = NULL;
+   char* ifname_c = bdata( ifname ); /* Prevent warnings later. */
    
    /* Open a raw socket from the host OS. */
-   if( -1 == (sockfd_out = socket( AF_PACKET, SOCK_RAW, IPPROTO_RAW)) ) {
-      do_error( "Unable to open raw socket.\n" );
+#ifdef NET_CON_ECHO
+   printf( "Opening Socket on: %s\n", ifname_c );
+#endif /* NET_CON_ECHO */
+   socket = pcap_open_live( ifname_c, RECV_BUFFER_LEN, 1, 512, g_pcap_errbuff );
+   if( NULL == socket ) {
+      perror( "Unable to open raw socket" );
       goto cleanup;
    }
-
-   /* Prevent warnings later. */
-   if_name_c = bdata( ifname );
-   if_name_len = blength( ifname );
-
-   /* Get the sending interface index. */
-   memset( &if_idx_req, 0, sizeof( struct ifreq ) );
-   strncpy( if_idx_req.ifr_name, if_name_c, if_name_len );
-   if( 0 > ioctl( sockfd_out, SIOCGIFINDEX, &if_idx_req ) ) {
-      do_error( "SIOCGIFINDEX\n" );
-      close( sockfd_out );
-      sockfd_out = -1;
-      goto cleanup;
-   }
-   *if_idx = if_idx_req.ifr_ifindex;
-
-   /* Get the sending interface MAC to return. */
-   memset( &if_mac, 0, sizeof( struct ifreq ) );
-   strncpy( if_mac.ifr_name, if_name_c, if_name_len );
-   if( 0 > ioctl( sockfd_out, SIOCGIFHWADDR, &if_mac ) ) {
-      do_error( "SIOCGIFHWADDR\n" );
-      close( sockfd_out );
-      sockfd_out = -1;
-      goto cleanup;
-   }
-   for( i = 0 ; ETHER_ADDRLEN > i ; i++ ) {
-      mac_addr[i] = ((uint8_t*)&if_mac.ifr_hwaddr.sa_data)[i];
-   }
-
-   /* Open up a listening "socket" with PCAP. */
-   g_listen_socket = pcap_open_live( bdata( ifname ), RECV_BUFFER_LEN, 0, 512,
-      g_pcap_errbuff );
-   if( NULL == g_listen_socket ) {
-      perror( "Unable to open listening socket" );
-      goto cleanup;
-   }
+#ifdef NET_CON_ECHO
+   printf( "Opened Socket: %p\n", socket );
+#endif /* NET_CON_ECHO */
 
 cleanup:
-   return sockfd_out;
+   return socket;
 }
 
-void net_close_socket( int socket ) {
-   if( NULL != g_listen_socket ) {
-      pcap_close( g_listen_socket );
-   }
-   if( 0 != socket ) {
-      close( socket );
+void net_close_socket( NET_SOCK socket ) {
+   if( NULL != socket ) {
+      pcap_close( socket );
    }
 }
 
@@ -94,7 +61,7 @@ void net_print_frame( struct ether_frame* frame, size_t frame_len ) {
 
    buffer = blk2bstr( frame, frame_len );
    for( i = 0 ; blength( buffer ) > i ; i++ ) {
-      printf( "%02X ", (unsigned int)(unsigned char)bchar( buffer, i ) );
+      printf( "%02X ", bchar( buffer, i ) );
    }
    printf( "\n" );
  
@@ -114,21 +81,24 @@ void net_print_frame( struct ether_frame* frame, size_t frame_len ) {
 #endif /* NET_CON_ECHO */
 
 int net_send_frame( 
-   int socket, int if_idx, struct ether_frame* frame, size_t frame_len
+   NET_SOCK socket, struct ether_frame* frame, size_t frame_len
 ) {
-   size_t sent = 0;
-   struct sockaddr_ll socket_address = { 0 };
+   int sent = 0;
    bstring buffer = NULL;
-
-   socket_address.sll_halen = ETHER_ADDRLEN;
-   socket_address.sll_ifindex = if_idx;
-   memcpy( socket_address.sll_addr, frame->header.src_mac, ETHER_ADDRLEN );
+   pcap_t* pcap_socket = (pcap_t*)socket;
+   unsigned char* buffer_c = (unsigned char*)bdata( buffer );
 
    buffer = blk2bstr( frame, frame_len );
-   if( 0 > sendto( socket, bdata( buffer ), blength( buffer ), 0,
-      (struct sockaddr*)&socket_address, sizeof( struct sockaddr_ll ) )
-   ) {
+#ifdef NET_CON_ECHO
+   printf( "Sending on Socket: %p\n", socket );
+#endif /* NET_CON_ECHO */
+   sent =  pcap_sendpacket( pcap_socket, buffer_c, blength( buffer ) );
+   if( 0 != sent ) {
       perror( "Unable to send frame" );
+#ifdef NET_CON_ECHO
+   } else {
+      printf( "Sent: %d bytes.\n", sent );
+#endif /* NET_CON_ECHO */
    }
 
 /* cleanup: */
@@ -136,12 +106,13 @@ int net_send_frame(
    return sent;
 }
 
-struct ether_frame* net_poll_frame( int socket, int* frame_len ) {
+struct ether_frame* net_poll_frame( NET_SOCK socket, int* frame_len ) {
    struct ether_frame* frame = NULL;
    const uint8_t* buffer = NULL;
    struct pcap_pkthdr frame_pcap_hdr;
+   pcap_t* pcap_socket = (pcap_t*)socket;
 
-   buffer = pcap_next( g_listen_socket, &frame_pcap_hdr );
+   buffer = pcap_next( pcap_socket, &frame_pcap_hdr );
    if( NULL == buffer ) {
       /* Nothing to read. */
       goto cleanup;

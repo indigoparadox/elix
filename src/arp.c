@@ -34,18 +34,22 @@ void arp_print_packet( struct arp_header* header, int packet_len ) {
    for( i = 0 ; header->hwsize > i ; i++ ) {
       printf( "%02X ", *(arp_packet_data++) );
    }
+#ifndef _WIN32
    printf( "\n   Source IP: " );
    for( i = 0 ; header->protosize > i ; i++ ) {
       printf( "%hhu ", *(arp_packet_data++) );
    }
+#endif /* _WIN32 */
    printf( "\n   Dest MAC: " );
    for( i = 0 ; header->hwsize > i ; i++ ) {
       printf( "%02X ", *(arp_packet_data++) );
    }
+#ifndef _WIN32
    printf( "\n   Dest IP: " );
    for( i = 0 ; header->protosize > i ; i++ ) {
       printf( "%hhu ", *(arp_packet_data++) );
    }
+#endif /* _WIN32 */
    printf( "\n   Protocol: %02X %02X\n", prototype[0], prototype[1]  );
 
 /* cleanup: */
@@ -107,12 +111,10 @@ struct arp_header* arp_respond(
    }
 
    /* Create a response packet and fill it out. */
-   /* *response_len = (2 * header->hwsize) + (2 * header->protosize) +
-      sizeof( struct arp_header ); */
    *response_len = packet_len;
    response = mem_alloc( 1, *response_len );
    memcpy( response, header, *response_len );
-   response->opcode = ARP_REPLY;
+   response->opcode = ether_htons( ARP_REPLY );
 
    /* Move to the packet body and fill it out using info from above. Packets
     * should be near-identical in this case, due to testing above.
