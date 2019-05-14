@@ -15,7 +15,7 @@ walixnet.exe: CFLAGS += -DNET_CON_ECHO -g
 walixnet.exe: LDFLAGS += -lwpcap
 walixnet.exe: OBJDIR := ../obj/windows
 
-alix.bin: CFLAGS += -ffreestanding
+alix.bin: CFLAGS += -ffreestanding -DSILENT
 alix.bin: OBJDIR := ../obj/os
 alix.bin: LDFLAGS := -Ttext 0x0 --oformat binary
 

@@ -16,40 +16,40 @@ void arp_print_packet( struct arp_packet* packet, int packet_len ) {
    *(uint16_t*)hwtype = ether_ntohs( header->hwtype );
    *(uint16_t*)prototype = ether_ntohs( header->prototype );
 
-   printf( "   " );
+   ddebug( "   " );
    for( i = 0 ; packet_len > i ; i++ ) {
-      printf( "%02X ", buffer_p[i] );
+      ddprintf( "%02X ", buffer_p[i] );
       if( 0 == i % 8 && 0 != i ) {
-         printf( "\n   " );
+         ddebug( "\n   " );
       }
    }
-   printf( "\n" );
+   ddebug( "\n" );
 
-   printf( "   *Packet Information:\n   Hardware: %02X %02X\n",
+   ddprintf( "   *Packet Information:\n   Hardware: %02X %02X\n",
       hwtype[0], hwtype[1] );
 
    arp_packet_data += sizeof( struct arp_header );
-   printf( "   Source MAC: " );
+   ddebug( "   Source MAC: " );
    for( i = 0 ; header->hwsize > i ; i++ ) {
-      printf( "%02X ", *(arp_packet_data++) );
+      ddprintf( "%02X ", *(arp_packet_data++) );
    }
 #ifndef _WIN32
-   printf( "\n   Source IP: " );
+   ddebug( "\n   Source IP: " );
    for( i = 0 ; header->protosize > i ; i++ ) {
-      printf( "%hhu ", *(arp_packet_data++) );
+      ddprintf( "%hhu ", *(arp_packet_data++) );
    }
 #endif /* _WIN32 */
-   printf( "\n   Dest MAC: " );
+   ddebug( "\n   Dest MAC: " );
    for( i = 0 ; header->hwsize > i ; i++ ) {
-      printf( "%02X ", *(arp_packet_data++) );
+      ddprintf( "%02X ", *(arp_packet_data++) );
    }
 #ifndef _WIN32
-   printf( "\n   Dest IP: " );
+   ddebug( "\n   Dest IP: " );
    for( i = 0 ; header->protosize > i ; i++ ) {
-      printf( "%hhu ", *(arp_packet_data++) );
+      ddprintf( "%hhu ", *(arp_packet_data++) );
    }
 #endif /* _WIN32 */
-   printf( "\n   Protocol: %02X %02X\n", prototype[0], prototype[1]  );
+   ddprintf( "\n   Protocol: %02X %02X\n", prototype[0], prototype[1]  );
 }
 #endif /* NET_CON_ECHO */
 
@@ -148,7 +148,7 @@ int arp_respond(
    mcopy( arp_packet_data, incoming_ip, header->protosize );
 
 #ifdef NET_CON_ECHO
-   printf( "It's me!\n" );
+   ddebug( "It's me!\n" );
 #endif /* NET_CON_ECHO */
 
 cleanup:
