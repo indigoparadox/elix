@@ -1,25 +1,24 @@
 
 #include "arp.h"
 
-#include <string.h>
-
+#include "../debug.h"
 #include "../mem.h"
 
 #ifdef NET_CON_ECHO
-void arp_print_packet( struct arp_header* header, int packet_len ) {
+void arp_print_packet( struct arp_packet* packet, int packet_len ) {
    int i = 0;
    uint8_t hwtype[2] = { 0 };
    uint8_t prototype[2] = { 0 };
-   bstring buffer = NULL;
-   uint8_t* arp_packet_data = (uint8_t*)header;
+   uint8_t* arp_packet_data = (uint8_t*)packet;
+   char* buffer_p = (char*)packet;
+   struct arp_header* header = (struct arp_header*)packet;
 
    *(uint16_t*)hwtype = ether_ntohs( header->hwtype );
    *(uint16_t*)prototype = ether_ntohs( header->prototype );
 
-   buffer = blk2bstr( header, packet_len );
    printf( "   " );
-   for( i = 0 ; blength( buffer ) > i ; i++ ) {
-      printf( "%02X ", (unsigned int)(unsigned char)bchar( buffer, i ) );
+   for( i = 0 ; packet_len > i ; i++ ) {
+      printf( "%02X ", buffer_p[i] );
       if( 0 == i % 8 && 0 != i ) {
          printf( "\n   " );
       }
@@ -51,44 +50,40 @@ void arp_print_packet( struct arp_header* header, int packet_len ) {
    }
 #endif /* _WIN32 */
    printf( "\n   Protocol: %02X %02X\n", prototype[0], prototype[1]  );
-
-/* cleanup: */
-   bdestroy( buffer );
 }
 #endif /* NET_CON_ECHO */
 
-uint8_t* arp_get_dest_mac( int* mac_len, struct arp_header* arp ) {
+int arp_get_dest_mac( uint8_t* mac, int mac_sz, struct arp_packet* arp ) {
    uint8_t* arp_packet_data = (uint8_t*)arp;
-   uint8_t* mac_out = NULL;
+   int retval = 0;
 
-   *mac_len = arp->hwsize;
-   mac_out = calloc( *mac_len, 1 );
-   if( NULL == mac_out ) {
-      perror( "Unable to allocate MAC buffer" );
+   if( mac_sz < arp->header.hwsize ) {
+      derror( "Provided buffer too small for hardware address" );
       goto cleanup;
    }
 
    arp_packet_data += sizeof( struct arp_header );
-   arp_packet_data += arp->hwsize;
-   arp_packet_data += arp->protosize;
-   memcpy( mac_out, arp_packet_data, arp->hwsize );
+   arp_packet_data += arp->header.hwsize;
+   arp_packet_data += arp->header.protosize;
+   mcopy( mac, arp_packet_data, arp->header.hwsize );
+   retval = arp->header.hwsize;
 
 cleanup:
-   return mac_out;
+   return retval;
 }
 
 /* Accept the header because it could be any kind of ARP packet. */
-struct arp_header* arp_respond( 
-   struct arp_header* header, int packet_len,
-   uint8_t* my_mac, int my_mac_len, uint8_t* my_ip, int my_ip_len,
-   int* response_len
+int arp_respond( 
+   struct arp_packet* call_packet, int call_packet_sz,
+   struct arp_packet* resp_packet, int resp_packet_sz,
+   uint8_t* my_mac, int my_mac_len, uint8_t* my_ip, int my_ip_len
 ) {
-   struct arp_header* response = NULL;
-   uint8_t* arp_packet_data = (uint8_t*)header;
+   uint8_t* arp_packet_data = (uint8_t*)call_packet;
    uint8_t* incoming_mac = NULL;
    uint8_t* incoming_ip = NULL;
-
-   *response_len = 0;
+   struct arp_header* header = &(call_packet->header);
+   int packet_claimed_size = 0;
+   int response_len = 0;
 
    if( my_ip_len != header->protosize || my_mac_len < header->hwsize ) {
       /* Weird address size. Nothing to do with us! */
@@ -96,8 +91,18 @@ struct arp_header* arp_respond(
    }
 
 #ifdef NET_CON_ECHO
-   arp_print_packet( header, packet_len );
+   arp_print_packet( call_packet, call_packet_sz );
 #endif /* NET_CON_ECHO */
+
+   packet_claimed_size = 
+      sizeof( struct arp_header ) + (2 * header->hwsize) +
+      (2 * header->protosize);
+   if( packet_claimed_size > call_packet_sz ) {
+      deprintf(
+         "Inconsistent packet size: %d claimed, %d actual.",
+         packet_claimed_size, call_packet_sz );
+      goto cleanup;
+   }
 
    /* Bump the pointer out to the "target" layer-3 address and compare. */
    arp_packet_data += sizeof( struct arp_header );
@@ -106,37 +111,51 @@ struct arp_header* arp_respond(
    incoming_ip = arp_packet_data; /* Use for response below. */
    arp_packet_data += header->protosize;
    arp_packet_data += header->hwsize;
-   if( 0 != memcmp( arp_packet_data, my_ip, my_ip_len ) ) {
+   if( 0 != mcompare( arp_packet_data, my_ip, my_ip_len ) ) {
       goto cleanup;
    }
 
-   /* Create a response packet and fill it out. */
-   *response_len = packet_len;
-   response = mem_alloc( 1, *response_len );
-   memcpy( response, header, *response_len );
-   response->opcode = ether_htons( ARP_REPLY );
+   if(
+      NULL != resp_packet &&
+      call_packet_sz > resp_packet_sz
+   ) {
+      derror( "Response buffer too small to respond" );
+      goto cleanup;
+   }
+
+   response_len = packet_claimed_size;
+   if( NULL != resp_packet ) {
+      /* Create a response packet and fill it out. */
+      mcopy( resp_packet, call_packet, response_len );
+   } else {
+      /* Reuse the call packet. */
+      resp_packet = call_packet;
+      resp_packet_sz = call_packet_sz;
+   }
+   resp_packet->header.opcode = ether_htons( ARP_REPLY );
 
    /* Move to the packet body and fill it out using info from above. Packets
     * should be near-identical in this case, due to testing above.
     */
-   arp_packet_data = (uint8_t*)response;
+   arp_packet_data = (uint8_t*)resp_packet;
    arp_packet_data += sizeof( struct arp_header );
-   memcpy( arp_packet_data, my_mac, my_mac_len );
+   mcopy( arp_packet_data, my_mac, my_mac_len );
    arp_packet_data += header->hwsize;
-   memcpy( arp_packet_data, my_ip, my_ip_len );
+   mcopy( arp_packet_data, my_ip, my_ip_len );
    arp_packet_data += header->protosize;
-   memcpy( arp_packet_data, incoming_mac, header->hwsize );
+   mcopy( arp_packet_data, incoming_mac, header->hwsize );
    arp_packet_data += header->hwsize;
-   memcpy( arp_packet_data, incoming_ip, header->protosize );
+   mcopy( arp_packet_data, incoming_ip, header->protosize );
 
 #ifdef NET_CON_ECHO
    printf( "It's me!\n" );
 #endif /* NET_CON_ECHO */
 
 cleanup:
-   return response;
+   return response_len;
 }
 
+#if 0
 struct arp_packet_ipv4* arp_new_packet_ipv4(
    enum arp_opcode op, const uint8_t* src_mac, const uint8_t* dest_mac,
    const uint8_t* src_ip, const uint8_t* dest_ip
@@ -160,23 +179,23 @@ struct arp_packet_ipv4* arp_new_packet_ipv4(
    /* Fill out whatever addresses we were given. */
 
    if( NULL != src_mac ) {
-      memcpy( arp_packet_out->src_mac, src_mac, ETHER_ADDRLEN );
+      mcopy( arp_packet_out->src_mac, src_mac, ETHER_ADDRLEN );
    }
 
    if( NULL != dest_mac ) {
-      memcpy( arp_packet_out->dest_mac, dest_mac, ETHER_ADDRLEN );
+      mcopy( arp_packet_out->dest_mac, dest_mac, ETHER_ADDRLEN );
    }
 
    if( NULL != src_ip ) {
-      memcpy( arp_packet_out->src_ip, src_ip, ETHER_ADDRLEN_IPV4 );
+      mcopy( arp_packet_out->src_ip, src_ip, ETHER_ADDRLEN_IPV4 );
    }
 
    if( NULL != dest_ip ) {
-      memcpy( arp_packet_out->dest_ip, dest_ip, ETHER_ADDRLEN_IPV4 );
+      mcopy( arp_packet_out->dest_ip, dest_ip, ETHER_ADDRLEN_IPV4 );
    }
 
 cleanup:
    return arp_packet_out;
 }
-
+#endif
 
