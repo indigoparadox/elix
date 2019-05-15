@@ -15,7 +15,7 @@ LDFLAGS=
 
 ISODIRX86=../isodir/x86
 
-lalixnet: CFLAGS += -DNET_CON_ECHO -g
+lalixnet: CFLAGS += -g
 lalixnet: LDFLAGS += -lpcap
 lalixnet: OBJDIR := ../obj/linux
 
