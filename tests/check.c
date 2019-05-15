@@ -18,6 +18,7 @@ int main( void ) {
    int number_failed = 0;
 
    main_add_test( ether );
+   main_add_test( mem );
 
    return( number_failed == 0 ) ? 0 : 1;
 }

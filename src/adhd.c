@@ -14,9 +14,6 @@ struct adhd_task {
 static struct adhd_task g_tasks[ADHD_TASKS_MAX];
 static int g_tasks_len = 0;
 
-void adhd_init() {
-}
-
 int adhd_add_task( int (*callback)( int ) ) {
    struct adhd_task* task = NULL;
 

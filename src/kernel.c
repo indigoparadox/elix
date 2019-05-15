@@ -6,6 +6,7 @@
 #include "mem.h"
 #include "debug.h"
 #include "net/net.h"
+#include "adhd.h"
 
 #define TASKS_MAX 5
 
@@ -14,7 +15,6 @@ void kmain() {
    int i = 0;
 
    minit();
-   adhd_init();
    display_init();
 
    tputs( "hello\n" );
