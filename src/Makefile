@@ -17,7 +17,7 @@ walixnet.exe: OBJDIR := ../obj/windows
 
 alix86.bin: CFLAGS += -ffreestanding -nostdlib -nostartfiles -nodefaultlibs -DPLATFORM_X86 -DCONSOLE_COLOR
 alix86.bin: OBJDIR := ../obj/os
-alix86.bin: LDFLAGS := -Ttext 0x0 --oformat binary
+alix86.bin: LDFLAGS := 
 
 alix430.bin: CFLAGS += -DPLATFORM_MSP430 -mmcu=msp430g2553 -DCONSOLE_SERIAL
 alix430.bin: CC := msp430-gcc
@@ -36,7 +36,8 @@ walixnet.exe: $(OBJECTS) main.o drivers/vnet.o
 	$(CC) -o $@ $(addprefix $(OBJDIR)/,$^) $(LDFLAGS)
 
 alix86.bin: $(OBJECTS) x86/display.o x86/net.o
-	$(LD) -o $@ $(addprefix $(OBJDIR)/,$^) $(LDFLAGS)
+	$(AS) x86/boot.s -o $(OBJDIR)/boot.o
+	$(CC) -T x86/linker.ld -o $@ $(addprefix $(OBJDIR)/,$^) $(LDFLAGS) $(CFLAGS)
 
 alix430.bin: $(OBJECTS) msp430/display.o msp430 msp430/boot.o msp430/net.o
 	$(LD) -o $@ $(addprefix $(OBJDIR)/,$^) $(LDFLAGS)
