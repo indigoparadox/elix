@@ -1,6 +1,13 @@
 
 #include "mem.h"
 
+void mzero( void* dest, int sz ) {
+   int i = 0;
+   for( i = 0 ; sz > i ; i++ ) {
+      ((uint8_t*)dest)[i] = '\0';
+   }
+}
+
 int mcopy( void* dest, const void* src, int sz ) {
    int i = 0;
    for( i = 0 ; sz > i ; i++ ) {

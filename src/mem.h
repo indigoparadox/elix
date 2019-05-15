@@ -18,6 +18,7 @@ struct mstring {
 //#define mem_alloc( count, size) calloc( count, size )
 //#define mem_free( ptr ) if( NULL != ptr ) { free( ptr ); }
 
+void mzero( void* dest, int sz );
 int mcopy( void* dest, const void* src, int sz );
 int mcompare( const void* c1, const void* c2, int sz );
 int mstrlen( const char* str );

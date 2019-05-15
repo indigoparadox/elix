@@ -2,6 +2,11 @@
 #include "console.h"
 #include "display.h"
 
+#ifdef CONSOLE_SERIAL
+#else
+#include "keyboard.h"
+#endif /* CONSOLE_SERIAL */
+
 #ifdef CONSOLE_COLOR
 static uint8_t g_term_bg;
 static uint8_t g_term_fg;
@@ -30,6 +35,13 @@ void tputs( const char* str ) {
 #ifdef CONSOLE_SERIAL
 #else
    display_puts( str );
+#endif /* CONSOLE_SERIAL */
+}
+
+char tgetc() {
+#ifdef CONSOLE_SERIAL
+#else
+   return keyboard_getc();
 #endif /* CONSOLE_SERIAL */
 }
 

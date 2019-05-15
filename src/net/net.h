@@ -19,6 +19,7 @@ int net_send_frame(
 int net_poll_frame(
    NET_SOCK socket, struct ether_frame* frame, int frame_sz );
 void net_print_frame( struct ether_frame* frame, int frame_len );
+int net_respond_task( int pid );
 
 #endif /* NET_H */
 
