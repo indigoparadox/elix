@@ -27,6 +27,10 @@ void display_init() {
 void display_putc_at( char c, int x, int y ) {
    int index = 0;
    index = y * DISPLAY_WIDTH + x;
+   if( 0 > index || DISPLAY_INDEX_MAX < index ) {
+      /* Overflow. */
+      return;
+   }
    display_buffer[index] = c | (display_color << 8);
 }
 

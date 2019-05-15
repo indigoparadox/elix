@@ -8,6 +8,7 @@
 #ifdef PLATFORM_X86
 #define DISPLAY_WIDTH 80
 #define DISPLAY_HEIGHT 40
+#define DISPLAY_INDEX_MAX (DISPLAY_WIDTH * DISPLAY_HEIGHT)
 #endif /* PLATFORM_X86 */
 
 /* These are defines and not an enum, as enum args may be > 8 bits. */
