@@ -1,10 +1,19 @@
 
-MD=mkdir
+# vim: ft=make noexpandtab
+
+MD=mkdir -v -p
+MKRESCUE=grub-mkrescue
+DD=dd
+MKVFAT=/sbin/mkfs.vfat
+SYSLINUX=syslinux
+MCOPY=mcopy
 
 CFLAGS=-Wall
 SOURCES=net/tcp.c net/ether.c net/arp.c mem.c console.c kernel.c
 OBJECTS=$(subst .c,.o,$(SOURCES))
 LDFLAGS=
+
+ISODIRX86=../isodir/x86
 
 lalixnet: CFLAGS += -DNET_CON_ECHO -g
 lalixnet: LDFLAGS += -lpcap
@@ -35,6 +44,20 @@ lalixnet: $(OBJECTS) colinux/net.o colinux/display.o colinux/boot.o
 walixnet.exe: $(OBJECTS) main.o drivers/vnet.o
 	$(CC) -o $@ $(addprefix $(OBJDIR)/,$^) $(LDFLAGS)
 
+alix86.iso: $(ISODIRX86)/alix86.bin
+	$(MKRESCUE) -o $@ $(ISODIRX86)
+
+alix86.img: alix86.bin
+	$(DD) if=/dev/urandom of=$@ bs=512 count=2880
+	$(MKVFAT) $@
+	$(SYSLINUX) -i $@
+	$(MCOPY) -i $@ ../syslinux.cfg ::
+	$(MCOPY) -i $@ $< ::
+
+$(ISODIRX86)/alix86.bin: alix86.bin
+	$(MD) $(ISODIRX86)/boot
+	cp -v alix86.bin $(ISODIRX86)/boot/alix86.bin
+
 alix86.bin: $(OBJECTS) x86/display.o x86/net.o
 	$(AS) x86/boot.s -o $(OBJDIR)/boot.o
 	$(CC) -T x86/linker.ld -o $@ $(addprefix $(OBJDIR)/,$^) $(LDFLAGS) $(CFLAGS)
@@ -46,11 +69,16 @@ tests: $(OBJECTS) drivers/vnet.o ../tests/check.o ../tests/check_ether.o
 	$(CC) -o $@ $(addprefix $(OBJDIR)/,$(subst ../tests,,$^)) $(LDFLAGS)
 
 %.o: %.c
-	$(MD) -p $(OBJDIR)/$(dir $@)
+	$(MD) $(OBJDIR)/$(dir $@)
 	$(CC) -c -o $(OBJDIR)/$@ $< $(CFLAGS)
 
 .PHONY: clean
 
 clean:
-	rm -rf ../obj ; rm tests ; rm lalixnet ; rm walixnet.exe ; rm *.bin
+	rm -rf ../obj; \
+	rm tests; \
+	rm lalixnet; \
+	rm walixnet.exe; \
+	rm *.bin; \
+	rm $(ISODIRX86)/boot/*.bin
 
