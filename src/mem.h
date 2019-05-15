@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #define MEM_HEAP_SIZE 300
+#define MEM_BUFFER_SIZE 100
 
 //#define mem_alloc( count, size) calloc( count, size )
 //#define mem_free( ptr ) if( NULL != ptr ) { free( ptr ); }

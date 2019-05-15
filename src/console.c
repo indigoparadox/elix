@@ -7,6 +7,12 @@
 #include "keyboard.h"
 #endif /* CONSOLE_SERIAL */
 
+#define REPL_LINE_SIZE_MAX 20
+
+/* Memory IDs for console tasks. */
+#define REPL_MID_LINE 1
+#define REPL_MID_CUR_POS 1
+
 #ifdef CONSOLE_COLOR
 static uint8_t g_term_bg;
 static uint8_t g_term_fg;
@@ -73,6 +79,24 @@ void tprintf( const char* pattern, ... ) {
       }
 
       last = pattern[i];
+   }
+}
+
+void trepl_init() {
+}
+
+int trepl_task( int pid ) {
+   char c = '\0';
+   int cur_pos = 0;
+   char c[REPL_LINE_SIZE_MAX] line;
+
+   c = tgetc();
+   if( c ) {
+      mget( pid, REPL_MID_CUR_POS, &received, sizeof( int ) );
+      mget( pid, REPL_MID_LINE, &received, REPL_LINE_SIZE_MAX );
+
+      mset( pid, REPL_MID_CUR_POS, &received, sizeof( int ) );
+      mset( pid, REPL_MID_LINE, &received, REPL_LINE_SIZE_MAX );
    }
 }
 
