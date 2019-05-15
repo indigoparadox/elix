@@ -13,6 +13,7 @@ void kmain() {
    int retval = 0;
    int i = 0;
 
+   minit();
    adhd_init();
    display_init();
 
