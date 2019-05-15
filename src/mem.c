@@ -19,6 +19,12 @@ int mcompare( const void* c1, const void* c2, int sz ) {
    return 0;
 }
 
+int mstrlen( const char* str ) {
+   int i = 0;
+   while( '\0' != str[i] ) { i++; }
+   return i;
+}
+
 /*
 struct mstring* mfromcstr( char* str ) {
    char* c = str;

@@ -1,9 +1,8 @@
 
-#define DISPLAY_C
 #include "../display.h"
 
-static size_t display_cursor_row = 0;
-static size_t display_cursor_col = 0;
+static int display_cursor_row = 0;
+static int display_cursor_col = 0;
 static uint8_t display_color = 0;
 static uint16_t* display_buffer = NULL;
 
@@ -14,8 +13,8 @@ void display_set_colors( uint8_t fg, uint8_t bg ) {
 }
 
 void display_init() {
-   size_t x, y, index;
-   display_set_colors( COLOR_GREEN, COLOR_BLUE );
+   int x, y, index;
+   display_set_colors( COLOR_WHITE, COLOR_BLACK );
    display_buffer = (uint16_t*)0xb8000;
    for( y = 0 ; DISPLAY_HEIGHT > y ; y++ ) {
       for( x = 0 ; DISPLAY_WIDTH > x ; x++ ) {
@@ -25,8 +24,8 @@ void display_init() {
    }
 }
 
-void display_putc_at( char c, size_t x, size_t y ) {
-   size_t index = 0;
+void display_putc_at( char c, int x, int y ) {
+   int index = 0;
    index = y * DISPLAY_WIDTH + x;
    display_buffer[index] = c | (display_color << 8);
 }
@@ -42,9 +41,8 @@ void display_putc( char c ) {
    }
 }
 
-void display_puts( const bstring str ) {
-   size_t len = 0, i = 0;
-   len = tstrlen( str );
+void display_puts( const char* str, int len ) {
+   int i = 0;
    for( i = 0 ; len > i ; i++ ) {
       display_putc( str[i] );
    }
