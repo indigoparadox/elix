@@ -13,6 +13,8 @@ SOURCES=net/tcp.c net/ether.c net/arp.c mem.c console.c kernel.c net/net.c adhd.
 OBJECTS=$(subst .c,.o,$(SOURCES))
 LDFLAGS=
 
+DRIVERS_COLINUX=colinux/net.o colinux/display.o colinux/keyboard.o
+
 ISODIRX86=../isodir/x86
 
 lalixnet: CFLAGS += -g
@@ -34,11 +36,12 @@ alix430.bin: STRIP := msp430-strip
 alix430.bin: OBJDIR := ../obj/msp430
 
 tests: LDFLAGS += -lcheck -lpthread -lm -lrt -lpcap
+tests: CFLAGS += -DCHECK
 tests: OBJDIR := ../obj/tests
 
 all:
 
-lalixnet: $(OBJECTS) colinux/net.o colinux/display.o colinux/boot.o colinux/keyboard.o
+lalixnet: $(OBJECTS) $(DRIVERS_COLINUX) colinux/boot.o
 	$(CC) -o $@ $(addprefix $(OBJDIR)/,$^) $(LDFLAGS)
 
 walixnet.exe: $(OBJECTS) drivers/vnet.o
@@ -65,7 +68,7 @@ alix86.bin: $(OBJECTS) x86/display.o x86/net.o
 alix430.bin: $(OBJECTS) msp430/display.o msp430 msp430/boot.o msp430/net.o
 	$(LD) -o $@ $(addprefix $(OBJDIR)/,$^) $(LDFLAGS)
 
-tests: $(OBJECTS) drivers/vnet.o ../tests/check.o ../tests/check_ether.o
+tests: $(OBJECTS) ../tests/check.o ../tests/check_ether.o ../tests/check_mem.o $(DRIVERS_COLINUX)
 	$(CC) -o $@ $(addprefix $(OBJDIR)/,$(subst ../tests,,$^)) $(LDFLAGS)
 
 %.o: %.c

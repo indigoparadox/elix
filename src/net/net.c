@@ -36,7 +36,7 @@ int net_respond_arp_request(
       goto cleanup;
    }
 
-   mget( pid, NET_MID_RESPONDED, &responded, sizeof( int ) );
+   responded = mget_int( pid, NET_MID_RESPONDED );
    responded++;
    mset( pid, NET_MID_RESPONDED, &responded, sizeof( int ) );
 
@@ -78,7 +78,7 @@ int net_respond_task( int pid ) {
    NET_SOCK socket = NULL;
    int received = 0;
 
-   mget( pid, NET_MID_SOCKET, &socket, sizeof( NET_SOCK ) );
+   socket = mget_ptr( pid, NET_MID_SOCKET, NULL, NET_SOCK );
    if( NULL == socket ) {
       socket = net_open_socket( g_ifname );
       mset( pid, NET_MID_SOCKET, &socket, sizeof( NET_SOCK ) );
@@ -90,7 +90,7 @@ int net_respond_task( int pid ) {
       goto cleanup;
    }
 
-   mget( pid, NET_MID_RECEIVED, &received, sizeof( int ) );
+   received = mget_int( pid, NET_MID_RECEIVED );
    received++;
    mset( pid, NET_MID_RECEIVED, &received, sizeof( int ) );
 

@@ -3,19 +3,18 @@
 
 #include <stddef.h>
 
-struct mvar {
-   int pid;
-   int mid;
-   int len;  /* Used. */
-   int size; /* Allocated. */
-};
-
-static uint8_t g_mheap[MEM_HEAP_SIZE];
-static int g_mheap_top = 0;
-static uint8_t g_mbuffer[MEM_BUFFER_SIZE];
+#ifndef CHECK
+static
+#endif /* CHECK */
+uint8_t g_mheap[MEM_HEAP_SIZE];
+#ifndef CHECK
+static
+#endif /* CHECK */
+int g_mheap_top = 0;
 
 void minit() {
    mzero( g_mheap, MEM_HEAP_SIZE );
+   g_mheap_top = 0;
 }
 
 void mzero( void* dest, int sz ) {
@@ -49,22 +48,23 @@ int mstrlen( const char* str ) {
    return i;
 }
 
-/*
-struct mstring* mfromcstr( char* str ) {
-   char* c = str;
-   int len = 0;
-   while( '\0' != *c ) {
-      c++;
-      len++;
-   }
-}
-*/
+#if defined( DEBUG ) || defined( CHECK )
+void mprint() {
+   int i = 0;
 
-/* "Secure" working buffer shared by tasks. */
-uint8_t* mbuffer() {
-   mzero( g_mbuffer, MEM_BUFFER_SIZE );
-   return g_mbuffer;
+   for( i = 0 ; MEM_HEAP_SIZE > i ; i++ ) {
+      if( 0 == i % 20 ) {
+         printf( "\n" );
+      }
+      if( i == g_mheap_top ) {
+         printf( "** " );
+      } else {
+         printf( "%02X ", g_mheap[i] );
+      }
+   }
+   printf( "\n" );
 }
+#endif /* DEBUG || CHECK */
 
 /* Get the heap position for a variable. Used in public functions below. */
 static int mget_pos( int pid, int mid ) {
@@ -98,63 +98,85 @@ static int mget_pos( int pid, int mid ) {
    return mheap_addr_iter;
 }
 
+#ifndef CHECK
+static
+#endif /* CHECK */
+void mshift( int start, int offset ) {
+   int mheap_addr_iter = 0;
+   int i = 0;
+
+   for( i = g_mheap_top ; i >= start ; i-- ) {
+      g_mheap[i + offset] = g_mheap[i];
+      g_mheap[i] = '\0';
+   }
+
+   g_mheap_top += offset;
+}
+
 void mset( int pid, int mid, void* ptr, int len ) {
    int mheap_addr_iter = 0;
    struct mvar* var = NULL;
    int size_diff = 0;
 
+   /* Variables on the heap are separated by NULL spacers as noted below.
+    * This is so that strlen() and co still work.
+    */
    mheap_addr_iter = mget_pos( pid, mid );
-   if( 0 > mheap_addr_iter ) {
-      /* Not found. Create it. */
-      if( g_mheap_top + sizeof( struct mvar ) +  len > MEM_HEAP_SIZE ) {
-         /* Not enough heap available! */
-         return;
-      }
 
-      /* Create the variable. */
-      var = (struct mvar*)&(g_mheap[g_mheap_top]);
-      var->pid = pid;
-      var->mid = mid;
-      var->size = len;
-      mcopy(
-         &(g_mheap[g_mheap_top + sizeof( struct mvar )]), /* Past the header. */
-         ptr, len );
-
-      /* Advance the heap top. */
-      g_mheap_top += len;
-   } else {
-      /* Found, so update it. */
+   if( 0 <= mheap_addr_iter ) {
+      /* Found, so make sure there's room on the heap to update it. */
       var = (struct mvar*)&(g_mheap[mheap_addr_iter]);
 
-      size_diff = len - var->size;
+      size_diff = len - (var->size - 1); /* -1 for extra NULL. */
       if( 0 < size_diff && g_mheap_top + size_diff > MEM_HEAP_SIZE ) {
          /* Not enough heap space! */
          return;
       }
+
+      mshift( mheap_addr_iter, size_diff ); /* +1 to put the NULL back. */
+   } else {
+      /* Not found. Create it. */
+      if( g_mheap_top + sizeof( struct mvar ) + len > MEM_HEAP_SIZE ) {
+         /* Not enough heap available! */
+         return;
+      }
+
+      /* Move to the next free spot. */
+      mheap_addr_iter = g_mheap_top;
+      var = (struct mvar*)&(g_mheap[mheap_addr_iter]);
+
+      /* Advance the heap top. */
+      g_mheap_top += sizeof( struct mvar ) + len + 1;
    }
+
+   /* Fill out the header. */
+   var->pid = pid;
+   var->mid = mid;
+   var->len = len;
+   var->size = len + 1; /* +1 for extra NULL spacer. */
+   mheap_addr_iter += sizeof( struct mvar );
+
+   mcopy( &(g_mheap[mheap_addr_iter]), ptr, len );
+   mheap_addr_iter += len;
+
+   /* Add an extra NULL at the end. */
+   g_mheap[mheap_addr_iter] = '\0';
 }
 
-/* Copy the result into a buffer provided by the process, for security 
- * checks.
- */
-void mget( int pid, int mid, void* buffer, int buffer_sz ) {
+void* mget( int pid, int mid, int* psz ) {
    int mheap_addr_iter = 0;
-   struct mvar* var = NULL;
 
    mheap_addr_iter = mget_pos( pid, mid );
    if( 0 > mheap_addr_iter ) {
       /* Not found! */
-      return;
-   }
-   var = (struct mvar*)&(g_mheap[mheap_addr_iter]);
-
-   if( buffer_sz < var->size ) {
-      /* Buffer too small! */
-      return;
+      return NULL;
    }
 
-   /* Return the value, and ONLY the value. */
+   /* Inform as to the allocated space. -1 for NULL. */
+   *psz = ((struct mvar*)&(g_mheap[mheap_addr_iter]))->size - 1;
+
+   /* Return a pointer to the value. */
    mheap_addr_iter += sizeof( struct mvar );
-   mcopy( buffer, &(g_mheap[mheap_addr_iter]), var->size );
+   return &(g_mheap[mheap_addr_iter]);;
 }
 

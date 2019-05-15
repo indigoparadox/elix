@@ -1,6 +1,7 @@
 
 #include "console.h"
 #include "display.h"
+#include "mem.h"
 
 #ifdef CONSOLE_SERIAL
 #else
@@ -88,15 +89,19 @@ void trepl_init() {
 int trepl_task( int pid ) {
    char c = '\0';
    int cur_pos = 0;
-   char c[REPL_LINE_SIZE_MAX] line;
+   int line_len = 0;
+   char* line;
 
    c = tgetc();
    if( c ) {
-      mget( pid, REPL_MID_CUR_POS, &received, sizeof( int ) );
-      mget( pid, REPL_MID_LINE, &received, REPL_LINE_SIZE_MAX );
+      cur_pos = mget_int( pid, REPL_MID_CUR_POS );
+      line = mget( pid, REPL_MID_LINE, &line_len );
+      //if( line_len < 
 
-      mset( pid, REPL_MID_CUR_POS, &received, sizeof( int ) );
-      mset( pid, REPL_MID_LINE, &received, REPL_LINE_SIZE_MAX );
+      mset( pid, REPL_MID_CUR_POS, &cur_pos, sizeof( int ) );
+      mset( pid, REPL_MID_LINE, line, REPL_LINE_SIZE_MAX );
    }
+
+   return 0;
 }
 
