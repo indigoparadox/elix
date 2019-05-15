@@ -19,7 +19,7 @@ alix86.bin: CFLAGS += -ffreestanding -nostdlib -nostartfiles -nodefaultlibs -DPL
 alix86.bin: OBJDIR := ../obj/os
 alix86.bin: LDFLAGS := -Ttext 0x0 --oformat binary
 
-alix430.bin: CFLAGS += -DPLATFORM_MSP430 -mmcu=msp430g2553
+alix430.bin: CFLAGS += -DPLATFORM_MSP430 -mmcu=msp430g2553 -DCONSOLE_SERIAL
 alix430.bin: CC := msp430-gcc
 alix430.bin: STRIP := msp430-strip
 alix430.bin: OBJDIR := ../obj/msp430
