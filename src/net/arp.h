@@ -14,6 +14,8 @@
 #endif /* NET_IPV6 */
 #define ARP_PACKET_SIZE_MAX (ARP_PACKET_HEADER_SIZE + ARP_PACKET_DATA_SIZE_MAX)
 
+#define ARP_INVALID_PACKET 64
+
 struct arp_header {
    uint16_t hwtype;
    uint16_t prototype;

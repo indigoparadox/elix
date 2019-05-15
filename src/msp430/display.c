@@ -10,7 +10,7 @@ void display_init() {
 
 }
 
-void display_puts( const char* str, int len ) {
+void display_puts( const char* str ) {
 }
 
 void display_putc_at( char c, int x, int y ) {

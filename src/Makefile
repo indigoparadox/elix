@@ -9,7 +9,7 @@ SYSLINUX=syslinux
 MCOPY=mcopy
 
 CFLAGS=-Wall
-SOURCES=net/tcp.c net/ether.c net/arp.c mem.c console.c kernel.c
+SOURCES=net/tcp.c net/ether.c net/arp.c mem.c console.c kernel.c net/net.c adhd.c
 OBJECTS=$(subst .c,.o,$(SOURCES))
 LDFLAGS=
 
@@ -38,10 +38,10 @@ tests: OBJDIR := ../obj/tests
 
 all:
 
-lalixnet: $(OBJECTS) colinux/net.o colinux/display.o colinux/boot.o
+lalixnet: $(OBJECTS) colinux/net.o colinux/display.o colinux/boot.o colinux/keyboard.o
 	$(CC) -o $@ $(addprefix $(OBJDIR)/,$^) $(LDFLAGS)
 
-walixnet.exe: $(OBJECTS) main.o drivers/vnet.o
+walixnet.exe: $(OBJECTS) drivers/vnet.o
 	$(CC) -o $@ $(addprefix $(OBJDIR)/,$^) $(LDFLAGS)
 
 alix86.iso: $(ISODIRX86)/alix86.bin
