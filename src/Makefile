@@ -15,9 +15,14 @@ walixnet.exe: CFLAGS += -DNET_CON_ECHO -g
 walixnet.exe: LDFLAGS += -lwpcap
 walixnet.exe: OBJDIR := ../obj/windows
 
-alix.bin: CFLAGS += -ffreestanding -nostdlib -nostartfiles -nodefaultlibs -DPLATFORM_X86
-alix.bin: OBJDIR := ../obj/os
-alix.bin: LDFLAGS := -Ttext 0x0 --oformat binary
+alix86.bin: CFLAGS += -ffreestanding -nostdlib -nostartfiles -nodefaultlibs -DPLATFORM_X86
+alix86.bin: OBJDIR := ../obj/os
+alix86.bin: LDFLAGS := -Ttext 0x0 --oformat binary
+
+alix430.bin: CFLAGS += -DPLATFORM_MSP430 -mmcu=msp430g2553
+alix430.bin: CC := msp430-gcc
+alix430.bin: STRIP := msp430-strip
+alix430.bin: OBJDIR := ../obj/msp430
 
 tests: LDFLAGS += -lcheck -lpthread -lm -lrt -lpcap
 tests: OBJDIR := ../obj/tests
@@ -30,7 +35,10 @@ lalixnet: $(OBJECTS) drivers/vnet.o colinux/display.o colinux/boot.o
 walixnet.exe: $(OBJECTS) main.o drivers/vnet.o
 	$(CC) -o $@ $(addprefix $(OBJDIR)/,$^) $(LDFLAGS)
 
-alix.bin: $(OBJECTS) x86/display.o
+alix86.bin: $(OBJECTS) x86/display.o
+	$(LD) -o $@ $(addprefix $(OBJDIR)/,$^) $(LDFLAGS)
+
+alix430.bin: $(OBJECTS) msp430/display.o msp430 msp430/boot.o
 	$(LD) -o $@ $(addprefix $(OBJDIR)/,$^) $(LDFLAGS)
 
 tests: $(OBJECTS) drivers/vnet.o ../tests/check.o ../tests/check_ether.o
@@ -43,5 +51,5 @@ tests: $(OBJECTS) drivers/vnet.o ../tests/check.o ../tests/check_ether.o
 .PHONY: clean
 
 clean:
-	rm -rf ../obj ; rm tests ; rm lalixnet ; rm walixnet.exe
+	rm -rf ../obj ; rm tests ; rm lalixnet ; rm walixnet.exe ; rm *.bin
 
