@@ -4,6 +4,7 @@
 #include "ether.h"
 #include "../debug.h"
 #include "../adhd.h"
+#include "../mem.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -61,15 +62,17 @@ int net_respond_arp(
    return ARP_INVALID_PACKET;
 }
 
+#define NET_MID_SOCKET 1
+
 int net_respond_task( int pid ) {
    struct ether_frame frame;
    int frame_len = 0;
    NET_SOCK socket = NULL;
 
-   socket = adhd_get_ptr( pid, "socket" );
+   mget( pid, NET_MID_SOCKET, &socket, sizeof( NET_SOCK ) );
    if( NULL == socket ) {
       socket = net_open_socket( g_ifname );
-      adhd_set_ptr( pid, "socket", socket );
+      mset( pid, NET_MID_SOCKET, &socket, sizeof( NET_SOCK ) );
    }
 
    frame_len = 
