@@ -4,7 +4,6 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include <bstrlib/bstrlib.h>
 
 #ifdef PLATFORM_X86
 #define DISPLAY_WIDTH 80
@@ -30,10 +29,11 @@
 #define COLOR_LIGHT_BROWN     0x0e
 #define COLOR_WHITE           0x0f
 
+void display_set_colors( uint8_t fg, uint8_t bg );
 void display_init();
-void display_putc_at( char c, size_t x, size_t y );
+void display_putc_at( char c, int x, int y );
 void display_putc( char c );
-void display_puts( const bstring str );
+void display_puts( const char* c, int len );
 
 #endif /* DISPLAY_H */
  

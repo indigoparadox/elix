@@ -2,10 +2,10 @@
 #ifndef CONSOLE_H
 #define CONSOLE_H
 
-#include <bstrlib/bstrlib.h>
+#include <stdarg.h>
 
-void tprintf( const char* pattern, ... );
-void tputs( const bstring str );
+void tprintf( const char* pattern, int len, ... );
+void tputs( const char* str, int len );
 
 #endif /* CONSOLE_H */
 
