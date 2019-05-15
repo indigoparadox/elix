@@ -15,31 +15,33 @@ void tsetsl( uint8_t fg, uint8_t bg ) {
 #endif /* CONSOLE_COLOR */
 }
 
-void tputsl( const char* str, int len, uint8_t fg, uint8_t bg ) {
+void tputsl( const char* str, uint8_t fg, uint8_t bg ) {
 #ifdef CONSOLE_COLOR
    /* Set the colors, show the message, then set them back. */
    display_set_colors( fg, bg );
 #endif /* CONSOLE_COLOR */
-   tputs( str, len );
+   tputs( str );
 #ifdef CONSOLE_COLOR
    display_set_colors( g_term_fg, g_term_bg );
 #endif /* CONSOLE_COLOR */
 }
 
-void tputs( const char* str, int len ) {
+void tputs( const char* str ) {
 #ifdef CONSOLE_SERIAL
 #else
-   display_puts( str, len );
+   display_puts( str );
 #endif /* CONSOLE_SERIAL */
 }
 
-void tprintf( const char* pattern, int len, ... ) {
+void tprintf( const char* pattern, ... ) {
    va_list args;
-   va_start( args, len );
    int i = 0;
    char last = '\0';
    char* s = NULL;
-   int s_len = 0;
+   int len = 0;
+
+   va_start( args, pattern );
+   len = mstrlen( pattern );
 
    for( i = 0 ; len > i ; i++ ) {
       if( '\0' == pattern[i] ) {
@@ -50,10 +52,8 @@ void tprintf( const char* pattern, int len, ... ) {
          /* Conversion specifier encountered. */
          switch( pattern[i] ) {
             case 's':
-               /* TODO: Make sure a length was given! */
                s = va_arg( args, char* );
-               s_len = va_arg( args, int );
-               tputs( s, s_len );
+               tputs( s );
                break;
          }
       } else {
