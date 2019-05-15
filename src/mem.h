@@ -13,13 +13,14 @@ struct mvar {
 
 #define MEM_HEAP_SIZE 300
 
+/* FIXME: These are nullpo hazards. */
 #define mget_ptr( pid, mid, psz, type ) (*((type*)(mget( pid, mid, psz ))))
 #define mget_int( pid, mid ) (*((int*)(mget( pid, mid, NULL ))))
 
 //#define mem_alloc( count, size) calloc( count, size )
 //#define mem_free( ptr ) if( NULL != ptr ) { free( ptr ); }
 
-#ifndef CHECK
+#ifdef CHECK
 void mshift( int start, int offset );
 #endif /* CHECK */
 

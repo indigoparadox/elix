@@ -102,7 +102,6 @@ static int mget_pos( int pid, int mid ) {
 static
 #endif /* CHECK */
 void mshift( int start, int offset ) {
-   int mheap_addr_iter = 0;
    int i = 0;
 
    for( i = g_mheap_top ; i >= start ; i-- ) {
@@ -156,7 +155,9 @@ void mset( int pid, int mid, void* ptr, int len ) {
    var->size = len + 1; /* +1 for extra NULL spacer. */
    mheap_addr_iter += sizeof( struct mvar );
 
-   mcopy( &(g_mheap[mheap_addr_iter]), ptr, len );
+   if( NULL != ptr ) {
+      mcopy( &(g_mheap[mheap_addr_iter]), ptr, len );
+   }
    mheap_addr_iter += len;
 
    /* Add an extra NULL at the end. */
@@ -173,7 +174,9 @@ void* mget( int pid, int mid, int* psz ) {
    }
 
    /* Inform as to the allocated space. -1 for NULL. */
-   *psz = ((struct mvar*)&(g_mheap[mheap_addr_iter]))->size - 1;
+   if( NULL != psz ) {
+      *psz = ((struct mvar*)&(g_mheap[mheap_addr_iter]))->size - 1;
+   }
 
    /* Return a pointer to the value. */
    mheap_addr_iter += sizeof( struct mvar );
