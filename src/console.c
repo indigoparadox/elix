@@ -96,7 +96,12 @@ int trepl_task( int pid ) {
    if( c ) {
       cur_pos = mget_int( pid, REPL_MID_CUR_POS );
       line = mget( pid, REPL_MID_LINE, &line_len );
-      //if( line_len < 
+      if( 0 == line_len ) {
+         mset( pid, REPL_MID_LINE, NULL, REPL_LINE_SIZE_MAX );
+      }
+
+      line[cur_pos] = c;
+      tputs( line );
 
       mset( pid, REPL_MID_CUR_POS, &cur_pos, sizeof( int ) );
       mset( pid, REPL_MID_LINE, line, REPL_LINE_SIZE_MAX );

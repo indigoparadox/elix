@@ -75,11 +75,12 @@ int net_respond_arp(
 int net_respond_task( int pid ) {
    struct ether_frame frame;
    int frame_len = 0;
+   NET_SOCK* socket_ptr = NULL;
    NET_SOCK socket = NULL;
    int received = 0;
 
-   socket = mget_ptr( pid, NET_MID_SOCKET, NULL, NET_SOCK );
-   if( NULL == socket ) {
+   socket = mget( pid, NET_MID_SOCKET, NULL );
+   if( NULL == socket_ptr || NULL == *socket_ptr ) {
       socket = net_open_socket( g_ifname );
       mset( pid, NET_MID_SOCKET, &socket, sizeof( NET_SOCK ) );
    }
@@ -100,7 +101,7 @@ int net_respond_task( int pid ) {
    switch( ether_ntohs( frame.header.type ) ) {
       case ETHER_TYPE_ARP:
          /* Shuck the Ethernet frame and handle the packet. */
-         return net_respond_arp( pid, socket, &frame, frame_len );
+         return net_respond_arp( pid, &socket, &frame, frame_len );
    }
 
 cleanup:
