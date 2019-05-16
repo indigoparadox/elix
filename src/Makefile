@@ -17,12 +17,12 @@ DRIVERS_COLINUX=colinux/net.o colinux/display.o colinux/keyboard.o
 
 ISODIRX86=../isodir/x86
 
-lalixnet: CFLAGS += -g -DDEBUG -DMPRINT
+lalixnet: CFLAGS += -g -DDEBUG -DMPRINT -DPLATFORM_COLINUX
 lalixnet: LDFLAGS += -lpcap -lcurses
 lalixnet: OBJDIR := ../obj/linux
 
 walixnet.exe: CC := i686-w64-mingw32-gcc
-walixnet.exe: CFLAGS += -DNET_CON_ECHO -g
+walixnet.exe: CFLAGS += -DNET_CON_ECHO -g -DPLATFORM_COLINUX
 walixnet.exe: LDFLAGS += -lwpcap
 walixnet.exe: OBJDIR := ../obj/windows
 
@@ -61,12 +61,12 @@ $(ISODIRX86)/alix86.bin: alix86.bin
 	$(MD) $(ISODIRX86)/boot
 	cp -v alix86.bin $(ISODIRX86)/boot/alix86.bin
 
-alix86.bin: $(OBJECTS) x86/display.o x86/net.o
+alix86.bin: $(OBJECTS) x86/display.o x86/net.o x86/keyboard.o
 	$(AS) x86/boot.s -o $(OBJDIR)/boot.o
 	$(CC) -T x86/linker.ld -o $@ $(addprefix $(OBJDIR)/,$^) $(LDFLAGS) $(CFLAGS)
 
-alix430.bin: $(OBJECTS) msp430/display.o msp430 msp430/boot.o msp430/net.o
-	$(LD) -o $@ $(addprefix $(OBJDIR)/,$^) $(LDFLAGS)
+alix430.bin: $(OBJECTS) msp430/display.o msp430/boot.o msp430/net.o
+	$(CC) -o $@ $(addprefix $(OBJDIR)/,$^) $(CFLAGS) $(LDFLAGS)
 
 tests: $(OBJECTS) ../tests/check.o ../tests/check_ether.o ../tests/check_mem.o $(DRIVERS_COLINUX)
 	$(CC) -o $@ $(addprefix $(OBJDIR)/,$(subst ../tests,,$^)) $(LDFLAGS)

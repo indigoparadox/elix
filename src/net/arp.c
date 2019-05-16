@@ -99,7 +99,7 @@ int arp_respond(
       (2 * header->protosize);
    if( packet_claimed_size > call_packet_sz ) {
       deprintf(
-         "Inconsistent packet size: %d claimed, %d actual.",
+         "Inconsistent packet size: %d claimed, %d actual.\n",
          packet_claimed_size, call_packet_sz );
       goto cleanup;
    }
