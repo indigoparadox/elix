@@ -44,7 +44,7 @@ all:
 lalixnet: $(OBJECTS) $(DRIVERS_COLINUX) colinux/boot.o
 	$(CC) -o $@ $(addprefix $(OBJDIR)/,$^) $(LDFLAGS)
 
-walixnet.exe: $(OBJECTS) drivers/vnet.o
+walixnet.exe: $(OBJECTS) $(DRIVERS_COLINUX)
 	$(CC) -o $@ $(addprefix $(OBJDIR)/,$^) $(LDFLAGS)
 
 alix86.iso: $(ISODIRX86)/alix86.bin

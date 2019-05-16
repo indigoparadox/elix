@@ -2,7 +2,7 @@
 #include "../display.h"
 
 #include <stdio.h>
-#include <ncurses.h>
+//#include <ncurses.h>
 
 void display_set_colors( uint8_t fg, uint8_t bg ) {
 }

@@ -15,12 +15,13 @@ void kmain() {
    int i = 0;
 
    minit();
+   keyboard_init();
    display_init();
 
    tputs( "hello\n" );
 
    /* Create network task. */
-   adhd_add_task( net_respond_task );
+   //adhd_add_task( net_respond_task );
    adhd_add_task( trepl_task );
 
    while( 1 ) {
