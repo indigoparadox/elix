@@ -1,17 +1,20 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include "display.h"
 #include "console.h"
 #include "mem.h"
 #include "debug.h"
 #include "net/net.h"
 #include "adhd.h"
+#define KERNEL_C
 #include "kernel.h"
 
-#define TASKS_MAX 5
+#ifndef CONSOLE_SERIAL
+#include "display.h"
+#include "keyboard.h"
+#endif /* CONSOLE_SERIAL */
 
-uint8_t g_system_state = SYSTEM_RUNNING;
+#define TASKS_MAX 5
 
 void kmain() {
    TASK_PID active = 0;
@@ -33,6 +36,8 @@ void kmain() {
          adhd_call_task( active );
       }
    }
+
+   tputs( "stopping...\n" );
 
 #ifndef CONSOLE_SERIAL
    keyboard_shutdown();

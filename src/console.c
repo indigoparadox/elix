@@ -3,6 +3,7 @@
 #include "display.h"
 #include "mem.h"
 #include "net/net.h" /* For console command. */
+#include "kernel.h"
 
 #ifdef CONSOLE_SERIAL
 #else
@@ -109,6 +110,8 @@ void trepl_init() {
 void truncmd( char* line, int line_len ) {
    if( 0 == mcompare( line, "netr", 4 ) ) {
       g_net_con_request = NET_REQ_RCVD;
+   } else if( 0 == mcompare( line, "quit", 4 ) ) {
+      g_system_state = SYSTEM_SHUTDOWN;
    }
 }
 
@@ -131,14 +134,25 @@ TASK_RETVAL trepl_task( TASK_PID pid ) {
       }
 
       if( cur_pos < REPL_LINE_SIZE_MAX ) {
-         line[cur_pos] = c;
-         cur_pos++;
-         display_putc( c );
+         switch( c ) {
+            case '\n':
+               truncmd( line, cur_pos );
+               mzero( line, REPL_LINE_SIZE_MAX );
+               break;
 
-         truncmd( line, cur_pos );
+            default:
+               line[cur_pos] = c;
+               cur_pos++;
+#ifdef CONSOLE_SERIAL
+#else
+               display_putc( c );
+#endif /* CONSOLE_SERIAL */
+               break;
+         }
       } else {
          tputs( "INVALID COMMAND" );
          cur_pos = 0;
+         mzero( line, REPL_LINE_SIZE_MAX );
          display_newline();
       }
    }

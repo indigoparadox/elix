@@ -10,10 +10,7 @@
 #include <stropts.h>
 #include <signal.h>
 
-extern uint8_t g_system_state;
-
 void handle_ctrl_c( int param ) {
-   tputs( "Shutting down...\n" );
    /* Tell the kernel we can exit. */
    g_system_state = SYSTEM_SHUTDOWN;
 }
