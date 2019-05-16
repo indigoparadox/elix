@@ -58,7 +58,7 @@ int arp_get_dest_mac( uint8_t* mac, int mac_sz, struct arp_packet* arp ) {
    int retval = 0;
 
    if( mac_sz < arp->header.hwsize ) {
-      derror( "Provided buffer too small for hardware address" );
+      derror( "address overflow" );
       goto cleanup;
    }
 
@@ -99,7 +99,7 @@ int arp_respond(
       (2 * header->protosize);
    if( packet_claimed_size > call_packet_sz ) {
       deprintf(
-         "Inconsistent packet size: %d claimed, %d actual.\n",
+         "bad packet size %d (%d actual)",
          packet_claimed_size, call_packet_sz );
       goto cleanup;
    }
@@ -119,7 +119,7 @@ int arp_respond(
       NULL != resp_packet &&
       call_packet_sz > resp_packet_sz
    ) {
-      derror( "Response buffer too small to respond" );
+      derror( "packet overflow" );
       goto cleanup;
    }
 

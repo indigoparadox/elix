@@ -1,4 +1,5 @@
 
+#define NET_C
 #include "net.h"
 #include "arp.h"
 #include "ether.h"
@@ -19,8 +20,6 @@ uint8_t g_src_ip[4] = { 10, 137, 2, 88 };
 uint8_t g_search_ip[4] = { 10, 137, 2, 11 };
 uint8_t g_src_mac[6] = { 0xab, 0xcd, 0xef, 0xde, 0xad, 0xbf };
 char* g_ifname = "eth0";
-
-uint8_t g_net_con_request = 0;
 
 void net_respond_con_request( TASK_PID pid ) {
    int received = 0;
@@ -65,7 +64,6 @@ uint8_t net_respond_arp_request(
    frame_len = ether_new_frame( frame, sizeof( struct ether_frame ),
       g_src_mac, dest_mac, ETHER_TYPE_ARP, arp, arp_len );
    if( 0 == frame_len ) {
-      derror( "Unable to create frame" );
       retval = 1;
       goto cleanup;
    }
