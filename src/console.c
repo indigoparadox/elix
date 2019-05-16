@@ -88,7 +88,7 @@ void trepl_init() {
 
 int trepl_task( int pid ) {
    char c = '\0';
-   int cur_pos = 0;
+   uint8_t cur_pos = 0;
    int line_len = 0;
    char* line;
 
@@ -98,11 +98,16 @@ int trepl_task( int pid ) {
       line = mget( pid, REPL_MID_LINE, &line_len );
       if( 0 == line_len ) {
          mset( pid, REPL_MID_LINE, NULL, REPL_LINE_SIZE_MAX );
+         line = mget( pid, REPL_MID_LINE, &line_len );
       }
 
-      printf( "%c\n", c );
+      //printf( "%c\n", c );
+      printf( "%p\n", line );
+      printf( "%d: %s\n", cur_pos, line );
+      mprint();
 
-      //line[cur_pos] = c;
+      line[cur_pos] = c;
+      cur_pos++;
       tputs( line );
 
       mset( pid, REPL_MID_CUR_POS, &cur_pos, sizeof( int ) );

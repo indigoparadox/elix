@@ -17,7 +17,7 @@ DRIVERS_COLINUX=colinux/net.o colinux/display.o colinux/keyboard.o
 
 ISODIRX86=../isodir/x86
 
-lalixnet: CFLAGS += -g -DDEBUG
+lalixnet: CFLAGS += -g -DDEBUG -DMPRINT
 lalixnet: LDFLAGS += -lpcap -lcurses
 lalixnet: OBJDIR := ../obj/linux
 
