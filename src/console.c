@@ -92,13 +92,15 @@ int trepl_task( int pid ) {
    int line_len = 0;
    char* line;
 
-   c = tgetc();
-   if( c ) {
+   if( keyboard_hit() ) {
+      c = keyboard_getc();
       cur_pos = mget_int( pid, REPL_MID_CUR_POS );
       line = mget( pid, REPL_MID_LINE, &line_len );
       if( 0 == line_len ) {
          mset( pid, REPL_MID_LINE, NULL, REPL_LINE_SIZE_MAX );
       }
+
+      printf( "%c\n", c );
 
       //line[cur_pos] = c;
       tputs( line );
