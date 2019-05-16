@@ -100,7 +100,7 @@ int trepl_task( int pid ) {
          mset( pid, REPL_MID_LINE, NULL, REPL_LINE_SIZE_MAX );
       }
 
-      line[cur_pos] = c;
+      //line[cur_pos] = c;
       tputs( line );
 
       mset( pid, REPL_MID_CUR_POS, &cur_pos, sizeof( int ) );

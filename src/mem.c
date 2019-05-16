@@ -1,4 +1,5 @@
 
+#define MEM_C
 #include "mem.h"
 
 #include <stddef.h>
@@ -48,7 +49,7 @@ int mstrlen( const char* str ) {
    return i;
 }
 
-#if defined( DEBUG ) || defined( CHECK )
+#if defined( MPRINT ) || defined( CHECK )
 void mprint() {
    int i = 0;
 
@@ -64,7 +65,7 @@ void mprint() {
    }
    printf( "\n" );
 }
-#endif /* DEBUG || CHECK */
+#endif /* MPRINT || CHECK */
 
 /* Get the heap position for a variable. Used in public functions below. */
 static int mget_pos( int pid, int mid ) {
@@ -76,8 +77,12 @@ static int mget_pos( int pid, int mid ) {
       return -1;
    }
 
-   while( pid != var_iter->pid && mid != var_iter->mid ) {
-      if( mheap_addr_iter < g_mheap_top ) {
+   /* printf( "mpos_pid: %d (%d), mpos_mid: %d (%d)\n",
+      pid, var_iter->pid, mid, var_iter->mid ); */
+
+   /* Hunt until we find a var tagged with the sought pid and mid. */
+   while( pid != var_iter->pid || mid != var_iter->mid ) {
+      if( mheap_addr_iter >= g_mheap_top ) {
          /* Unable to find it and ran out of heap! */
          return -1;
       }
@@ -168,9 +173,12 @@ void* mget( int pid, int mid, int* psz ) {
    int mheap_addr_iter = 0;
 
    mheap_addr_iter = mget_pos( pid, mid );
+
+   /* printf( "heap_addr: %d\n", mheap_addr_iter ); */
+
    if( 0 > mheap_addr_iter ) {
       /* Not found! */
-      return NULL;
+      return &meta_null;
    }
 
    /* Inform as to the allocated space. -1 for NULL. */
@@ -180,6 +188,6 @@ void* mget( int pid, int mid, int* psz ) {
 
    /* Return a pointer to the value. */
    mheap_addr_iter += sizeof( struct mvar );
-   return &(g_mheap[mheap_addr_iter]);;
+   return &(g_mheap[mheap_addr_iter]);
 }
 

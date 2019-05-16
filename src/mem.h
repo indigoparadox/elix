@@ -13,20 +13,18 @@ struct mvar {
 
 #define MEM_HEAP_SIZE 300
 
-/* FIXME: These are nullpo hazards. */
-#define mget_ptr( pid, mid, psz, type ) (*((type*)(mget( pid, mid, psz ))))
-#define mget_int( pid, mid ) (*((int*)(mget( pid, mid, NULL ))))
-
-//#define mem_alloc( count, size) calloc( count, size )
-//#define mem_free( ptr ) if( NULL != ptr ) { free( ptr ); }
+#define mget_ptr( pid, mid, psz, type ) \
+   (*((type*)(mget( pid, mid, psz ))))
+#define mget_int( pid, mid ) \
+   (*((int*)(mget( pid, mid, NULL ))))
 
 #ifdef CHECK
 void mshift( int start, int offset );
 #endif /* CHECK */
 
-#if defined( DEBUG ) || defined( CHECK )
+#if defined( MPRINT ) || defined( CHECK )
 void mprint();
-#endif /* DEBUG || CHECK */
+#endif /* MPRINT || CHECK */
 
 void minit();
 void mset( int pid, int mid, void* ptr, int len );
@@ -37,6 +35,12 @@ int mcompare( const void* c1, const void* c2, int sz );
 int mstrlen( const char* str );
 
 //struct mstring* mfromcstr( char* str );
+
+#ifdef MEM_C
+const long meta_null = 0;
+#else
+extern const long meta_null;
+#endif /* MEM_C */
 
 #endif /* MEM_H */
 

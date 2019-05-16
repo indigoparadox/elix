@@ -17,8 +17,8 @@ DRIVERS_COLINUX=colinux/net.o colinux/display.o colinux/keyboard.o
 
 ISODIRX86=../isodir/x86
 
-lalixnet: CFLAGS += -g
-lalixnet: LDFLAGS += -lpcap
+lalixnet: CFLAGS += -g -DDEBUG
+lalixnet: LDFLAGS += -lpcap -lcurses
 lalixnet: OBJDIR := ../obj/linux
 
 walixnet.exe: CC := i686-w64-mingw32-gcc
