@@ -2,11 +2,14 @@
 #include <check.h>
 #include <stdint.h>
 #include "../src/mem.h"
+#include "../src/console.h"
 
 #define CHECK_PID 1
 
 #define CHECK_MID_TEST1 1 
 #define CHECK_MID_TEST2 2
+#define CHECK_MID_LINE1 3
+#define CHECK_MID_CUR_POS1 4
 
 #define CHECK_MEM_SHIFT_OFFSET 5
 
@@ -318,6 +321,50 @@ START_TEST( test_metazero ) {
 }
 END_TEST
 
+START_TEST( test_mset_line ) {
+   int line_len = 0;
+   uint8_t* cur_pos = NULL;
+   int cur_pos_len = 0;
+   char c = '\0';
+   int i = 0;
+   char* line = NULL;
+   int heap_iter = 0;
+
+   minit();
+
+   /* Create the buffer and grab a pointer to it. */
+   mset( CHECK_PID, CHECK_MID_CUR_POS1, NULL, sizeof( uint8_t ) );
+   mset( CHECK_PID, CHECK_MID_LINE1, NULL, REPL_LINE_SIZE_MAX );
+   cur_pos = mget( CHECK_PID, CHECK_MID_CUR_POS1, &cur_pos_len );
+   line = mget( CHECK_PID, CHECK_MID_LINE1, &line_len );
+
+   heap_iter = (2 * sizeof( struct mvar )) + 2 + REPL_LINE_SIZE_MAX + sizeof( uint8_t );
+
+   ck_assert_int_eq( cur_pos_len, sizeof( uint8_t ) );
+   ck_assert_int_eq( line_len, REPL_LINE_SIZE_MAX );
+   ck_assert_int_eq( *cur_pos, 0 );
+   ck_assert_int_eq( g_mheap_top, heap_iter );
+
+   for( i = 0 ; CHECK_STR_SZ > i ; i++ ) {
+      line[*cur_pos] = g_chk_str_1[i];
+      (*cur_pos)++;
+   }
+
+   cur_pos = mget( CHECK_PID, CHECK_MID_CUR_POS1, &cur_pos_len );
+   line = mget( CHECK_PID, CHECK_MID_LINE1, &line_len );
+
+   ck_assert_int_eq( cur_pos_len, sizeof( uint8_t ) );
+   ck_assert_int_eq( line_len, REPL_LINE_SIZE_MAX );
+   ck_assert_int_eq( *cur_pos, CHECK_STR_SZ );
+   ck_assert_int_eq( g_mheap_top, heap_iter );
+
+   for( i = 0 ; CHECK_STR_SZ > i ; i++ ) {
+      line[*cur_pos] = g_chk_str_2[i];
+      (*cur_pos)++;
+   }
+}
+END_TEST
+
 Suite* mem_suite( void ) {
    Suite* s;
    TCase* tc_core;
@@ -334,6 +381,7 @@ Suite* mem_suite( void ) {
    tcase_add_test( tc_core, test_mget );
    tcase_add_test( tc_core, test_metazero );
    tcase_add_test( tc_core, test_mset_pid_match );
+   tcase_add_test( tc_core, test_mset_line );
 
    suite_add_tcase( s, tc_core );
 

@@ -7,28 +7,37 @@
 #include "debug.h"
 #include "net/net.h"
 #include "adhd.h"
+#include "kernel.h"
 
 #define TASKS_MAX 5
 
+uint8_t g_system_state = SYSTEM_RUNNING;
+
 void kmain() {
-   int retval = 0;
-   int i = 0;
+   TASK_PID active = 0;
 
    minit();
+#ifndef CONSOLE_SERIAL
    keyboard_init();
    display_init();
+#endif /* CONSOLE_SERIAL */
 
    tputs( "hello\n" );
 
    /* Create network task. */
-   //adhd_add_task( net_respond_task );
+   adhd_add_task( net_respond_task );
    adhd_add_task( trepl_task );
 
-   while( 1 ) {
-      for( i = 0 ; adhd_get_tasks_len() > i ; i++ ) {
-         retval = adhd_call_task( i );
+   while( SYSTEM_SHUTDOWN != g_system_state ) {
+      for( active = 0 ; adhd_get_tasks_len() > active ; active++ ) {
+         adhd_call_task( active );
       }
    }
+
+#ifndef CONSOLE_SERIAL
+   keyboard_shutdown();
+   display_shutdown();
+#endif /* CONSOLE_SERIAL */
 
 #if 0
    /* Create an ARP request. */

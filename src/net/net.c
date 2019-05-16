@@ -20,13 +20,28 @@ uint8_t g_search_ip[4] = { 10, 137, 2, 11 };
 uint8_t g_src_mac[6] = { 0xab, 0xcd, 0xef, 0xde, 0xad, 0xbf };
 char* g_ifname = "eth0";
 
-int net_respond_arp_request(
-   int pid, NET_SOCK socket, struct ether_frame* frame, int frame_len
+uint8_t g_net_con_request = 0;
+
+void net_respond_con_request( TASK_PID pid ) {
+   int received = 0;
+
+   switch( g_net_con_request ) {
+      case NET_REQ_RCVD:
+         received = mget_int( pid, NET_MID_RECEIVED );
+         tprintf( "frames rcvd: %d\n", received );
+         break;
+   }
+
+   g_net_con_request = 0;
+}
+
+uint8_t net_respond_arp_request(
+   TASK_PID pid, NET_SOCK socket, struct ether_frame* frame, int frame_len
 ) {
    struct arp_packet* arp = (struct arp_packet*)&(frame->data);
    int arp_len = 0;
    int arp_sz = frame_len - ether_get_header_len( frame, frame_len );
-   int retval = 0;
+   uint8_t retval = 0;
    uint8_t dest_mac[6];
    int responded = 0;
 
@@ -61,8 +76,8 @@ cleanup:
    return retval;
 }
 
-int net_respond_arp(
-   int pid, NET_SOCK socket, struct ether_frame* frame, int frame_len
+uint8_t net_respond_arp(
+   TASK_PID pid, NET_SOCK socket, struct ether_frame* frame, int frame_len
 ) {
    struct arp_header* arp_header = (struct arp_header*)&(frame->data);
    switch( ether_ntohs( arp_header->opcode ) ) {
@@ -72,11 +87,12 @@ int net_respond_arp(
    return ARP_INVALID_PACKET;
 }
 
-int net_respond_task( int pid ) {
+TASK_RETVAL net_respond_task( TASK_PID pid ) {
    struct ether_frame frame;
    int frame_len = 0;
    NET_SOCK socket = NULL;
    int received = 0;
+   uint8_t retval = 0;
 
    socket = mget_ptr( pid, NET_MID_SOCKET, NULL, NET_SOCK );
    if( NULL == socket ) {
@@ -94,9 +110,6 @@ int net_respond_task( int pid ) {
    }
 
    received = mget_int( pid, NET_MID_RECEIVED );
-   /*
-   printf( "rcvd: %d, pid: %d, mid: %d\n", received, pid, NET_MID_RECEIVED );
-   */
    received++;
    mset( pid, NET_MID_RECEIVED, &received, sizeof( int ) );
 
@@ -106,10 +119,13 @@ int net_respond_task( int pid ) {
    switch( ether_ntohs( frame.header.type ) ) {
       case ETHER_TYPE_ARP:
          /* Shuck the Ethernet frame and handle the packet. */
-         return net_respond_arp( pid, &socket, &frame, frame_len );
+         retval = net_respond_arp( pid, &socket, &frame, frame_len );
+         goto cleanup;
    }
 
+   net_respond_con_request( pid );
+
 cleanup:
-   return 0;
+   return retval;
 }
 

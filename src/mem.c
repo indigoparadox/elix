@@ -13,11 +13,13 @@ static
 #endif /* CHECK */
 int g_mheap_top = 0;
 
+/* Setup the heap. */
 void minit() {
    mzero( g_mheap, MEM_HEAP_SIZE );
    g_mheap_top = 0;
 }
 
+/* Zero a given block of memory. */
 void mzero( void* dest, int sz ) {
    int i = 0;
    for( i = 0 ; sz > i ; i++ ) {
@@ -25,6 +27,7 @@ void mzero( void* dest, int sz ) {
    }
 }
 
+/* memcpy */
 int mcopy( void* dest, const void* src, int sz ) {
    int i = 0;
    for( i = 0 ; sz > i ; i++ ) {
@@ -33,6 +36,7 @@ int mcopy( void* dest, const void* src, int sz ) {
    return i;
 }
 
+/* strncmp */
 int mcompare( const void* c1, const void* c2, int sz ) {
    int i = 0;
    for( i = 0 ; sz > i ; i++ ) {
@@ -43,6 +47,7 @@ int mcompare( const void* c1, const void* c2, int sz ) {
    return 0;
 }
 
+/* strlen */
 int mstrlen( const char* str ) {
    int i = 0;
    while( '\0' != str[i] ) { i++; }
@@ -55,11 +60,13 @@ void mprint() {
 
    for( i = 0 ; MEM_HEAP_SIZE > i ; i++ ) {
       if( 0 == i % 20 ) {
-         printf( "\n" );
+         display_putc( "\n" );
       }
       if( i == g_mheap_top ) {
-         printf( "** " );
+         display_putc( '*' );
+         display_putc( '*' );
       } else {
+         /* TODO: Implement hex tprintf. */
          printf( "%02X ", g_mheap[i] );
       }
    }

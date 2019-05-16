@@ -1,5 +1,6 @@
 
 #include "../keyboard.h"
+#include "../kernel.h"
 
 #include <sys/time.h>
 #include <stdio.h>
@@ -7,17 +8,30 @@
 #include <sys/select.h>
 #include <termios.h>
 #include <stropts.h>
+#include <signal.h>
 
-//#include <ncurses.h>
+extern uint8_t g_system_state;
 
-#define STDIN 0
+void handle_ctrl_c( int param ) {
+   tputs( "Shutting down...\n" );
+   /* Tell the kernel we can exit. */
+   g_system_state = SYSTEM_SHUTDOWN;
+}
 
 void keyboard_init() {
    struct termios term;
+
+   /* Handle CTRL-C. */
+   signal( SIGINT, handle_ctrl_c );
+
    tcgetattr( STDIN, &term );
    term.c_lflag &= ~ICANON;
    tcsetattr( STDIN, TCSANOW, &term );
+
    setbuf( stdin, NULL );
+}
+
+void keyboard_shutdown() {
 }
 
 int keyboard_hit() {
