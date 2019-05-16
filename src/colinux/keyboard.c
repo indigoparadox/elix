@@ -1,7 +1,7 @@
 
 #include "../keyboard.h"
 
-#include <sys/ioctl.h>
+#include <sys/time.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <sys/select.h>
@@ -20,17 +20,21 @@ void keyboard_init() {
    setbuf( stdin, NULL );
 }
 
-uint8_t keyboard_hit() {
-   int waiting;
-   ioctl( STDIN, FIONREAD, &waiting );
-   return (uint8_t)waiting;
+int keyboard_hit() {
+   struct timeval timeout;
+   fd_set rdset;
+   FD_ZERO( &rdset );
+   FD_SET( STDIN, &rdset );
+   timeout.tv_sec = 0;
+   timeout.tv_usec = 0;
+   return select( STDIN + 1, &rdset, NULL, NULL, &timeout );
 }
 
 unsigned char keyboard_getc() {
-   unsigned char buffer = 0;
+   /* unsigned char buffer = 0;
    if( 1 != read( &buffer, 1 ) ) {
       return 0;
-   }
-   return buffer;
+   } */
+   return getchar();
 }
 
