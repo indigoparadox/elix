@@ -1,9 +1,9 @@
 
 #include "../keyboard.h"
 
-#include <stdio.h>
+#include <ncurses.h>
 
 char keyboard_getc() {
-   return getchar();
+   return 0; //getch();
 }
 

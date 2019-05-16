@@ -21,6 +21,7 @@ void kmain() {
 
    /* Create network task. */
    adhd_add_task( net_respond_task );
+   adhd_add_task( trepl_task );
 
    while( 1 ) {
       for( i = 0 ; adhd_get_tasks_len() > i ; i++ ) {

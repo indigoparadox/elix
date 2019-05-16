@@ -75,13 +75,15 @@ int net_respond_arp(
 int net_respond_task( int pid ) {
    struct ether_frame frame;
    int frame_len = 0;
-   NET_SOCK* socket_ptr = NULL;
    NET_SOCK socket = NULL;
    int received = 0;
 
-   socket = mget( pid, NET_MID_SOCKET, NULL );
-   if( NULL == socket_ptr || NULL == *socket_ptr ) {
+   socket = mget_ptr( pid, NET_MID_SOCKET, NULL, NET_SOCK );
+   if( NULL == socket ) {
       socket = net_open_socket( g_ifname );
+      if( NULL == socket ) {
+         return -1;
+      }
       mset( pid, NET_MID_SOCKET, &socket, sizeof( NET_SOCK ) );
    }
 
@@ -92,6 +94,9 @@ int net_respond_task( int pid ) {
    }
 
    received = mget_int( pid, NET_MID_RECEIVED );
+   /*
+   printf( "rcvd: %d, pid: %d, mid: %d\n", received, pid, NET_MID_RECEIVED );
+   */
    received++;
    mset( pid, NET_MID_RECEIVED, &received, sizeof( int ) );
 
