@@ -11,7 +11,7 @@ struct mvar {
    uint16_t size; /* Allocated. */
 } __attribute__((packed));
 
-#define MEM_HEAP_SIZE 300
+#define MEM_HEAP_SIZE 420
 
 #define mget_ptr( pid, mid, psz, type ) \
    (*((type*)(mget( pid, mid, psz ))))

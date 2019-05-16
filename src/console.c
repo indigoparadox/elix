@@ -2,6 +2,7 @@
 #include "console.h"
 #include "display.h"
 #include "mem.h"
+#include "net/net.h" /* For console command. */
 
 #ifdef CONSOLE_SERIAL
 #else
@@ -16,6 +17,8 @@
 static uint8_t g_term_bg;
 static uint8_t g_term_fg;
 #endif /* CONSOLE_COLOR */
+
+static uint8_t cur_pos = 0;
 
 void tsetsl( uint8_t fg, uint8_t bg ) {
 #ifdef CONSOLE_COLOR
@@ -104,14 +107,13 @@ void trepl_init() {
 }
 
 void truncmd( char* line, int line_len ) {
-   if( 0 == mstrcmp( line, "netr" ) ) {
+   if( 0 == mcompare( line, "netr", 4 ) ) {
       g_net_con_request = NET_REQ_RCVD;
    }
 }
 
 TASK_RETVAL trepl_task( TASK_PID pid ) {
    char c = '\0';
-   uint8_t* cur_pos = NULL;
    int line_len = 0;
    char* line;
 
@@ -121,24 +123,22 @@ TASK_RETVAL trepl_task( TASK_PID pid ) {
    if( keyboard_hit() ) {
       c = keyboard_getc();
 #endif /* CONSOLE_SERIAL */
-      cur_pos = mget( pid, REPL_MID_CUR_POS, NULL );
       line = mget( pid, REPL_MID_LINE, &line_len );
       if( 0 == line_len ) {
          mset( pid, REPL_MID_CUR_POS, NULL, sizeof( uint8_t ) );
          mset( pid, REPL_MID_LINE, NULL, REPL_LINE_SIZE_MAX );
-         cur_pos = mget( pid, REPL_MID_CUR_POS, NULL );
          line = mget( pid, REPL_MID_LINE, &line_len );
       }
 
-      if( *cur_pos < REPL_LINE_SIZE_MAX ) {
-         line[*cur_pos] = c;
-         (*cur_pos)++;
+      if( cur_pos < REPL_LINE_SIZE_MAX ) {
+         line[cur_pos] = c;
+         cur_pos++;
          display_putc( c );
 
-         truncmd( line, *cur_pos );
+         truncmd( line, cur_pos );
       } else {
          tputs( "INVALID COMMAND" );
-         *cur_pos = 0;
+         cur_pos = 0;
          display_newline();
       }
    }

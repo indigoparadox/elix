@@ -15,6 +15,12 @@
 
 #define NET_REQ_RCVD 1
 
+#ifdef NET_C
+uint8_t g_net_con_request = 0;
+#else
+extern uint8_t g_net_con_request;
+#endif /* NET_C */
+
 NET_SOCK net_open_socket( SOCKET_ID if_name );
 void net_close_socket( NET_SOCK socket );
 int net_send_frame(
