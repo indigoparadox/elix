@@ -1,6 +1,7 @@
 
 #define MEM_C
 #include "mem.h"
+#include "console.h"
 
 #include <stddef.h>
 
@@ -40,6 +41,7 @@ int mcopy( void* dest, const void* src, int sz ) {
 int mcompare( const void* c1, const void* c2, int sz ) {
    int i = 0;
    for( i = 0 ; sz > i ; i++ ) {
+      printf( "%c %c\n", ((uint8_t*)c1)[i], ((uint8_t*)c2)[i] );
       if( ((uint8_t*)c1)[i] != ((uint8_t*)c2)[i] ) {
          return 1;
       }
@@ -60,17 +62,16 @@ void mprint() {
 
    for( i = 0 ; MEM_HEAP_SIZE > i ; i++ ) {
       if( 0 == i % 20 ) {
-         display_putc( "\n" );
+         tputs( "\n" );
       }
       if( i == g_mheap_top ) {
-         display_putc( '*' );
-         display_putc( '*' );
+         tputs( "**" );
       } else {
          /* TODO: Implement hex tprintf. */
          printf( "%02X ", g_mheap[i] );
       }
    }
-   printf( "\n" );
+   tputs( "\n" );
 }
 #endif /* MPRINT || CHECK */
 
