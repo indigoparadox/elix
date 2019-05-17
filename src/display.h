@@ -37,7 +37,6 @@ void display_init();
 void display_shutdown();
 void display_putc_at( char c, int x, int y );
 void display_putc( char c );
-void display_puts( const char* c );
 
 #endif /* DISPLAY_H */
  

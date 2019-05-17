@@ -31,16 +31,6 @@ void display_shutdown() {
    tcsetattr( STDIN, TCSANOW, &term );
 }
 
-void display_puts( const char* str ) {
-   int i = 0;
-   int len = 0;
-   
-   len = mstrlen( str );
-   for( i = 0 ; len > i ; i++ ) {
-      display_putc( str[i] );
-   }
-}
-
 void display_putc_at( char c, int x, int y ) {
 }
 
