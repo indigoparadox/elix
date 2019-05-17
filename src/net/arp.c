@@ -1,8 +1,9 @@
 
 #include "arp.h"
 
-#include "../debug.h"
 #include "../mem.h"
+
+#include <stddef.h>
 
 #ifdef NET_CON_ECHO
 void arp_print_packet( struct arp_packet* packet, int packet_len ) {
@@ -58,7 +59,7 @@ int arp_get_dest_mac( uint8_t* mac, int mac_sz, struct arp_packet* arp ) {
    int retval = 0;
 
    if( mac_sz < arp->header.hwsize ) {
-      derror( "address overflow" );
+      retval = ARP_ERROR_ADDRESS_OVERFLOW;
       goto cleanup;
    }
 
@@ -98,9 +99,7 @@ int arp_respond(
       sizeof( struct arp_header ) + (2 * header->hwsize) +
       (2 * header->protosize);
    if( packet_claimed_size > call_packet_sz ) {
-      deprintf(
-         "bad packet size %d (%d actual)",
-         packet_claimed_size, call_packet_sz );
+      response_len = ARP_ERROR_BAD_PACKET_SIZE;
       goto cleanup;
    }
 
@@ -119,7 +118,7 @@ int arp_respond(
       NULL != resp_packet &&
       call_packet_sz > resp_packet_sz
    ) {
-      derror( "packet overflow" );
+      response_len = ARP_ERROR_PACKET_OVERFLOW;
       goto cleanup;
    }
 
@@ -148,7 +147,7 @@ int arp_respond(
    mcopy( arp_packet_data, incoming_ip, header->protosize );
 
 #ifdef NET_CON_ECHO
-   ddebug( "It's me!\n" );
+   tputs( &g_str_self_match );
 #endif /* NET_CON_ECHO */
 
 cleanup:

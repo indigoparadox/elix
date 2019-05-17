@@ -1,38 +1,30 @@
 
 #include "alpha.h"
 
-void alpha_tolower( char* str, uint8_t length ) {
-   while( length-- && '\0' != *str ) {
-      if( alpha_isupper( (*str) ) ) {
-         *str -= 32; /* Distance between ASCII upper/lower. */
-      }
-      str++;
-   }
-}
-
-uint16_t alpha_atou( const char* string, uint8_t len, uint8_t base ) {
+uint16_t alpha_atou( const struct mstring* src, uint8_t base ) {
    uint16_t value = 0;
-   char ch = *string;
+   char* ch = str->data;
 	uint8_t i = 0;
 
-	while( alpha_isalnum( ch ) && i < len ) {
+	while( alpha_isalnum( *ch ) && i < src->len ) {
 		value *= base;
 
-      if( '9' >= ch ) {
-         value += (ch - '0');
-      } else if( 'z' >= ch ) {
-         value += (ch - 'a');
-      } else if( 'Z' >= ch ) {
+      if( '9' >= *ch ) {
+         value += (*ch - '0');
+      } else if( 'z' >= *ch ) {
+         value += (*ch - 'a');
+      } else if( 'Z' >= *ch ) {
          value += (ch - 'A');
       }
 		i++;
-      ch = *(++string);
+      ch++;
    }
 
 	return value;
 }
 
-uint8_t alpha_utoa( uint16_t num, char* str, uint8_t len, uint8_t base ) {
+#if 0
+uint8_t alpha_utoa( uint16_t num, struct mstring* dest, uint8_t base ) {
 	uint8_t rem;
 	uint8_t digits = 1;
 	uint16_t radix_base = base;
@@ -68,6 +60,7 @@ uint8_t alpha_utoa( uint16_t num, char* str, uint8_t len, uint8_t base ) {
 
 	return len;
 }
+#endif
 
 int8_t alpha_charinstr( char c, const char* string, uint8_t len ) {
 	uint8_t i = 0;
@@ -81,22 +74,24 @@ int8_t alpha_charinstr( char c, const char* string, uint8_t len ) {
 	return -1;
 }
 
-BOOL alpha_insertstr(
-	char* dest, STRLEN_T dest_len, const char* src, int8_t* cursor
+STRLEN_T alpha_insertstr(
+	struct mstring* dest, const struct mstring* src, int8_t* cursor
 ) {
 	STRLEN_T str_len;
 	STRLEN_T insert_len;
 	int8_t move_cur;
 	STRLEN_T insert_offset;
 
-	str_len = alpha_strlen( dest, dest_len );
-	insert_len = alpha_strlen( src, dest_len ); /* TODO: Is this correct? */
+	str_len = alpha_strlen( dest );
+	insert_len = alpha_strlen( dest ); /* TODO: Is this correct? */
 	str_len += insert_len - 2; /* -1 for the token we're replacing, 	*/
 										/* and -1 for the \0.						*/
 	if( dest_len < str_len ) {
-		return FALSE;
+		return 0;
 	}
 	insert_offset = *cursor + insert_len;
+
+   /* TODO: Consolidate this with mshift to save space. */
 	for(
 		move_cur = str_len ;
 		move_cur >= insert_offset ; /* Overwrite the token. */

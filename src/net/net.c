@@ -3,9 +3,12 @@
 #include "net.h"
 #include "arp.h"
 #include "ether.h"
-#include "../debug.h"
 #include "../adhd.h"
 #include "../mem.h"
+
+/* TODO: Move interactive net stuff into its own module so it doesn't depend
+ * on strings and console. */
+#include "../strings.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -27,7 +30,7 @@ void net_respond_con_request( TASK_PID pid ) {
    switch( g_net_con_request ) {
       case NET_REQ_RCVD:
          received = mget_int( pid, NET_MID_RECEIVED );
-         tprintf( "frames rcvd: %d\n", received );
+         tprintf( &g_str_frames_rcvd, received );
          break;
    }
 
@@ -55,7 +58,7 @@ uint8_t net_respond_arp_request(
    mset( pid, NET_MID_RESPONDED, &responded, sizeof( int ) );
 
 #ifdef NET_CON_ECHO
-   tputs( "Responding:\n" );
+   tputs( g_str_responding );
    arp_print_packet( arp, arp_len );
 #endif /* NET_CON_ECHO */
 

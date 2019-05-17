@@ -7,7 +7,7 @@ START_TEST( test_alpha_insert ) {
 }
 END_TEST
 
-Suite* console_suite( void ) {
+Suite* alpha_suite( void ) {
    Suite* s;
    TCase* tc_core;
 

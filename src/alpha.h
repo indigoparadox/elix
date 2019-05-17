@@ -2,12 +2,22 @@
 #ifndef ALPHA_H
 #define ALPHA_H
 
+#include <stdint.h>
+
 typedef uint8_t STRLEN_T;
 
 struct astring {
    STRLEN_T sz;
+   STRLEN_T len;
    char data[];
 };
+
+#define astring_l( str ) { sizeof( str ), sizeof( str ), str }
+#define astring_append( str, c ) \
+   if( str->len + 1 < str->sz ) { \
+      str->data[str->len] = c; \
+      str->len++; \
+   }
 
 #define alpha_isprintable( c ) (' ' <= c && '~' >= c)
 #define alpha_isdigit( c ) ('0' <= (c) && '9' >= (c))
@@ -17,6 +27,10 @@ struct astring {
 	(alpha_isdigit( c ) || \
 	alpha_islower( c ) || \
 	alpha_isupper( c ))
+
+#define alpha_clear( str ) \
+   mzero( str->data, str->sz ); \
+   str->len = 0;
 
 #define stolower( c ) \
 	(alpha_isupper( c ) ? c + ('A' - 'a') : c)

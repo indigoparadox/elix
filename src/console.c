@@ -1,10 +1,12 @@
 
+#define CONSOLE_C
 #include "console.h"
 #include "display.h"
 #include "mem.h"
 #include "kernel.h"
 #include "stdlib.h"
 #include "alpha.h"
+#include "strings.h"
 
 #ifdef CONSOLE_SERIAL
 #else
@@ -15,12 +17,10 @@
 #define REPL_MID_LINE 1
 #define REPL_MID_CUR_POS 2
 
-static STRLEN_T cur_pos = 0;
-
-void tregcmd( struct repl_command cmd* ) {
+void tregcmd( struct repl_command* cmd ) {
    uint8_t idx = 0;
 
-   while( '\0' != g_repl_commands[idx].command[0] ) {
+   while( 0 != g_repl_commands[idx].command->len ) {
       idx++;
       if( REPL_COMMANDS_MAX <= idx ) {
          /* No slots free! */
@@ -31,15 +31,12 @@ void tregcmd( struct repl_command cmd* ) {
    mcopy( &(g_repl_commands[idx]), cmd, sizeof( struct repl_command ) );
 }
 
-void tputs( const char* str, STRLEN_T len_max ) {
+void tputs( const struct astring* str ) {
 #ifdef CONSOLE_SERIAL
 #else
-   int i = 0;
-   int len = 0;
-   
-   len = alpha_strlen( str, len_max );
-   for( i = 0 ; len > i ; i++ ) {
-      display_putc( str[i] );
+   STRLEN_T i = 0;
+   for( i = 0 ; str->len > i ; i++ ) {
+      display_putc( str->data[i] );
    }
 #endif /* CONSOLE_SERIAL */
 }
@@ -49,30 +46,28 @@ union tprintf_spec {
    int d;
    char c;
    uint8_t x;
-   char* s;
+   struct astring* s;
 };
 
-void tprintf( const char* pattern, STRLEN_T pattern_len, ... ) {
+void tprintf( const struct astring* pattern, ... ) {
    va_list args;
    int i = 0;
    char last = '\0';
-   int len = 0;
    union tprintf_spec spec;
 
-   va_start( args, pattern_len );
-   len = alpha_strlen( pattern, pattern_len );
+   va_start( args, pattern );
 
-   for( i = 0 ; len > i ; i++ ) {
-      if( '\0' == pattern[i] ) {
+   for( i = 0 ; pattern->len > i ; i++ ) {
+      if( '\0' == pattern->data[i] ) {
          break; /* Early. */
       }
  
       if( '%' == last ) {
          /* Conversion specifier encountered. */
-         switch( pattern[i] ) {
+         switch( pattern->data[i] ) {
             case 's':
-               spec.s = va_arg( args, char* );
-               tputs( spec.s, 255 ); /* XXX: Store and retrieve strlen. */
+               spec.s = va_arg( args, struct astring* );
+               tputs( spec.s );
                break;
 
             case 'd':
@@ -92,12 +87,12 @@ void tprintf( const char* pattern, STRLEN_T pattern_len, ... ) {
                display_putc( spec.c );
                break;
          }
-      } else if( '%' != pattern[i] ) {
+      } else if( '%' != pattern->data[i] ) {
          /* Print non-escape characters verbatim. */
-         display_putc( pattern[i] );
+         display_putc( pattern->data[i] );
       }
 
-      last = pattern[i];
+      last = pattern->data[i];
    }
 }
 
@@ -114,8 +109,7 @@ void truncmd( char* line, int line_len ) {
 
 TASK_RETVAL trepl_task( TASK_PID pid ) {
    char c = '\0';
-   int line_len = 0;
-   char* line;
+   struct astring* line;
 
 #ifdef CONSOLE_SERIAL
    if( 0 ) {
@@ -123,23 +117,22 @@ TASK_RETVAL trepl_task( TASK_PID pid ) {
    if( keyboard_hit() ) {
       c = keyboard_getc();
 #endif /* CONSOLE_SERIAL */
-      line = mget( pid, REPL_MID_LINE, &line_len );
-      if( 0 == line_len ) {
+      line = mget( pid, REPL_MID_LINE, NULL );
+      if( meta_null == line ) {
          mset( pid, REPL_MID_CUR_POS, NULL, sizeof( uint8_t ) );
-         mset( pid, REPL_MID_LINE, NULL, REPL_LINE_SIZE_MAX );
-         line = mget( pid, REPL_MID_LINE, &line_len );
+         mset( pid, REPL_MID_LINE, NULL, sizeof( struct astring ) + REPL_LINE_SIZE_MAX );
+         line = mget( pid, REPL_MID_LINE, NULL );
       }
 
-      if( cur_pos < REPL_LINE_SIZE_MAX ) {
+      if( line->len + 1 < line->sz ) {
          switch( c ) {
             case '\n':
                //truncmd( line, cur_pos );
-               mzero( line, REPL_LINE_SIZE_MAX );
+               alpha_clear( line );
                break;
 
             default:
-               line[cur_pos] = c;
-               cur_pos++;
+               astring_append( line, c );
 #ifdef CONSOLE_SERIAL
 #else
                display_putc( c );
@@ -147,9 +140,8 @@ TASK_RETVAL trepl_task( TASK_PID pid ) {
                break;
          }
       } else {
-         tputs( "INVALID COMMAND" );
-         cur_pos = 0;
-         mzero( line, REPL_LINE_SIZE_MAX );
+         tputs( &g_str_invalid );
+         alpha_clear( line );
          display_newline();
       }
    }
