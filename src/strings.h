@@ -12,7 +12,7 @@
 
 astring_const( g_str_invalid, "invalid\n" );
 astring_const( g_str_newline, "\n" );
-astring_const( g_str_xx, "**" );
+astring_const( g_str_xx, "** " );
 astring_const( g_str_x, "%2x " );
 astring_const( g_str_frames_rcvd, "frames rcvd: %d\n" );
 astring_const( g_str_responding, "responding\n" );
