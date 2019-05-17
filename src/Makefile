@@ -9,7 +9,7 @@ SYSLINUX=syslinux
 MCOPY=mcopy
 
 CFLAGS=-Wall
-SOURCES=net/tcp.c net/ether.c net/arp.c mem.c console.c net/net.c adhd.c
+SOURCES=net/tcp.c net/ether.c net/arp.c mem.c console.c net/net.c adhd.c stdlib.c
 CHECKOBJ=check.o check_ether.o check_mem.o check_console.o
 OBJECTS=$(subst .c,.o,$(SOURCES))
 LDFLAGS=

@@ -4,6 +4,7 @@
 #include "mem.h"
 #include "net/net.h" /* For console command. */
 #include "kernel.h"
+#include "stdlib.h"
 
 #ifdef CONSOLE_SERIAL
 #else
@@ -43,7 +44,13 @@ void tputsl( const char* str, uint8_t fg, uint8_t bg ) {
 void tputs( const char* str ) {
 #ifdef CONSOLE_SERIAL
 #else
-   display_puts( str );
+   int i = 0;
+   int len = 0;
+   
+   len = mstrlen( str );
+   for( i = 0 ; len > i ; i++ ) {
+      display_putc( str[i] );
+   }
 #endif /* CONSOLE_SERIAL */
 }
 

@@ -8,7 +8,7 @@
    Suite* s_ ## suite_name = suite_name ## _suite(); \
    SRunner* sr_ ## suite_name = srunner_create( s_ ## suite_name ); \
    srunner_set_fork_status( sr_ ## suite_name, CK_NOFORK ); \
-   srunner_run_all( sr_ ## suite_name, CK_NORMAL ); \
+   srunner_run_all( sr_ ## suite_name, CK_VERBOSE ); \
    number_failed += srunner_ntests_failed( sr_ ## suite_name ); \
    srunner_free( sr_ ## suite_name );
 

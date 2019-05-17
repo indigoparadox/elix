@@ -8,11 +8,15 @@
 uint8_t g_system_state = 0;
 
 char g_display_buffer[CHECK_DISPLAY_BUFFER_LEN] = { 0 };
+int g_display_idx = 0;
 
-void display_putc( char c ) {
+void display_init() {
+   memset( g_display_buffer, '\0', CHECK_DISPLAY_BUFFER_LEN );
 }
 
-void display_puts( const char* c ) {
+void display_putc( char c ) {
+   g_display_buffer[g_display_idx] = c;
+   g_display_idx++;
 }
 
 int keyboard_hit() {
@@ -24,6 +28,14 @@ unsigned char keyboard_getc() {
 }
 
 START_TEST( test_console_printf ) {
+   int test_int = 543;
+   char test_char = 'a';
+
+   display_init();
+
+   tprintf( "Test pattern: %d, %c\n", test_int, test_char );
+
+   ck_assert_str_eq( g_display_buffer, "Test pattern: 543, a\n" );
 }
 END_TEST
 
