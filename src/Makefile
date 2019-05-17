@@ -9,7 +9,7 @@ SYSLINUX=syslinux
 MCOPY=mcopy
 
 CFLAGS=-Wall
-SOURCES=net/tcp.c net/ether.c net/arp.c mem.c console.c net/net.c adhd.c strings.c
+SOURCES=net/tcp.c net/ether.c net/arp.c mem.c console.c net/net.c adhd.c strings.c alpha.c
 CHECKOBJ=check.o check_ether.o check_mem.o check_console.o check_alpha.o
 OBJECTS=$(subst .c,.o,$(SOURCES))
 LDFLAGS=
@@ -38,7 +38,7 @@ alix430.bin: STRIP := msp430-strip
 alix430.bin: OBJDIR := ../obj/msp430
 
 tests: LDFLAGS += -lcheck -lpthread -lm -lrt -lpcap
-tests: CFLAGS += -DCHECK
+tests: CFLAGS += -DCHECK -g
 tests: OBJDIR := ../obj/tests
 
 all:

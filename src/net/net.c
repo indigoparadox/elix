@@ -8,6 +8,7 @@
 
 /* TODO: Move interactive net stuff into its own module so it doesn't depend
  * on strings and console. */
+#include "../console.h"
 #include "../strings.h"
 
 #include <stddef.h>

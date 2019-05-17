@@ -54,10 +54,20 @@ void tprintf( const struct astring* pattern, ... ) {
    int i = 0;
    char last = '\0';
    union tprintf_spec spec;
+   uint8_t num_buffer[sizeof( struct astring ) + INT_DIGITS_MAX] = { 0 };
+   STRLEN_T padding = 0;
+   char c;
+#ifdef DEBUG
+   int check = 0;
+#endif /* DEBUG */
+
+   /* Make sure the num_buffer knows how much space is available. */
+   ((struct astring*)&num_buffer)->sz = INT_DIGITS_MAX;
 
    va_start( args, pattern );
 
    for( i = 0 ; pattern->len > i ; i++ ) {
+      c = pattern->data[i]; /* Separate so we can play tricks below. */
       if( '\0' == pattern->data[i] ) {
          break; /* Early. */
       }
@@ -72,27 +82,57 @@ void tprintf( const struct astring* pattern, ... ) {
 
             case 'd':
                spec.d = va_arg( args, int );
-               while( 10 <= spec.d ) {
-                  display_putc( (char)(spec.d % 10) );
-                  spec.d /= 10;
-               }
+#ifdef DEBUG
+               check = alpha_utoa(
+#else
+               alpha_utoa(
+#endif /* DEBUG */
+                  spec.d, (struct astring*)&num_buffer, 0, padding, 10 );
+#ifdef DEBUG
+               //assert( check == alpha_udigits(
+#endif /* DEBUG */
+               tputs( (struct astring*)&num_buffer );
+               padding = 0; /* Reset. */
                break;
 
             case 'x':
-               /* TODO: Hex */
+               spec.d = va_arg( args, int );
+#ifdef DEBUG
+               check = alpha_utoa(
+#else
+               alpha_utoa(
+#endif /* DEBUG */
+                  spec.d, (struct astring*)&num_buffer, 0, padding, 16 );
+               tputs( (struct astring*)&num_buffer );
+               padding = 0; /* Reset. */
                break;
 
             case 'c':
                spec.c = va_arg( args, int );
                display_putc( spec.c );
                break;
+
+            case '0':
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+            case '5':
+            case '6':
+            case '7':
+            case '8':
+            case '9':
+               /* TODO: Handle multi-digit qty padding. */
+               padding = c - '0';
+               c = '%';
+               break;
          }
-      } else if( '%' != pattern->data[i] ) {
+      } else if( '%' != c ) {
          /* Print non-escape characters verbatim. */
-         display_putc( pattern->data[i] );
+         display_putc( c );
       }
 
-      last = pattern->data[i];
+      last = c;
    }
 }
 
@@ -111,39 +151,46 @@ TASK_RETVAL trepl_task( TASK_PID pid ) {
    char c = '\0';
    struct astring* line;
 
+   mprint();
+
 #ifdef CONSOLE_SERIAL
    if( 0 ) {
 #else
-   if( keyboard_hit() ) {
-      c = keyboard_getc();
+   if( !keyboard_hit() ) {
+      return 0;
+   }
+
+   c = keyboard_getc();
 #endif /* CONSOLE_SERIAL */
+   line = mget( pid, REPL_MID_LINE, NULL );
+   if( meta_null == line ) {
+      mset( pid, REPL_MID_CUR_POS, NULL, sizeof( uint8_t ) );
+      mset( pid, REPL_MID_LINE, NULL,
+         sizeof( struct astring ) + REPL_LINE_SIZE_MAX );
       line = mget( pid, REPL_MID_LINE, NULL );
-      if( meta_null == line ) {
-         mset( pid, REPL_MID_CUR_POS, NULL, sizeof( uint8_t ) );
-         mset( pid, REPL_MID_LINE, NULL, sizeof( struct astring ) + REPL_LINE_SIZE_MAX );
-         line = mget( pid, REPL_MID_LINE, NULL );
-      }
+      line->sz = REPL_LINE_SIZE_MAX;
+   }
 
-      if( line->len + 1 < line->sz ) {
-         switch( c ) {
-            case '\n':
-               //truncmd( line, cur_pos );
-               alpha_clear( line );
-               break;
+   if( line->len + 1 >= line->sz ) {
+      tputs( &g_str_invalid );
+      astring_clear( line );
+      display_newline();
+      return 0;
+   }
 
-            default:
-               astring_append( line, c );
+   switch( c ) {
+      case '\n':
+         //truncmd( line, cur_pos );
+         astring_clear( line );
+         break;
+
+      default:
+         astring_append( line, c );
 #ifdef CONSOLE_SERIAL
 #else
-               display_putc( c );
+         display_putc( c );
 #endif /* CONSOLE_SERIAL */
-               break;
-         }
-      } else {
-         tputs( &g_str_invalid );
-         alpha_clear( line );
-         display_newline();
-      }
+         break;
    }
 
    return 0;

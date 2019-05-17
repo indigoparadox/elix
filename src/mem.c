@@ -42,7 +42,6 @@ int mcopy( void* dest, const void* src, int sz ) {
 int mcompare( const void* c1, const void* c2, int sz ) {
    int i = 0;
    for( i = 0 ; sz > i ; i++ ) {
-      printf( "%c %c\n", ((uint8_t*)c1)[i], ((uint8_t*)c2)[i] );
       if( ((uint8_t*)c1)[i] != ((uint8_t*)c2)[i] ) {
          return 1;
       }
@@ -62,7 +61,8 @@ void mprint() {
          tputs( &g_str_xx );
       } else {
          /* TODO: Implement hex tprintf. */
-         printf( "%02X ", g_mheap[i] );
+         //printf( "%02X ", g_mheap[i] );
+         tprintf( &g_str_x, g_mheap[i] );
       }
    }
    tputs( &g_str_newline );
@@ -179,8 +179,9 @@ void* mget( int pid, int mid, int* psz ) {
    /* printf( "heap_addr: %d\n", mheap_addr_iter ); */
 
    if( 0 > mheap_addr_iter ) {
-      /* Not found! */
-      return &meta_null;
+      /* Not found! Strip const because we'll crash if it's reffed anyway. */
+      /* It's NULL, after all. */
+      return (void*)&meta_null;
    }
 
    /* Inform as to the allocated space. -1 for NULL. */
