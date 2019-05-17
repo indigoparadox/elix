@@ -2,9 +2,28 @@
 #include <check.h>
 #include <stdint.h>
 #include "../src/net/ether.h"
+#include "../src/net/net.h"
 
 uint8_t g_chk_src_mac[6] = { 0x01, 0x12, 0x23, 0x34, 0x45, 0x56 };
 uint8_t g_chk_bcast_mac[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+
+/* These are all noops inside of the checked functions, anyway. */
+
+NET_SOCK net_open_socket( SOCKET_ID if_name ) {
+   return NULL;
+}
+
+int net_send_frame(
+   NET_SOCK socket, struct ether_frame* frame, int frame_len
+) {
+   return 0;
+}
+
+int net_poll_frame(
+   NET_SOCK socket, struct ether_frame* frame, int frame_sz
+) {
+   return 0;
+}
 
 START_TEST( test_ether_htons ) {
    uint16_t test_val = 0x1234;

@@ -9,13 +9,15 @@ SYSLINUX=syslinux
 MCOPY=mcopy
 
 CFLAGS=-Wall
-SOURCES=net/tcp.c net/ether.c net/arp.c mem.c console.c kernel.c net/net.c adhd.c
+SOURCES=net/tcp.c net/ether.c net/arp.c mem.c console.c net/net.c adhd.c
+CHECKOBJ=check.o check_ether.o check_mem.o check_console.o
 OBJECTS=$(subst .c,.o,$(SOURCES))
 LDFLAGS=
 
 DRIVERS_COLINUX=colinux/net.o colinux/display.o colinux/keyboard.o
 
 ISODIRX86=../isodir/x86
+CHECKSDIR=../tests
 
 lalixnet: CFLAGS += -g -DDEBUG -DMPRINT -DPLATFORM_COLINUX
 lalixnet: LDFLAGS += -lpcap -lcurses
@@ -41,10 +43,10 @@ tests: OBJDIR := ../obj/tests
 
 all:
 
-lalixnet: $(OBJECTS) $(DRIVERS_COLINUX) colinux/boot.o
+lalixnet: $(OBJECTS) $(DRIVERS_COLINUX) colinux/boot.o kernel.o
 	$(CC) -o $@ $(addprefix $(OBJDIR)/,$^) $(LDFLAGS)
 
-walixnet.exe: $(OBJECTS) $(DRIVERS_COLINUX)
+walixnet.exe: $(OBJECTS) $(DRIVERS_COLINUX) kernel.o
 	$(CC) -o $@ $(addprefix $(OBJDIR)/,$^) $(LDFLAGS)
 
 alix86.iso: $(ISODIRX86)/alix86.bin
@@ -61,15 +63,15 @@ $(ISODIRX86)/alix86.bin: alix86.bin
 	$(MD) $(ISODIRX86)/boot
 	cp -v alix86.bin $(ISODIRX86)/boot/alix86.bin
 
-alix86.bin: $(OBJECTS) x86/display.o x86/net.o x86/keyboard.o
+alix86.bin: $(OBJECTS) x86/display.o x86/net.o x86/keyboard.o kernel.o
 	$(AS) x86/boot.s -o $(OBJDIR)/boot.o
 	$(CC) -T x86/linker.ld -o $@ $(addprefix $(OBJDIR)/,$^) $(LDFLAGS) $(CFLAGS)
 
-alix430.bin: $(OBJECTS) msp430/display.o msp430/boot.o msp430/net.o
+alix430.bin: $(OBJECTS) msp430/display.o msp430/boot.o msp430/net.o kernel.o
 	$(CC) -o $@ $(addprefix $(OBJDIR)/,$^) $(CFLAGS) $(LDFLAGS)
 
-tests: $(OBJECTS) ../tests/check.o ../tests/check_ether.o ../tests/check_mem.o $(DRIVERS_COLINUX)
-	$(CC) -o $@ $(addprefix $(OBJDIR)/,$(subst ../tests,,$^)) $(LDFLAGS)
+tests: $(OBJECTS) $(addprefix $(CHECKSDIR)/,$(CHECKOBJ))
+	$(CC) -o $@ $(addprefix $(OBJDIR)/,$(subst $(CHECKSDIR),,$^)) $(LDFLAGS)
 
 %.o: %.c
 	$(MD) $(OBJDIR)/$(dir $@)
