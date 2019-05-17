@@ -1,8 +1,6 @@
 
 #include "adhd.h"
 
-#include "mem.h"
-
 #include <stddef.h>
 
 struct adhd_task {
