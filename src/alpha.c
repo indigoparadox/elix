@@ -42,6 +42,7 @@ int16_t alpha_utoa(
 ) {
    uint8_t rem;
    STRLEN_T digits;
+   STRLEN_T digits_done = 0;
    int16_t places_diff = 0;
 
    digits = alpha_udigits( num, base );
@@ -62,7 +63,6 @@ int16_t alpha_utoa(
    /* Handle 0 explicitly, otherwise empty string is printed for 0. */
    if( 0 == num ) {
       dest->data[dest_idx] = '0';
-      zero_pad_spaces--;
    }
 
    dest_idx += digits;
@@ -76,11 +76,11 @@ int16_t alpha_utoa(
          rem + '0';
       /* Move the next place value into range. */
       num /= base;
-      zero_pad_spaces--;
+      digits_done++;
    }
-   while( 0 < zero_pad_spaces ) {
+   while( digits_done < digits ) {
       dest->data[--dest_idx] = '0';
-      zero_pad_spaces--;
+      digits_done++;
    }
 
    return digits;

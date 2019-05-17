@@ -162,8 +162,11 @@ TASK_RETVAL trepl_task( TASK_PID pid ) {
 
    c = keyboard_getc();
 #endif /* CONSOLE_SERIAL */
+   /* Dynamically allocate the line buffer so we can clear it from memory
+    * during other programs.
+    */
    line = mget( pid, REPL_MID_LINE, NULL );
-   if( meta_null == line ) {
+   if( *line == NULL ) {
       mset( pid, REPL_MID_CUR_POS, NULL, sizeof( uint8_t ) );
       mset( pid, REPL_MID_LINE, NULL,
          sizeof( struct astring ) + REPL_LINE_SIZE_MAX );
