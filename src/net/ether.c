@@ -1,7 +1,8 @@
 
 #include "ether.h"
 
-#include "../debug.h"
+#include <stddef.h>
+
 #include "../mem.h"
 
 int ether_new_frame(
@@ -15,14 +16,12 @@ int ether_new_frame(
    /* Sanity/security checks. */
    frame_len = sizeof( struct ether_header ) + packet_len;
    if( frame_len > frame_out_sz ) {
-      derror( "frame overflow" );
-      frame_len = 0;
+      frame_len = ETHER_ERROR_FRAME_OVERFLOW;
       goto cleanup;
    }
 
    if( NULL == frame_out ) {
-      derror( "invalid buffer" );
-      frame_len = 0;
+      frame_len = ETHER_ERROR_INVALID_BUFFER;
       goto cleanup;
    }
 

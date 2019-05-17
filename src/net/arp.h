@@ -16,6 +16,10 @@
 
 #define ARP_INVALID_PACKET 64
 
+#define ARP_ERROR_ADDRESS_OVERFLOW -2
+#define ARP_ERROR_BAD_PACKET_SIZE -4
+#define ARP_ERROR_PACKET_OVERFLOW -8
+
 struct arp_header {
    uint16_t hwtype;
    uint16_t prototype;

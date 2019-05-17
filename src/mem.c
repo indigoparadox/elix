@@ -2,6 +2,7 @@
 #define MEM_C
 #include "mem.h"
 #include "console.h"
+#include "strings.h"
 
 #include <stddef.h>
 
@@ -55,16 +56,16 @@ void mprint() {
 
    for( i = 0 ; MEM_HEAP_SIZE > i ; i++ ) {
       if( 0 == i % 20 ) {
-         tputs( "\n" );
+         tputs( &g_str_newline );
       }
       if( i == g_mheap_top ) {
-         tputs( "**" );
+         tputs( &g_str_xx );
       } else {
          /* TODO: Implement hex tprintf. */
          printf( "%02X ", g_mheap[i] );
       }
    }
-   tputs( "\n" );
+   tputs( &g_str_newline );
 }
 #endif /* MPRINT || CHECK */
 

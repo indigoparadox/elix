@@ -8,17 +8,16 @@
 #include "adhd.h"
 
 #define REPL_LINE_SIZE_MAX 20
-#define REPL_COMMAND_MAX_LEN 3
 #define REPL_COMMANDS_MAX 5
 
 struct repl_command {
-   char command[REPL_COMMAND_MAX_LEN];
+   struct astring* command;
    void (*callback)();
 };
 
 void tregcmd( struct repl_command* );
-void tprintf( const char* pattern, ... );
-void tputs( const char* str );
+void tprintf( const struct astring* pattern, ... );
+void tputs( const struct astring* str );
 TASK_RETVAL trepl_task( TASK_PID pid );
 
 #ifdef CONSOLE_C
