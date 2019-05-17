@@ -49,13 +49,6 @@ int mcompare( const void* c1, const void* c2, int sz ) {
    return 0;
 }
 
-/* strlen */
-int mstrlen( const char* str ) {
-   int i = 0;
-   while( '\0' != str[i] ) { i++; }
-   return i;
-}
-
 #if defined( MPRINT ) || defined( CHECK )
 void mprint() {
    int i = 0;
