@@ -3,11 +3,11 @@
 #include <stddef.h>
 #include "console.h"
 #include "mem.h"
-#include "debug.h"
 #include "net/net.h"
 #include "adhd.h"
 #define KERNEL_C
 #include "kernel.h"
+#include "alpha.h"
 
 #ifndef CONSOLE_SERIAL
 #include "display.h"
@@ -15,6 +15,9 @@
 #endif /* CONSOLE_SERIAL */
 
 #define TASKS_MAX 5
+
+const struct astring g_str_hello = astring_l( "hello\n" );
+const struct astring g_str_stopping = astring_l( "stopping...\n" );
 
 void kmain() {
    TASK_PID active = 0;
@@ -25,7 +28,7 @@ void kmain() {
    display_init();
 #endif /* CONSOLE_SERIAL */
 
-   tputs( "hello\n" );
+   tputs( &g_str_hello );
 
    /* Create network task. */
    adhd_add_task( net_respond_task );
@@ -37,7 +40,7 @@ void kmain() {
       }
    }
 
-   tputs( "stopping...\n" );
+   tputs( &g_str_stopping );
 
 #ifndef CONSOLE_SERIAL
    keyboard_shutdown();

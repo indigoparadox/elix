@@ -4,7 +4,6 @@
 /* This driver relies on a host OS anyway. */
 #include <stdio.h>
 
-#include "../debug.h"
 #include "../net/ether.h"
 #include "../mem.h"
 #ifdef NET_CON_ECHO
@@ -20,6 +19,7 @@
 #endif /* _WIN32 */
 #include <unistd.h>
 #include <pcap.h>
+#include "../alpha.h"
 
 char g_pcap_errbuff[PCAP_ERRBUF_SIZE] = { 0 };
 
@@ -116,7 +116,7 @@ int net_poll_frame(
 
    /* Copy the frame to a disposable buffer for use elsewhere. */
    if( frame_sz < frame_pcap_hdr.len ) {
-      derror( "Captured frame too large for buffer" );
+      perror( "Captured frame too large for buffer" );
       goto cleanup;
    }
    frame_len = frame_pcap_hdr.len;
