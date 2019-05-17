@@ -4,6 +4,8 @@
 
 #include <stdint.h>
 
+typedef uint16_t BITFIELD;
+
 struct mvar {
    uint8_t pid;
    uint8_t mid;
