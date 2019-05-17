@@ -14,12 +14,14 @@
 
 main_add_test_proto( ether )
 main_add_test_proto( mem )
+main_add_test_proto( console )
 
 int main( void ) {
    int number_failed = 0;
 
    main_add_test( ether );
    main_add_test( mem );
+   main_add_test( console );
 
    return( number_failed == 0 ) ? 0 : 1;
 }
