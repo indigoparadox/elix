@@ -2,9 +2,9 @@
 #include "console.h"
 #include "display.h"
 #include "mem.h"
-#include "net/net.h" /* For console command. */
 #include "kernel.h"
 #include "stdlib.h"
+#include "alpha.h"
 
 #ifdef CONSOLE_SERIAL
 #else
@@ -15,39 +15,29 @@
 #define REPL_MID_LINE 1
 #define REPL_MID_CUR_POS 2
 
-#ifdef CONSOLE_COLOR
-static uint8_t g_term_bg;
-static uint8_t g_term_fg;
-#endif /* CONSOLE_COLOR */
+static STRLEN_T cur_pos = 0;
 
-static uint8_t cur_pos = 0;
+void tregcmd( struct repl_command cmd* ) {
+   uint8_t idx = 0;
 
-void tsetsl( uint8_t fg, uint8_t bg ) {
-#ifdef CONSOLE_COLOR
-   /* TODO: Use a short and a single op to save on instructions. */
-   g_term_bg = bg;
-   g_term_fg = fg;
-#endif /* CONSOLE_COLOR */
+   while( '\0' != g_repl_commands[idx].command[0] ) {
+      idx++;
+      if( REPL_COMMANDS_MAX <= idx ) {
+         /* No slots free! */
+         return;
+      }
+   }
+
+   mcopy( &(g_repl_commands[idx]), cmd, sizeof( struct repl_command ) );
 }
 
-void tputsl( const char* str, uint8_t fg, uint8_t bg ) {
-#ifdef CONSOLE_COLOR
-   /* Set the colors, show the message, then set them back. */
-   display_set_colors( fg, bg );
-#endif /* CONSOLE_COLOR */
-   tputs( str );
-#ifdef CONSOLE_COLOR
-   display_set_colors( g_term_fg, g_term_bg );
-#endif /* CONSOLE_COLOR */
-}
-
-void tputs( const char* str ) {
+void tputs( const char* str, STRLEN_T len_max ) {
 #ifdef CONSOLE_SERIAL
 #else
    int i = 0;
    int len = 0;
    
-   len = mstrlen( str );
+   len = alpha_strlen( str, len_max );
    for( i = 0 ; len > i ; i++ ) {
       display_putc( str[i] );
    }
@@ -62,15 +52,15 @@ union tprintf_spec {
    char* s;
 };
 
-void tprintf( const char* pattern, ... ) {
+void tprintf( const char* pattern, STRLEN_T pattern_len, ... ) {
    va_list args;
    int i = 0;
    char last = '\0';
    int len = 0;
    union tprintf_spec spec;
 
-   va_start( args, pattern );
-   len = mstrlen( pattern );
+   va_start( args, pattern_len );
+   len = alpha_strlen( pattern, pattern_len );
 
    for( i = 0 ; len > i ; i++ ) {
       if( '\0' == pattern[i] ) {
@@ -82,7 +72,7 @@ void tprintf( const char* pattern, ... ) {
          switch( pattern[i] ) {
             case 's':
                spec.s = va_arg( args, char* );
-               tputs( spec.s );
+               tputs( spec.s, 255 ); /* XXX: Store and retrieve strlen. */
                break;
 
             case 'd':
@@ -111,9 +101,8 @@ void tprintf( const char* pattern, ... ) {
    }
 }
 
-void trepl_init() {
-}
-
+/* TODO: Move net command to net module. */
+/*
 void truncmd( char* line, int line_len ) {
    if( 0 == mcompare( line, "netr", 4 ) ) {
       g_net_con_request = NET_REQ_RCVD;
@@ -121,6 +110,7 @@ void truncmd( char* line, int line_len ) {
       g_system_state = SYSTEM_SHUTDOWN;
    }
 }
+*/
 
 TASK_RETVAL trepl_task( TASK_PID pid ) {
    char c = '\0';
@@ -143,7 +133,7 @@ TASK_RETVAL trepl_task( TASK_PID pid ) {
       if( cur_pos < REPL_LINE_SIZE_MAX ) {
          switch( c ) {
             case '\n':
-               truncmd( line, cur_pos );
+               //truncmd( line, cur_pos );
                mzero( line, REPL_LINE_SIZE_MAX );
                break;
 

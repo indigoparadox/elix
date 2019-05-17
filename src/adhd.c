@@ -45,3 +45,12 @@ TASK_RETVAL adhd_call_task( TASK_PID pid ) {
    return g_tasks[pid].callback( pid );
 }
 
+void adhd_wait( BITFIELD_LARGE status, BITFIELD_LARGE condition ) {
+   while( test_status( status ) != condition ) {
+      /* Keep calling handlers or the status may never go away. */
+      adhd_call_handlers();
+      /* Otherwise, just wait for IRQ. */
+		adhd_suspend();
+   }
+}
+
