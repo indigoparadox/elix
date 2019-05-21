@@ -10,6 +10,18 @@
 #define REPL_LINE_SIZE_MAX 20
 #define REPL_COMMANDS_MAX 5
 
+enum io_dev_in {
+   IO_DEV_IN_NULL = 0,
+   IO_DEV_IN_KEYBOARD = 1,
+   IO_DEV_IN_UART = 2
+};
+
+enum io_dev_out {
+   IO_DEV_OUT_NULL = 0,
+   IO_DEV_OUT_DISPLAY = 1,
+   IO_DEV_OUT_UART = 2
+};
+
 struct repl_command {
    struct astring* command;
    void (*callback)();
