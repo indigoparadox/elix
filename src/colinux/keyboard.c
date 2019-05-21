@@ -1,6 +1,7 @@
 
 #include "../keyboard.h"
 #include "../kernel.h"
+#include "../io.h"
 
 #include <sys/time.h>
 #include <stdio.h>
@@ -20,6 +21,8 @@ void keyboard_init() {
 
    /* Handle CTRL-C. */
    signal( SIGINT, handle_ctrl_c );
+
+   io_regindev( keyboard_getc );
 
    tcgetattr( STDIN, &term );
    term.c_lflag &= ~ICANON;

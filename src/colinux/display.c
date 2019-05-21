@@ -2,6 +2,7 @@
 #include "../display.h"
 #include "../kernel.h"
 #include "../mem.h"
+#include "../io.h"
 
 #include <stdio.h>
 #include <sys/select.h>
@@ -15,6 +16,8 @@ void display_set_colors( uint8_t fg, uint8_t bg ) {
 
 void display_init() {
    struct termios term;
+
+   io_regoutdev( display_putc );
 
    /* Disable echo. */
    tcgetattr( STDIN, &term );
