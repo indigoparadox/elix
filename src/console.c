@@ -17,6 +17,8 @@
 #define REPL_MID_LINE 1
 #define REPL_MID_CUR_POS 2
 
+enum io_dev_in io_input_dev = IO_DEV_IN_NULL
+
 void tregcmd( struct repl_command* cmd ) {
    uint8_t idx = 0;
 
