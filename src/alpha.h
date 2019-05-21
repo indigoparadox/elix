@@ -4,10 +4,12 @@
 
 #include <stdint.h>
 
+#include "mem.h"
+
 #define UINT8_DIGITS_MAX 8
 #define INT_DIGITS_MAX 10
 
-typedef uint8_t STRLEN_T;
+typedef MEMLEN_T STRLEN_T;
 
 struct astring {
    STRLEN_T sz;
@@ -24,6 +26,8 @@ struct astring {
 #define astring_clear( str ) \
    mzero( str->data, str->sz ); \
    str->len = 0;
+#define astring_sizeof( str ) \
+   (sizeof( struct astring ) + str)
 
 #define alpha_isprintable( c ) (' ' <= c && '~' >= c)
 #define alpha_isdigit( c ) ('0' <= (c) && '9' >= (c))

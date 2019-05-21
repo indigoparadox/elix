@@ -28,10 +28,11 @@ START_TEST( test_mset ) {
    int test_heap = 0;
    int test_sample = 0;
    struct mvar* var_header = NULL;
+   uint8_t* check_str = NULL;
 
    minit();
 
-   mset( CHECK_PID, CHECK_MID_TEST1, g_chk_str_1, CHECK_STR_SZ );
+   check_str = mget( CHECK_PID, CHECK_MID_TEST1, g_chk_str_1, CHECK_STR_SZ );
 
    var_header = (struct mvar*)&(g_mheap[i]);
    ck_assert_int_eq( var_header->pid, CHECK_PID );
@@ -49,10 +50,11 @@ END_TEST
 
 START_TEST( test_mshift ) {
    struct mvar* var_header = NULL;
+   uint8_t* check_str = NULL;
 
    minit();
 
-   mset( CHECK_PID, CHECK_MID_TEST1, g_chk_str_1, CHECK_STR_SZ );
+   check_str = mget( CHECK_PID, CHECK_MID_TEST1, g_chk_str_1, CHECK_STR_SZ );
 
    //mprint();
 
@@ -281,32 +283,6 @@ START_TEST( test_mset_pid_match ) {
    for( i = 0 ; CHECK_STR_SZ_2 > i ; i++ ) {
       ck_assert_int_eq( mget_compare[i], g_chk_str_3[i] );
    }
-}
-END_TEST
-
-
-START_TEST( test_mget ) {
-   uint8_t* chk_mem_ret_1 = NULL;
-   unsigned int chk_mem_ret_2 = 0xc0fefeaa;
-   int chk_mem_len_1 = 0;
-   int i = 0;
-
-   minit();
-
-   mset( CHECK_PID, CHECK_MID_TEST1, g_chk_str_1, CHECK_STR_SZ );
-   //mprint();
-   mset( CHECK_PID, CHECK_MID_TEST2, &chk_mem_ret_2, sizeof( int ) );
-   //mprint();
-
-   chk_mem_ret_1 = mget( CHECK_PID, CHECK_MID_TEST1, &chk_mem_len_1 );
-
-   ck_assert_int_eq( chk_mem_len_1, CHECK_STR_SZ );
-   for( i = 0 ; CHECK_STR_SZ > i ; i++ ) {
-      ck_assert_int_eq( chk_mem_ret_1[i], g_chk_str_1[i] );
-   }
-
-   chk_mem_ret_2 = mget_int( CHECK_PID, CHECK_MID_TEST2 );
-   ck_assert_int_eq( chk_mem_ret_2, 0xc0fefeaa );
 }
 END_TEST
 
