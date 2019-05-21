@@ -165,16 +165,11 @@ TASK_RETVAL trepl_task( TASK_PID pid ) {
    /* Dynamically allocate the line buffer so we can clear it from memory
     * during other programs.
     */
-   line = mget( pid, REPL_MID_LINE, NULL );
-   if( *line == NULL ) {
-      mset( pid, REPL_MID_CUR_POS, NULL, sizeof( uint8_t ) );
-      mset( pid, REPL_MID_LINE, NULL,
-         sizeof( struct astring ) + REPL_LINE_SIZE_MAX );
-      line = mget( pid, REPL_MID_LINE, NULL );
-      line->sz = REPL_LINE_SIZE_MAX;
-   }
+   line = 
+      mget( pid, REPL_MID_LINE, NULL, astring_sizeof( REPL_LINE_SIZE_MAX ) );
 
    if( line->len + 1 >= line->sz ) {
+      /* Line would be too long if we accepted this char. */
       tputs( &g_str_invalid );
       astring_clear( line );
       display_newline();
