@@ -133,16 +133,22 @@ void* mget( TASK_PID pid, MEM_ID mid, MLEN_T sz ) {
       /* Found, so make sure there's room on the heap to update it. */
       var = (struct mvar*)&(g_mheap[mheap_addr_iter]);
 
-      size_diff = sz - var->size;
-      if( 0 < size_diff && g_mheap_top + size_diff > MEM_HEAP_SIZE ) {
-         /* Not enough heap space! */
-         return NULL;
-      }
+      /* Only bother resizing if a size was provided. */
+      if( 0 < sz ) {
+         size_diff = sz - var->size;
+         if( 0 < size_diff && g_mheap_top + size_diff > MEM_HEAP_SIZE ) {
+            /* Not enough heap space! */
+            return NULL;
+         }
 
-      mshift( mheap_addr_iter, size_diff ); /* +1 to put the NULL back. */
+         mshift( mheap_addr_iter, size_diff ); /* +1 to put the NULL back. */
+      }
    } else {
       /* Not found. Create it. */
-      if( g_mheap_top + sizeof( struct mvar ) + sz > MEM_HEAP_SIZE ) {
+      if(
+         0 >= sz ||
+         g_mheap_top + sizeof( struct mvar ) + sz > MEM_HEAP_SIZE
+      ) {
          /* Not enough heap available! */
          return NULL;
       }
