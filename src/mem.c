@@ -108,8 +108,8 @@ static int mget_pos( int pid, int mid ) {
 #ifndef CHECK
 static
 #endif /* CHECK */
-void mshift( int start, int offset ) {
-   int i = 0;
+void mshift( MLEN_T start, MLEN_T offset ) {
+   MLEN_T i = 0;
 
    for( i = g_mheap_top ; i >= start ; i-- ) {
       g_mheap[i + offset] = g_mheap[i];
@@ -119,10 +119,10 @@ void mshift( int start, int offset ) {
    g_mheap_top += offset;
 }
 
-void mset( int pid, int mid, void* ptr, int len ) {
-   int mheap_addr_iter = 0;
+void* mget( TASK_PID pid, MEM_ID mid, MLEN_T sz ) {
+   MLEN_T mheap_addr_iter = 0;
    struct mvar* var = NULL;
-   int size_diff = 0;
+   MLEN_T size_diff = 0;
 
    /* Variables on the heap are separated by NULL spacers as noted below.
     * This is so that strlen() and co still work.
@@ -133,18 +133,18 @@ void mset( int pid, int mid, void* ptr, int len ) {
       /* Found, so make sure there's room on the heap to update it. */
       var = (struct mvar*)&(g_mheap[mheap_addr_iter]);
 
-      size_diff = len - (var->size - 1); /* -1 for extra NULL. */
+      size_diff = sz - var->size;
       if( 0 < size_diff && g_mheap_top + size_diff > MEM_HEAP_SIZE ) {
          /* Not enough heap space! */
-         return;
+         return NULL;
       }
 
       mshift( mheap_addr_iter, size_diff ); /* +1 to put the NULL back. */
    } else {
       /* Not found. Create it. */
-      if( g_mheap_top + sizeof( struct mvar ) + len > MEM_HEAP_SIZE ) {
+      if( g_mheap_top + sizeof( struct mvar ) + sz > MEM_HEAP_SIZE ) {
          /* Not enough heap available! */
-         return;
+         return NULL;
       }
 
       /* Move to the next free spot. */
@@ -152,45 +152,15 @@ void mset( int pid, int mid, void* ptr, int len ) {
       var = (struct mvar*)&(g_mheap[mheap_addr_iter]);
 
       /* Advance the heap top. */
-      g_mheap_top += sizeof( struct mvar ) + len + 1;
+      g_mheap_top += sizeof( struct mvar ) + sz;
    }
 
    /* Fill out the header. */
    var->pid = pid;
    var->mid = mid;
-   var->len = len;
-   var->size = len + 1; /* +1 for extra NULL spacer. */
-   mheap_addr_iter += sizeof( struct mvar );
+   var->len = 0;
+   var->size = sz;
 
-   if( NULL != ptr ) {
-      mcopy( &(g_mheap[mheap_addr_iter]), ptr, len );
-   }
-   mheap_addr_iter += len;
-
-   /* Add an extra NULL at the end. */
-   g_mheap[mheap_addr_iter] = '\0';
-}
-
-void* mget( int pid, int mid, int* psz ) {
-   int mheap_addr_iter = 0;
-
-   mheap_addr_iter = mget_pos( pid, mid );
-
-   /* printf( "heap_addr: %d\n", mheap_addr_iter ); */
-
-   if( 0 > mheap_addr_iter ) {
-      /* Not found! Strip const because we'll crash if it's reffed anyway. */
-      /* It's NULL, after all. */
-      return (void*)&meta_null;
-   }
-
-   /* Inform as to the allocated space. -1 for NULL. */
-   if( NULL != psz ) {
-      *psz = ((struct mvar*)&(g_mheap[mheap_addr_iter]))->size - 1;
-   }
-
-   /* Return a pointer to the value. */
-   mheap_addr_iter += sizeof( struct mvar );
    return &(g_mheap[mheap_addr_iter]);
 }
 

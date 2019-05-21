@@ -17,8 +17,6 @@
 #define REPL_MID_LINE 1
 #define REPL_MID_CUR_POS 2
 
-enum io_dev_in io_input_dev = IO_DEV_IN_NULL
-
 void tregcmd( struct repl_command* cmd ) {
    uint8_t idx = 0;
 
@@ -59,9 +57,6 @@ void tprintf( const struct astring* pattern, ... ) {
    uint8_t num_buffer[sizeof( struct astring ) + INT_DIGITS_MAX] = { 0 };
    STRLEN_T padding = 0;
    char c;
-#ifdef DEBUG
-   int check = 0;
-#endif /* DEBUG */
 
    /* Make sure the num_buffer knows how much space is available. */
    ((struct astring*)&num_buffer)->sz = INT_DIGITS_MAX;
@@ -84,26 +79,15 @@ void tprintf( const struct astring* pattern, ... ) {
 
             case 'd':
                spec.d = va_arg( args, int );
-#ifdef DEBUG
-               check = alpha_utoa(
-#else
                alpha_utoa(
-#endif /* DEBUG */
                   spec.d, (struct astring*)&num_buffer, 0, padding, 10 );
-#ifdef DEBUG
-               //assert( check == alpha_udigits(
-#endif /* DEBUG */
                tputs( (struct astring*)&num_buffer );
                padding = 0; /* Reset. */
                break;
 
             case 'x':
                spec.d = va_arg( args, int );
-#ifdef DEBUG
-               check = alpha_utoa(
-#else
                alpha_utoa(
-#endif /* DEBUG */
                   spec.d, (struct astring*)&num_buffer, 0, padding, 16 );
                tputs( (struct astring*)&num_buffer );
                padding = 0; /* Reset. */
@@ -167,14 +151,8 @@ TASK_RETVAL trepl_task( TASK_PID pid ) {
    /* Dynamically allocate the line buffer so we can clear it from memory
     * during other programs.
     */
-   line = mget( pid, REPL_MID_LINE, NULL );
-   if( *line == NULL ) {
-      mset( pid, REPL_MID_CUR_POS, NULL, sizeof( uint8_t ) );
-      mset( pid, REPL_MID_LINE, NULL,
-         sizeof( struct astring ) + REPL_LINE_SIZE_MAX );
-      line = mget( pid, REPL_MID_LINE, NULL );
-      line->sz = REPL_LINE_SIZE_MAX;
-   }
+   line =
+      mget( pid, REPL_MID_LINE, sizeof( struct astring ) + REPL_LINE_SIZE_MAX );
 
    if( line->len + 1 >= line->sz ) {
       tputs( &g_str_invalid );
