@@ -116,7 +116,7 @@ void mshift( MLEN_T start, MLEN_T offset ) {
       g_mheap[i] = '\0';
    }
 
-   g_mheap_top += offset;
+   g_mheap_top += offset + MEM_BLOCK_SPACER;
 }
 
 void* mget( TASK_PID pid, MEM_ID mid, MLEN_T sz ) {
@@ -146,7 +146,7 @@ void* mget( TASK_PID pid, MEM_ID mid, MLEN_T sz ) {
    } else {
       /* Not found. Create it. */
       if(
-         0 >= sz ||
+         0 >= sz || /* Need a sz to create! */
          g_mheap_top + sizeof( struct mvar ) + sz > MEM_HEAP_SIZE
       ) {
          /* Not enough heap available! */
@@ -158,15 +158,18 @@ void* mget( TASK_PID pid, MEM_ID mid, MLEN_T sz ) {
       var = (struct mvar*)&(g_mheap[mheap_addr_iter]);
 
       /* Advance the heap top. */
-      g_mheap_top += sizeof( struct mvar ) + sz;
+      g_mheap_top += sizeof( struct mvar ) + sz + MEM_BLOCK_SPACER;
    }
 
    /* Fill out the header. */
    var->pid = pid;
    var->mid = mid;
    var->len = 0;
-   var->size = sz;
+   /* Only bother resizing if a size was provided. */
+   if( 0 < sz ) {
+      var->size = sz;
+   }
 
-   return &(g_mheap[mheap_addr_iter]);
+   return var;
 }
 

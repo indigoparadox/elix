@@ -20,6 +20,7 @@ struct mvar {
 } __attribute__((packed));
 
 #define MEM_HEAP_SIZE 420
+#define MEM_BLOCK_SPACER 1
 
 #ifdef CHECK
 void mshift( MLEN_T start, MLEN_T offset );

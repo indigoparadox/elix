@@ -87,6 +87,7 @@ START_TEST( test_vars ) {
    struct mvar* var_header = NULL;
 
    var_header = mget( CHECK_PID, _i, 0 );
+   ck_assert_ptr_ne( var_header, NULL );
    ck_assert_int_eq( var_header->mid, _i );
    ck_assert_int_eq( var_header->pid, CHECK_PID );
   // ck_assert_int_eq( var_header->size, g_chk_len[_i] );
@@ -324,10 +325,14 @@ Suite* mem_suite( void ) {
    s = suite_create( "mem" );
 
    /* Test Cases */
+   tc_set = tcase_create( "Set" );
    tc_layout = tcase_create( "Layout" );
    tc_shift = tcase_create( "Shift" );
    //tc_overwrite = tcase_create( "Overwrite" );
    //tc_pid = tcase_create( "PID" );
+
+   /* Tests: Set */
+   
 
    /* Tests: Layout */
    tcase_add_checked_fixture( tc_layout, setup, teardown );
