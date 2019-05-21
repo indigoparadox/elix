@@ -8,8 +8,8 @@ MKVFAT=/sbin/mkfs.vfat
 SYSLINUX=syslinux
 MCOPY=mcopy
 
-CFLAGS=-Wall
-SOURCES=net/tcp.c net/ether.c net/arp.c mem.c console.c net/net.c adhd.c strings.c alpha.c
+CFLAGS=-Wall -Werror
+SOURCES=net/tcp.c net/ether.c net/arp.c mem.c console.c net/net.c adhd.c strings.c alpha.c io.c
 CHECKOBJ=check.o check_ether.o check_mem.o check_console.o check_alpha.o
 OBJECTS=$(subst .c,.o,$(SOURCES))
 LDFLAGS=

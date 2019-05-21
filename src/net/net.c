@@ -26,12 +26,12 @@ uint8_t g_src_mac[6] = { 0xab, 0xcd, 0xef, 0xde, 0xad, 0xbf };
 char* g_ifname = "eth0";
 
 void net_respond_con_request( TASK_PID pid ) {
-   int received = 0;
+   int* received = NULL;
 
    switch( g_net_con_request ) {
       case NET_REQ_RCVD:
-         received = mget_int( pid, NET_MID_RECEIVED );
-         tprintf( &g_str_frames_rcvd, received );
+         received = mget( pid, NET_MID_RECEIVED, sizeof( int ) );
+         tprintf( &g_str_frames_rcvd, *received );
          break;
    }
 
@@ -46,7 +46,7 @@ uint8_t net_respond_arp_request(
    int arp_sz = frame_len - ether_get_header_len( frame, frame_len );
    uint8_t retval = 0;
    uint8_t dest_mac[6];
-   int responded = 0;
+   int* responded = 0;
 
    arp_len = arp_respond( arp, arp_sz, NULL, 0,
       g_src_mac, ETHER_ADDRLEN, g_src_ip, ETHER_ADDRLEN_IPV4 );
@@ -54,9 +54,8 @@ uint8_t net_respond_arp_request(
       goto cleanup;
    }
 
-   responded = mget_int( pid, NET_MID_RESPONDED );
-   responded++;
-   mset( pid, NET_MID_RESPONDED, &responded, sizeof( int ) );
+   responded = mget( pid, NET_MID_RESPONDED, sizeof( int ) );
+   (*responded)++;
 
 #ifdef NET_CON_ECHO
    tputs( g_str_responding );
@@ -92,17 +91,16 @@ uint8_t net_respond_arp(
 TASK_RETVAL net_respond_task( TASK_PID pid ) {
    struct ether_frame frame;
    int frame_len = 0;
-   NET_SOCK socket = NULL;
-   int received = 0;
+   NET_SOCK* socket = NULL;
+   int* received = NULL;
    uint8_t retval = 0;
 
-   socket = mget_ptr( pid, NET_MID_SOCKET, NULL, NET_SOCK );
-   if( NULL == socket ) {
-      socket = net_open_socket( g_ifname );
-      if( NULL == socket ) {
+   socket = mget( pid, NET_MID_SOCKET, sizeof( NET_SOCK ) );
+   if( NULL == *socket ) {
+      *socket = net_open_socket( g_ifname );
+      if( NULL == *socket ) {
          return -1;
       }
-      mset( pid, NET_MID_SOCKET, &socket, sizeof( NET_SOCK ) );
    }
 
    frame_len = 
@@ -111,9 +109,8 @@ TASK_RETVAL net_respond_task( TASK_PID pid ) {
       goto cleanup;
    }
 
-   received = mget_int( pid, NET_MID_RECEIVED );
-   received++;
-   mset( pid, NET_MID_RECEIVED, &received, sizeof( int ) );
+   received = mget( pid, NET_MID_RECEIVED, sizeof( int ) );
+   (*received)++;
 
 #ifdef NET_CON_ECHO
    net_print_frame( &frame, frame_len );

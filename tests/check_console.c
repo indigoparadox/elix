@@ -96,7 +96,7 @@ Suite* console_suite( void ) {
    /* Core test case */
    tc_core = tcase_create( "Core" );
 
-   //tcase_add_test( tc_core, test_console_putc );
+   tcase_add_test( tc_core, test_console_putc );
    tcase_add_test( tc_core, test_console_printf_int );
    tcase_add_test( tc_core, test_console_printf_hex );
 
