@@ -151,22 +151,22 @@ TASK_RETVAL trepl_task( TASK_PID pid ) {
    /* Dynamically allocate the line buffer so we can clear it from memory
     * during other programs.
     */
-   line =
-      mget( pid, REPL_MID_LINE, REPL_LINE_SIZE_MAX + sizeof( struct astring ) );
+   line = alpha_astring( pid, REPL_MID_LINE, REPL_LINE_SIZE_MAX );
 
    if( line->len + 1 >= line->sz ) {
       /* Line would be too long if we accepted this char. */
-      printf( "%d/%d\n", line->len, line->sz );
-      mprint();
+      display_newline();
       tputs( &g_str_invalid );
       astring_clear( line );
-      display_newline();
       return 0;
    }
 
    switch( c ) {
+      case '\r':
       case '\n':
          //truncmd( line, cur_pos );
+         display_newline();
+         tputs( &g_str_invalid );
          astring_clear( line );
          break;
 
