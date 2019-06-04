@@ -57,11 +57,13 @@ int mcompare( const void* c1, const void* c2, int sz ) {
 }
 
 #if defined( MPRINT ) || defined( CHECK )
+#include <stdio.h>
 void mprint() {
    int i = 0;
 
    for( i = 0 ; MEM_HEAP_SIZE > i ; i++ ) {
       if( 0 == i % 20 ) {
+         //printf( "\n" );
          tputs( &g_str_newline );
       }
       if( i == g_mheap_top ) {
@@ -77,8 +79,11 @@ void mprint() {
 #endif /* MPRINT || CHECK */
 
 /* Get the heap position for a variable. Used in public functions below. */
-static int mget_pos( int pid, int mid ) {
-   struct mvar* var_iter = (struct mvar*)g_mheap;
+#ifndef DEBUG
+static
+#endif /* DEBUG */
+int mget_pos( int pid, int mid ) {
+   const struct mvar* var_iter = (struct mvar*)g_mheap;
    int mheap_addr_iter = 0;
 
    if( 0 >= g_mheap_top ) {
@@ -120,7 +125,7 @@ void mshift( MEMLEN_T start, MEMLEN_T offset ) {
 
    for( i = g_mheap_top ; i >= start ; i-- ) {
       g_mheap[i + offset] = g_mheap[i];
-      g_mheap[i] = '\0';
+      g_mheap[i] = 0;
    }
 
    g_mheap_top += offset;
@@ -159,7 +164,10 @@ void* mget( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
             return NULL;
          }
 
-         mshift( mheap_addr_iter, size_diff ); 
+         if( 0 < size_diff ) {
+            mshift( mheap_addr_iter, size_diff ); 
+            var = (struct mvar*)&(g_mheap[mheap_addr_iter + size_diff]);
+         }
       }
    } else {
       /* Not found. Create it. */
@@ -174,7 +182,7 @@ void* mget( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
          return NULL;
       }
 
-      /* Move to the next free spot. */
+      /* Move to the next free spot and reset convenience ptr. */
       mheap_addr_iter = g_mheap_top;
       var = (struct mvar*)&(g_mheap[mheap_addr_iter]);
 
@@ -189,6 +197,6 @@ void* mget( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
       var->size = sz;
    }
 
-   return var;
+   return &(var->data);
 }
 

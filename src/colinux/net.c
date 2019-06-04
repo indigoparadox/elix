@@ -80,7 +80,7 @@ void net_print_frame( struct ether_frame* frame, int frame_len ) {
 #endif /* NET_CON_ECHO */
 
 int net_send_frame( 
-   NET_SOCK socket, struct ether_frame* frame, int frame_len
+   const NET_SOCK socket, struct ether_frame* frame, int frame_len
 ) {
    int sent = 0;
    pcap_t* pcap_socket = (pcap_t*)socket;
@@ -101,7 +101,7 @@ int net_send_frame(
 }
 
 int net_poll_frame(
-   NET_SOCK socket, struct ether_frame* frame, int frame_sz
+   const NET_SOCK socket, struct ether_frame* frame, int frame_sz
 ) {
    const uint8_t* buffer = NULL;
    struct pcap_pkthdr frame_pcap_hdr;

@@ -13,6 +13,7 @@
    srunner_free( sr_ ## suite_name );
 
 main_add_test_proto( ether )
+main_add_test_proto( net )
 main_add_test_proto( mem )
 main_add_test_proto( console )
 main_add_test_proto( alpha )
@@ -21,6 +22,7 @@ int main( void ) {
    int number_failed = 0;
 
    main_add_test( ether );
+   main_add_test( net );
    main_add_test( mem );
    main_add_test( console );
    main_add_test( alpha );

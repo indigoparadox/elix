@@ -16,7 +16,7 @@ struct mvar {
    uint8_t data[];
 } __attribute__((packed));
 
-#define MEM_HEAP_SIZE 420
+#define MEM_HEAP_SIZE 370
 
 #ifdef CHECK
 void mshift( MEMLEN_T start, MEMLEN_T offset );
@@ -25,6 +25,10 @@ void mshift( MEMLEN_T start, MEMLEN_T offset );
 #if defined( MPRINT ) || defined( CHECK )
 void mprint();
 #endif /* MPRINT || CHECK */
+
+#ifdef DEBUG
+int mget_pos( int pid, int mid );
+#endif /* DEBUG */
 
 void minit();
 void* mget( uint8_t pid, MEM_ID mid, MEMLEN_T sz );
