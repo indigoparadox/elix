@@ -31,7 +31,7 @@ void kmain() {
    tputs( &g_str_hello );
 
    /* Create network task. */
-   adhd_add_task( net_respond_task );
+   //adhd_add_task( net_respond_task );
    adhd_add_task( trepl_task );
 
    while( SYSTEM_SHUTDOWN != g_system_state ) {
