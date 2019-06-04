@@ -22,9 +22,9 @@ MKVFAT=/sbin/mkfs.vfat
 SYSLINUX=syslinux
 MCOPY=mcopy
 
-CFLAGS=-Wall -Werror -DDEBUG
+CFLAGS=-Wall -Werror
 SOURCES=net/tcp.c net/ether.c net/arp.c mem.c console.c net/net.c adhd.c strings.c alpha.c io.c
-CHECKOBJ=check.o check_ether.o check_mem.o check_console.o check_alpha.o
+CHECKOBJ=check.o check_ether.o check_mem.o check_console.o check_alpha.o check_net.o
 OBJECTS=$(subst .c,.o,$(SOURCES))
 LDFLAGS=
 
@@ -37,7 +37,7 @@ $(BIN_LIN): CFLAGS += -g -DDEBUG -DMPRINT -DPLATFORM_COLINUX
 $(BIN_LIN): LDFLAGS += -lpcap -lcurses
 $(BIN_LIN): OBJDIR := ../obj/linux
 
-$(BIN_WIN): CC := i686-w64-mingw32-gcc
+$(BIN_WIN): CC := i686-w64-mingw32-g
 $(BIN_WIN): CFLAGS += -DNET_CON_ECHO -g -DPLATFORM_COLINUX
 $(BIN_WIN): LDFLAGS += -lwpcap
 $(BIN_WIN): OBJDIR := ../obj/windows
@@ -46,12 +46,12 @@ $(BIN_X86): CFLAGS += -ffreestanding -nostdlib -nostartfiles -nodefaultlibs -DPL
 $(BIN_X86): OBJDIR := ../obj/os
 $(BIN_X86): LDFLAGS := 
 
-$(BIN_MSP430): CFLAGS += -DPLATFORM_MSP430 -mmcu=msp430g2553 -DCONSOLE_SERIAL
+$(BIN_MSP430): CFLAGS += -DPLATFORM_MSP430 -mmcu=msp430g2553 -DCONSOLE_SERIAL -Os
 $(BIN_MSP430): CC := msp430-gcc
 $(BIN_MSP430): STRIP := msp430-strip
 $(BIN_MSP430): OBJDIR := ../obj/msp430
 
-tests: LDFLAGS += -lcheck -lpthread -lm -lrt -lpcap -lsubunit
+tests: LDFLAGS += -lpcap $(shell pkg-config --libs check)
 tests: CFLAGS += -DCHECK -g
 tests: OBJDIR := ../obj/tests
 

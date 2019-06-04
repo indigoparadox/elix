@@ -97,7 +97,6 @@ TASK_RETVAL net_respond_task( TASK_PID pid ) {
    uint8_t retval = 0;
 
    socket = mget( pid, NET_MID_SOCKET, sizeof( NET_SOCK ) );
-   printf( "%p\n", *socket );
    if( NULL == *socket ) {
       *socket = net_open_socket( g_ifname );
       if( NULL == *socket ) {

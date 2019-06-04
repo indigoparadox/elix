@@ -55,11 +55,12 @@ void tprintf( const struct astring* pattern, ... ) {
    char last = '\0';
    union tprintf_spec spec;
    uint8_t num_buffer[sizeof( struct astring ) + INT_DIGITS_MAX] = { 0 };
+   struct astring* buffer_ptr = (struct astring*)&num_buffer;
    STRLEN_T padding = 0;
    char c;
 
    /* Make sure the num_buffer knows how much space is available. */
-   ((struct astring*)&num_buffer)->sz = INT_DIGITS_MAX;
+   buffer_ptr->sz = INT_DIGITS_MAX;
 
    va_start( args, pattern );
 
@@ -137,10 +138,8 @@ TASK_RETVAL trepl_task( TASK_PID pid ) {
    char c = '\0';
    struct astring* line;
 
-   mprint();
-
 #ifdef CONSOLE_SERIAL
-   if( 0 ) {
+   //if( 0 ) {
 #else
    if( !keyboard_hit() ) {
       return 0;

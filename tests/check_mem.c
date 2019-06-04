@@ -28,8 +28,8 @@ char* g_chk_str[4] = {
 
 uint8_t g_chk_len[4] = {
    23,
+   9,
    8,
-   7,
    0
 };
 
@@ -42,26 +42,25 @@ uint8_t* g_theap = NULL;
  * | var | g_chk_str[0] | var | g_chk_str[1] | var | g_chk_str[2]
  */
 
-void setup() {
+static void setup_mem() {
    struct mvar* var_header = NULL;
+   uint8_t* mem_ptr = NULL;
    int offset = 0;
    int i = 0;
 
    minit();
 
    /* Place the strings on the heap to check. */
-   var_header = mget( CHECK_PID, CHECK_MID_TEST1, g_chk_len[0] );
-   ck_assert_ptr_ne( var_header, NULL );
-   mcopy( var_header->data, g_chk_str[0], g_chk_len[0] );
-   var_header = mget( CHECK_PID, CHECK_MID_TEST2, g_chk_len[1] );
-   ck_assert_ptr_ne( var_header, NULL );
-   mcopy( var_header->data, g_chk_str[1], g_chk_len[1] );
-   var_header = mget( CHECK_PID, CHECK_MID_TEST3, g_chk_len[2] );
-   ck_assert_ptr_ne( var_header, NULL );
-   mcopy( var_header->data, g_chk_str[2], g_chk_len[2] );
+   for( i = 0 ; 3 > i ; i++ ) {
+      mem_ptr = mget( CHECK_PID, i + 1, g_chk_len[i] );
+      ck_assert_ptr_ne( mem_ptr, NULL );
+      mcopy( mem_ptr, g_chk_str[i], g_chk_len[i] );
+      ck_assert_str_eq( mem_ptr, g_chk_str[i] );
+   }
 
    /* Fill up a simulated heap to compare. */
    g_theap = calloc( 1, MEM_HEAP_SIZE );
+   i = 0;
    do {
       var_header = (struct mvar*)&(g_theap[offset]);
       var_header->pid = CHECK_PID;
@@ -73,7 +72,7 @@ void setup() {
    } while( 0 != g_chk_len[i] );
 }
 
-void teardown() {
+static void teardown_mem() {
    free( g_theap );
 }
 
@@ -88,12 +87,15 @@ END_TEST
 
 START_TEST( test_vars ) {
    struct mvar* var_header = NULL;
+   MEMLEN_T offset = 0;
 
-   var_header = mget( CHECK_PID, _i, 0 );
+   offset = mget_pos( CHECK_PID, _i );
+
+   var_header = (struct mvar*)&(g_mheap[offset]);
    ck_assert_ptr_ne( var_header, NULL );
    ck_assert_int_eq( var_header->mid, _i );
    ck_assert_int_eq( var_header->pid, CHECK_PID );
-  // ck_assert_int_eq( var_header->size, g_chk_len[_i] );
+   //ck_assert_int_eq( var_header->size, g_chk_len[_i] );
    //ck_assert_str_eq( var_header->data, g_chk_str[_i] );
 }
 END_TEST
@@ -116,56 +118,39 @@ END_TEST
 
 /* Tests: Overwrite */
 
-# if 0
-START_TEST( test_mget_heap_overwrite ) {
-   int i = 0;
-   int offset = 0;
-   int test_heap = 0;
-   int test_sample = 0;
-   int correct_heap_top = 0;
-   struct mvar* var_header = NULL;
+#include <stdio.h>
+START_TEST( test_mget_overwrite ) {
+   uint8_t* mem_ptr = NULL;
 
-   minit();
+   mem_ptr = mget( CHECK_PID, _i + 1, g_chk_len[_i] + 5 );
+   ck_assert_ptr_ne( mem_ptr, NULL );
+   ck_assert_str_eq( mem_ptr, g_chk_str[_i] );
+}
+END_TEST
 
-   //mprint();
+START_TEST( test_mget_pos ) {
+   MEMLEN_T pos = 0;
 
+   pos = mget_pos( CHECK_PID, _i );
+   switch( _i ) {
+      case 1:
+         ck_assert_int_eq( pos, 0 );
+         break;
 
-   //mprint();
+      case 2:
+         ck_assert_int_eq( pos,
+            sizeof( struct mvar ) + g_chk_len[0]  );
+         break;
 
-   correct_heap_top =
-      (2 * sizeof( struct mvar )) + /* Both headers. */
-      CHECK_STR_SZ + CHECK_STR_SZ_2;
-
-   ck_assert_int_eq( g_mheap_top, correct_heap_top );
-
-   var_header = (struct mvar*)&(g_mheap[offset]);
-   ck_assert_int_eq( var_header->pid, CHECK_PID );
-   ck_assert_int_eq( var_header->mid, CHECK_MID_TEST1 );
-   ck_assert_int_eq( var_header->size, CHECK_STR_SZ_2 );
-   offset += sizeof( struct mvar );
-   for( i = 0 ; CHECK_STR_SZ_2 > i ; i++ ) {
-      test_heap = g_mheap[i + offset];
-      test_sample = g_chk_str_3[i];
-      ck_assert_int_eq( test_heap, test_sample );
-   }
-
-   /* Advance past the first var. */
-   offset += CHECK_STR_SZ_2;
-
-   /* Check the next var. */
-   var_header = (struct mvar*)&(g_mheap[offset]);
-   ck_assert_int_eq( var_header->pid, CHECK_PID );
-   ck_assert_int_eq( var_header->mid, CHECK_MID_TEST2 );
-   ck_assert_int_eq( var_header->size, CHECK_STR_SZ );
-   offset += sizeof( struct mvar );
-   for( i = 0 ; CHECK_STR_SZ > i ; i++ ) {
-      test_heap = g_mheap[offset + i];
-      test_sample = g_chk_str_2[i];
-      ck_assert_int_eq( test_heap, test_sample );
+      case 3:
+         ck_assert_int_eq( pos,
+            (2 * sizeof( struct mvar )) + g_chk_len[0] + g_chk_len[1] );
+         break;
    }
 }
 END_TEST
 
+#if 0
 START_TEST( test_mget_pid_match ) {
    int i = 0;
    int offset = 0;
@@ -324,7 +309,7 @@ Suite* mem_suite( void ) {
    TCase* tc_layout;
    TCase* tc_shift;
    //TCase* tc_set;
-   //TCase* tc_overwrite;
+   TCase* tc_overwrite;
    //TCase* tc_pid;
 
    s = suite_create( "mem" );
@@ -333,32 +318,35 @@ Suite* mem_suite( void ) {
    //tc_set = tcase_create( "Set" );
    tc_layout = tcase_create( "Layout" );
    tc_shift = tcase_create( "Shift" );
-   //tc_overwrite = tcase_create( "Overwrite" );
+   tc_overwrite = tcase_create( "Overwrite" );
    //tc_pid = tcase_create( "PID" );
 
    /* Tests: Set */
    
 
    /* Tests: Layout */
-   tcase_add_checked_fixture( tc_layout, setup, teardown );
+   tcase_add_checked_fixture( tc_layout, setup_mem, teardown_mem );
    tcase_add_loop_test( tc_layout, test_bytes, 0, MEM_HEAP_SIZE - 1 );
    tcase_add_loop_test( tc_layout, test_vars, 1, CHECK_STR_COUNT );
 
    /* Tests: Shift */
-   tcase_add_checked_fixture( tc_shift, setup, teardown );
+   tcase_add_checked_fixture( tc_shift, setup_mem, teardown_mem );
    tcase_add_test( tc_shift, test_mshift );
    tcase_add_loop_test( tc_shift, test_vars, 1, CHECK_STR_COUNT );
 
    /* Tests: Overwrite */
+   tcase_add_checked_fixture( tc_overwrite, setup_mem, teardown_mem );
+   tcase_add_loop_test( tc_overwrite, test_mget_overwrite, 0, 3 );
+   tcase_add_loop_test( tc_overwrite, test_mget_pos, 1, 4 );
 
    /* Tests: PID */
    //tcase_add_test( tc_core, test_mget_heap );
-   //tcase_add_test( tc_core, test_mget_heap_overwrite );
    //tcase_add_test( tc_core, test_mget );
    //tcase_add_test( tc_core, test_metazero );
    //tcase_add_test( tc_core, test_mget_pid_match );
    //tcase_add_test( tc_core, test_mset_line );
 
+   suite_add_tcase( s, tc_overwrite );
    suite_add_tcase( s, tc_layout );
    suite_add_tcase( s, tc_shift );
 
