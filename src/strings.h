@@ -16,6 +16,7 @@ astring_const( g_str_xx, "** " );
 astring_const( g_str_x, "%2x " );
 astring_const( g_str_frames_rcvd, "frames rcvd: %d\n" );
 astring_const( g_str_responding, "responding\n" );
+astring_const( g_str_no_socket, "no socket\n" );
 #ifdef NET_CON_ECHO
 astring_const( g_str_self_match, "self match\n" );
 #endif /* NET_CON_ECHO */
