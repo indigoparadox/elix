@@ -134,6 +134,7 @@ void truncmd( char* line, int line_len ) {
 }
 */
 
+#include <stdio.h>
 TASK_RETVAL trepl_task( TASK_PID pid ) {
    char c = '\0';
    struct astring* line;
@@ -151,10 +152,12 @@ TASK_RETVAL trepl_task( TASK_PID pid ) {
     * during other programs.
     */
    line =
-      mget( pid, REPL_MID_LINE, astring_sizeof( REPL_LINE_SIZE_MAX ) );
+      mget( pid, REPL_MID_LINE, REPL_LINE_SIZE_MAX + sizeof( struct astring ) );
 
    if( line->len + 1 >= line->sz ) {
       /* Line would be too long if we accepted this char. */
+      printf( "%d/%d\n", line->len, line->sz );
+      mprint();
       tputs( &g_str_invalid );
       astring_clear( line );
       display_newline();
