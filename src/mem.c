@@ -108,8 +108,8 @@ static int mget_pos( int pid, int mid ) {
 #ifndef CHECK
 static
 #endif /* CHECK */
-void mshift( MLEN_T start, MLEN_T offset ) {
-   MLEN_T i = 0;
+void mshift( MEMLEN_T start, MEMLEN_T offset ) {
+   MEMLEN_T i = 0;
 
    for( i = g_mheap_top ; i >= start ; i-- ) {
       g_mheap[i + offset] = g_mheap[i];
@@ -119,10 +119,10 @@ void mshift( MLEN_T start, MLEN_T offset ) {
    g_mheap_top += offset + MEM_BLOCK_SPACER;
 }
 
-void* mget( TASK_PID pid, MEM_ID mid, MLEN_T sz ) {
-   MLEN_T mheap_addr_iter = 0;
+void* mget( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
+   MEMLEN_T mheap_addr_iter = 0;
    struct mvar* var = NULL;
-   MLEN_T size_diff = 0;
+   MEMLEN_T size_diff = 0;
 
    /* Variables on the heap are separated by NULL spacers as noted below.
     * This is so that strlen() and co still work.
@@ -141,7 +141,7 @@ void* mget( TASK_PID pid, MEM_ID mid, MLEN_T sz ) {
             return NULL;
          }
 
-         mshift( mheap_addr_iter, size_diff ); /* +1 to put the NULL back. */
+         mshift( mheap_addr_iter, size_diff ); 
       }
    } else {
       /* Not found. Create it. */
@@ -158,14 +158,12 @@ void* mget( TASK_PID pid, MEM_ID mid, MLEN_T sz ) {
       var = (struct mvar*)&(g_mheap[mheap_addr_iter]);
 
       /* Advance the heap top. */
-      g_mheap_top += sizeof( struct mvar ) + sz + MEM_BLOCK_SPACER;
+      g_mheap_top += sizeof( struct mvar ) + sz;
    }
 
    /* Fill out the header. */
    var->pid = pid;
    var->mid = mid;
-   var->len = 0;
-   /* Only bother resizing if a size was provided. */
    if( 0 < sz ) {
       var->size = sz;
    }
