@@ -4,7 +4,7 @@
 
 #include <stdint.h>
 
-typedef uint8_t MEMLEN_T;
+typedef int16_t MEMLEN_T;
 typedef uint16_t BITFIELD;
 typedef uint8_t MEM_ID;
 

@@ -22,7 +22,7 @@ MKVFAT=/sbin/mkfs.vfat
 SYSLINUX=syslinux
 MCOPY=mcopy
 
-CFLAGS=-Wall -Werror
+CFLAGS=-Wall -Werror -DDEBUG
 SOURCES=net/tcp.c net/ether.c net/arp.c mem.c console.c net/net.c adhd.c strings.c alpha.c io.c
 CHECKOBJ=check.o check_ether.o check_mem.o check_console.o check_alpha.o
 OBJECTS=$(subst .c,.o,$(SOURCES))
@@ -51,7 +51,7 @@ $(BIN_MSP430): CC := msp430-gcc
 $(BIN_MSP430): STRIP := msp430-strip
 $(BIN_MSP430): OBJDIR := ../obj/msp430
 
-tests: LDFLAGS += -lcheck -lpthread -lm -lrt -lpcap
+tests: LDFLAGS += -lcheck -lpthread -lm -lrt -lpcap -lsubunit
 tests: CFLAGS += -DCHECK -g
 tests: OBJDIR := ../obj/tests
 

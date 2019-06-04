@@ -6,6 +6,13 @@
 
 #include <stddef.h>
 
+#ifdef DEBUG
+#ifdef MEM_PRINTF_TRACE
+#include <stdio.h>
+#endif /* MEM_PRINTF_TRACE */
+#include <assert.h>
+#endif /* DEBUG */
+
 #ifndef CHECK
 static
 #endif /* CHECK */
@@ -116,7 +123,7 @@ void mshift( MEMLEN_T start, MEMLEN_T offset ) {
       g_mheap[i] = '\0';
    }
 
-   g_mheap_top += offset + MEM_BLOCK_SPACER;
+   g_mheap_top += offset;
 }
 
 void* mget( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
@@ -129,6 +136,10 @@ void* mget( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
     */
    mheap_addr_iter = mget_pos( pid, mid );
 
+#ifdef DEBUG
+   assert( 0 < mid );
+#endif /* DEBUG */
+
    if( 0 <= mheap_addr_iter ) {
       /* Found, so make sure there's room on the heap to update it. */
       var = (struct mvar*)&(g_mheap[mheap_addr_iter]);
@@ -138,6 +149,13 @@ void* mget( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
          size_diff = sz - var->size;
          if( 0 < size_diff && g_mheap_top + size_diff > MEM_HEAP_SIZE ) {
             /* Not enough heap space! */
+#ifdef MEM_PRINTF_TRACE
+            printf(
+               "cannot resize; not enough heap " \
+                  "(started at %d, old %d, new %d, top %d)\n",
+               mheap_addr_iter, var->size, sz, g_mheap_top
+            );
+#endif /* MEM_PRINTF_TRACE */
             return NULL;
          }
 
@@ -150,6 +168,9 @@ void* mget( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
          g_mheap_top + sizeof( struct mvar ) + sz > MEM_HEAP_SIZE
       ) {
          /* Not enough heap available! */
+#ifdef MEM_PRINTF_TRACE
+         printf( "cannot create; not enough heap\n" );
+#endif /* MEM_PRINTF_TRACE */
          return NULL;
       }
 
