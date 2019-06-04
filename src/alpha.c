@@ -98,6 +98,17 @@ int16_t alpha_charinstr( char c, const struct astring* string ) {
    return -1;
 }
 
+struct astring* alpha_astring( uint8_t pid, MEM_ID mid, STRLEN_T len ) {
+   struct astring* str_out = NULL;
+   
+   str_out = mget( pid, mid, sizeof( struct astring ) + len );
+   if( 0 == str_out->sz ) {
+      str_out->sz = len;
+   }
+
+   return str_out;
+}
+
 #if 0
 STRLEN_T alpha_insertstr(
    struct astring* dest, const struct astring* src, int8_t* cursor

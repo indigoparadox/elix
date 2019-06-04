@@ -3,6 +3,7 @@
 #define ALPHA_H
 
 #include <stdint.h>
+#include <stddef.h>
 
 #include "mem.h"
 
@@ -49,6 +50,7 @@ int16_t alpha_utoa(
    uint16_t num, struct astring* str, STRLEN_T idx,
    STRLEN_T zero_pad_spaces, uint8_t base );
 int16_t alpha_charinstr( char c, const struct astring* string );
+struct astring* alpha_astring( uint8_t pid, MEM_ID mid, STRLEN_T len );
 /* void alpha_insertstr(
 	char* dest, STRLEN_T dest_len, const char* src, int8_t* cursor
 ); */
