@@ -1,7 +1,6 @@
 
 #include "../net/net.h"
 
-#include "../debug.h"
 #include "../net/ether.h"
 #include "../mem.h"
 

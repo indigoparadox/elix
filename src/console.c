@@ -152,9 +152,10 @@ TASK_RETVAL trepl_task( TASK_PID pid ) {
     * during other programs.
     */
    line =
-      mget( pid, REPL_MID_LINE, sizeof( struct astring ) + REPL_LINE_SIZE_MAX );
+      mget( pid, REPL_MID_LINE, NULL, astring_sizeof( REPL_LINE_SIZE_MAX ) );
 
    if( line->len + 1 >= line->sz ) {
+      /* Line would be too long if we accepted this char. */
       tputs( &g_str_invalid );
       astring_clear( line );
       display_newline();

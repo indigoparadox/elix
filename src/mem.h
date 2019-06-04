@@ -4,26 +4,22 @@
 
 #include <stdint.h>
 
-#include "mem.h"
-
+typedef uint8_t MEMLEN_T;
 typedef uint16_t BITFIELD;
-
-typedef int16_t MLEN_T;
 typedef uint8_t MEM_ID;
 
 struct mvar {
    uint8_t pid;
    MEM_ID mid;
-   MLEN_T len;  /* Used. */
-   MLEN_T size; /* Allocated. */
+   MEMLEN_T len;  /* Used. */
+   MEMLEN_T size; /* Allocated. */
    uint8_t data[];
 } __attribute__((packed));
 
 #define MEM_HEAP_SIZE 420
-#define MEM_BLOCK_SPACER 1
 
 #ifdef CHECK
-void mshift( MLEN_T start, MLEN_T offset );
+void mshift( MEMLEN_T start, MEMLEN_T offset );
 #endif /* CHECK */
 
 #if defined( MPRINT ) || defined( CHECK )
@@ -31,7 +27,7 @@ void mprint();
 #endif /* MPRINT || CHECK */
 
 void minit();
-void* mget( uint8_t pid, MEM_ID mid, MLEN_T sz );
+void* mget( uint8_t pid, MEM_ID mid, MEMLEN_T sz );
 void mzero( void* dest, int sz );
 int mcopy( void* dest, const void* src, int sz );
 int mcompare( const void* c1, const void* c2, int sz );

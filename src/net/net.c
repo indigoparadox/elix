@@ -104,7 +104,7 @@ TASK_RETVAL net_respond_task( TASK_PID pid ) {
    }
 
    frame_len = 
-      net_poll_frame( socket, &frame, sizeof( struct ether_frame ) );
+      net_poll_frame( *socket, &frame, sizeof( struct ether_frame ) );
    if( 0 >= frame_len ) {
       goto cleanup;
    }

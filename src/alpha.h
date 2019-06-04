@@ -9,7 +9,7 @@
 #define UINT8_DIGITS_MAX 8
 #define INT_DIGITS_MAX 10
 
-typedef MLEN_T STRLEN_T;
+typedef MEMLEN_T STRLEN_T;
 
 struct astring {
    STRLEN_T sz;
