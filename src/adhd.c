@@ -10,37 +10,42 @@ struct adhd_task {
 };
 
 static struct adhd_task g_tasks[ADHD_TASKS_MAX];
-static TASK_PID g_tasks_len = 0;
 
 TASK_PID adhd_add_task( TASK_RETVAL (*callback)( TASK_PID ) ) {
    struct adhd_task* task = NULL;
+   TASK_PID pid_iter = 0;
 
-   if( ADHD_TASKS_MAX <= g_tasks_len + 1 ) {
+   while( NULL != g_tasks[pid_iter].callback && ADHD_TASKS_MAX > pid_iter ) {
+      pid_iter++;
+   }
+   if( ADHD_TASKS_MAX <= pid_iter ) {
       /* Too many tasks already! */
       return -1;
    }
 
-   mzero( &(g_tasks[g_tasks_len]), sizeof( struct adhd_task ) );
-   task = &(g_tasks[g_tasks_len]);
+   mzero( &(g_tasks[pid_iter]), sizeof( struct adhd_task ) );
+   task = &(g_tasks[pid_iter]);
    task->callback = callback;
 
-   //mcopy( &(g_tasks[tasks_len]), task, sizeof( struct adhd_task ) );
-
-   /* Increment task count, return new task index. */
-   g_tasks_len++;
-   return g_tasks_len - 1;
-}
-
-TASK_PID adhd_get_tasks_len() {
-   return g_tasks_len;
+   /* Return new task index. */
+   return pid_iter;
 }
 
 TASK_RETVAL adhd_call_task( TASK_PID pid ) {
-   if( 0 > pid || pid >= g_tasks_len ) {
+   if( 0 > pid || pid >= ADHD_TASKS_MAX || NULL == g_tasks[pid].callback ) {
       /* Invalid task index. */
-      return -1;
+      return 0;
    }
    return g_tasks[pid].callback( pid );
+}
+
+void adhd_kill_task( TASK_PID pid ) {
+   if( 0 > pid || pid >= ADHD_TASKS_MAX || NULL == g_tasks[pid].callback ) {
+      /* Invalid task index. */
+      return;
+   }
+   
+   g_tasks[pid].callback = NULL;
 }
 
 void adhd_wait( BITFIELD status, BITFIELD condition ) {

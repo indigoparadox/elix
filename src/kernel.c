@@ -19,8 +19,10 @@
 const struct astring g_str_hello = astring_l( "hello\n" );
 const struct astring g_str_stopping = astring_l( "stopping...\n" );
 
+#include <stdio.h>
 void kmain() {
    TASK_PID active = 0;
+   TASK_RETVAL retval = 0;
 
    minit();
 #ifndef CONSOLE_SERIAL
@@ -32,11 +34,15 @@ void kmain() {
 
    /* Create network task. */
    adhd_add_task( net_respond_task );
-   //adhd_add_task( trepl_task );
+   adhd_add_task( trepl_task );
 
    while( SYSTEM_SHUTDOWN != g_system_state ) {
-      for( active = 0 ; adhd_get_tasks_len() > active ; active++ ) {
-         adhd_call_task( active );
+      for( active = 0 ; ADHD_TASKS_MAX > active ; active++ ) {
+         retval = adhd_call_task( active );
+         if( RETVAL_KILL == retval ) {
+            /* Task returned -1; kill it. */
+            adhd_kill_task( active );
+         }
       }
    }
 

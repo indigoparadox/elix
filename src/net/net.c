@@ -101,7 +101,7 @@ TASK_RETVAL net_respond_task( TASK_PID pid ) {
       *socket = net_open_socket( g_ifname );
       if( NULL == *socket ) {
          tputs( &g_str_no_socket );
-         return -1;
+         return RETVAL_KILL;
       }
    }
 
