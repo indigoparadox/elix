@@ -3,6 +3,7 @@
 #include "mem.h"
 #include "console.h"
 #include "strings.h"
+#include "adhd.h"
 
 #include <stddef.h>
 

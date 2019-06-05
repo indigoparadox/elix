@@ -44,6 +44,12 @@ struct astring {
 
 #define alpha_strlen( string, len ) alpha_charinstr( '\0', string, len )
 
+#ifdef ALPHA_C
+#define astring_const( id, str ) const struct astring id = astring_l( str )
+#else
+#define astring_const( id, str ) extern struct astring id
+#endif /* STRINGS_C */
+
 uint16_t alpha_atou( const struct astring* src, uint8_t base );
 STRLEN_T alpha_udigits( uint16_t num, uint8_t base );
 int16_t alpha_utoa(

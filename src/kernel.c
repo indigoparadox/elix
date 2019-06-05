@@ -33,8 +33,10 @@ void kmain() {
    tputs( &g_str_hello );
 
    /* Create network task. */
-   adhd_add_task( net_respond_task );
+   //adhd_add_task( net_respond_task );
+#ifdef USE_CONSOLE
    adhd_add_task( trepl_task );
+#endif /* USE_CONSOLE */
 
    while( SYSTEM_SHUTDOWN != g_system_state ) {
       for( active = 0 ; ADHD_TASKS_MAX > active ; active++ ) {

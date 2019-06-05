@@ -5,6 +5,7 @@
 #include "ether.h"
 #include "../adhd.h"
 #include "../mem.h"
+#include "../alpha.h"
 
 /* TODO: Move interactive net stuff into its own module so it doesn't depend
  * on strings and console. */
@@ -25,6 +26,7 @@ uint8_t g_search_ip[4] = { 10, 137, 2, 11 };
 uint8_t g_src_mac[6] = { 0xab, 0xcd, 0xef, 0xde, 0xad, 0xbf };
 char* g_ifname = "eth0";
 
+#ifdef USE_CONSOLE
 void net_respond_con_request( TASK_PID pid ) {
    int* received = NULL;
 
@@ -37,6 +39,7 @@ void net_respond_con_request( TASK_PID pid ) {
 
    g_net_con_request = 0;
 }
+#endif /* USE_CONSOLE */
 
 uint8_t net_respond_arp_request(
    TASK_PID pid, NET_SOCK socket, struct ether_frame* frame, int frame_len
@@ -124,7 +127,9 @@ TASK_RETVAL net_respond_task( TASK_PID pid ) {
          goto cleanup;
    }
 
+#ifdef USE_CONSOLE
    net_respond_con_request( pid );
+#endif /* USE_CONSOLE */
 
 cleanup:
    return retval;
