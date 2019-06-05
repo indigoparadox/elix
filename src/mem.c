@@ -11,8 +11,11 @@
 #ifdef MEM_PRINTF_TRACE
 #include <stdio.h>
 #endif /* MEM_PRINTF_TRACE */
-#include <assert.h>
 #endif /* DEBUG */
+
+#ifdef CHECK
+#include <assert.h>
+#endif /* CHECK */
 
 #ifndef CHECK
 static
@@ -80,9 +83,9 @@ void mprint() {
 #endif /* MPRINT || CHECK */
 
 /* Get the heap position for a variable. Used in public functions below. */
-#ifndef DEBUG
+#ifndef CHECK
 static
-#endif /* DEBUG */
+#endif /* CHECK */
 int mget_pos( int pid, int mid ) {
    const struct mvar* var_iter = (struct mvar*)g_mheap;
    int mheap_addr_iter = 0;
@@ -132,63 +135,79 @@ void mshift( MEMLEN_T start, MEMLEN_T offset ) {
    g_mheap_top += offset;
 }
 
+static struct mvar* mresize(
+   struct mvar* var, MEMLEN_T start, MEMLEN_T sz
+) {
+   MEMLEN_T size_diff = 0;
+
+   /* Only bother resizing if a size was provided. */
+   size_diff = sz - var->size;
+   if( 0 < size_diff && g_mheap_top + size_diff > MEM_HEAP_SIZE ) {
+      /* Not enough heap space! */
+      return NULL;
+   }
+
+   if( 0 < size_diff ) {
+      mshift( start, size_diff ); 
+      var = (struct mvar*)&(g_mheap[start + size_diff]);
+   }
+
+   return var;
+}
+
+static struct mvar* mcreate( MEMLEN_T sz ) {
+   MEMLEN_T start = 0;
+
+   /* Not found. Create it. */
+   if(
+      0 >= sz || /* Need a sz to create! */
+      g_mheap_top + sizeof( struct mvar ) + sz > MEM_HEAP_SIZE
+   ) {
+      /* Not enough heap available! */
+      return NULL;
+   }
+
+   /* Move to the next free spot and reset convenience ptr. */
+   start = g_mheap_top;
+
+   /* Advance the heap top. */
+   g_mheap_top += sizeof( struct mvar ) + sz;
+ 
+   return (struct mvar*)&(g_mheap[start]);
+}
+
+/**
+ * \brief Get or set a dynamic variable.
+ *
+ * @param sz   The size (in bytes) of the variable to allocate.
+ *             Set to MGET_NO_CREATE to not allocate the variable if it is not
+ *             already allocated.
+ *             Set to MGET_UNSET to unset it if it is.
+ */
 void* mget( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
    MEMLEN_T mheap_addr_iter = 0;
    struct mvar* var = NULL;
-   MEMLEN_T size_diff = 0;
 
-   /* Variables on the heap are separated by NULL spacers as noted below.
-    * This is so that strlen() and co still work.
-    */
-   mheap_addr_iter = mget_pos( pid, mid );
-
-#ifdef DEBUG
+#ifdef CHECK
    assert( 0 < mid );
-#endif /* DEBUG */
+#endif /* CHECK */
 
-   if( 0 <= mheap_addr_iter ) {
-      /* Found, so make sure there's room on the heap to update it. */
-      var = (struct mvar*)&(g_mheap[mheap_addr_iter]);
-
-      /* Only bother resizing if a size was provided. */
-      if( 0 < sz ) {
-         size_diff = sz - var->size;
-         if( 0 < size_diff && g_mheap_top + size_diff > MEM_HEAP_SIZE ) {
-            /* Not enough heap space! */
-#ifdef MEM_PRINTF_TRACE
-            printf(
-               "cannot resize; not enough heap " \
-                  "(started at %d, old %d, new %d, top %d)\n",
-               mheap_addr_iter, var->size, sz, g_mheap_top
-            );
-#endif /* MEM_PRINTF_TRACE */
-            return NULL;
-         }
-
-         if( 0 < size_diff ) {
-            mshift( mheap_addr_iter, size_diff ); 
-            var = (struct mvar*)&(g_mheap[mheap_addr_iter + size_diff]);
-         }
-      }
-   } else {
-      /* Not found. Create it. */
-      if(
-         0 >= sz || /* Need a sz to create! */
-         g_mheap_top + sizeof( struct mvar ) + sz > MEM_HEAP_SIZE
-      ) {
-         /* Not enough heap available! */
-#ifdef MEM_PRINTF_TRACE
-         printf( "cannot create; not enough heap\n" );
-#endif /* MEM_PRINTF_TRACE */
+   mheap_addr_iter = mget_pos( pid, mid );
+   if( 0 > mheap_addr_iter ) {
+      if( MGET_NO_CREATE == sz ) {
          return NULL;
       }
-
-      /* Move to the next free spot and reset convenience ptr. */
-      mheap_addr_iter = g_mheap_top;
+      var = mcreate( sz );
+   } else if( 0 < sz ) {
       var = (struct mvar*)&(g_mheap[mheap_addr_iter]);
-
-      /* Advance the heap top. */
-      g_mheap_top += sizeof( struct mvar ) + sz;
+      if( sz > var->size ) {
+         var = mresize( var, mheap_addr_iter, sz );
+      }
+   }
+  
+   /* Make sure create/resize were successful. */
+   if( NULL == var ) {
+      return NULL;
    }
 
    /* Fill out the header. */
