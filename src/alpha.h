@@ -51,12 +51,14 @@ struct astring {
 #endif /* STRINGS_C */
 
 uint16_t alpha_atou( const struct astring* src, uint8_t base );
+const char* alpha_tok( const struct astring* src, char sep, uint8_t idx );
 STRLEN_T alpha_udigits( uint16_t num, uint8_t base );
 int16_t alpha_utoa(
    uint16_t num, struct astring* str, STRLEN_T idx,
    STRLEN_T zero_pad_spaces, uint8_t base );
 int16_t alpha_charinstr( char c, const struct astring* string );
 struct astring* alpha_astring( uint8_t pid, MEM_ID mid, STRLEN_T len );
+STRLEN_T alpha_cmp_c( const char* cstr, const struct astring* astr, char sep );
 /* void alpha_insertstr(
 	char* dest, STRLEN_T dest_len, const char* src, int8_t* cursor
 ); */

@@ -26,6 +26,24 @@ uint16_t alpha_atou( const struct astring* src, uint8_t base ) {
    return value;
 }
 
+const char* alpha_tok( const struct astring* src, char sep, uint8_t idx ) {
+   uint8_t char_iter = 0;
+   uint8_t tok_iter = 0;
+
+   while( tok_iter < idx ) {
+      while( src->data[char_iter] != sep ) {
+         char_iter++;
+         if( char_iter >= src->len ) {
+            return NULL;
+         }
+      }
+      char_iter++;
+      tok_iter++;
+   }
+
+   return &(src->data[char_iter]);
+}
+
 /* Return the number of digits in a number. */
 STRLEN_T alpha_udigits( uint16_t num, uint8_t base ) {
    STRLEN_T digits = 0;
@@ -110,6 +128,17 @@ struct astring* alpha_astring( uint8_t pid, MEM_ID mid, STRLEN_T len ) {
    }
 
    return str_out;
+}
+
+STRLEN_T alpha_cmp_c( const char* cstr, const struct astring* astr, char sep ) {
+   STRLEN_T i = 0;
+   while( cstr[i] != sep && '\0' != cstr[i] && i < astr->len ) {
+      if( astr->data[i] != cstr[i] ) {
+         return 1;
+      }
+      i++;
+   }
+   return 0;
 }
 
 #if 0
