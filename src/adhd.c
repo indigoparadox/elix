@@ -3,6 +3,9 @@
 
 #include <stddef.h>
 
+/* Define this inside the scheduler since we don't want other modules working
+ * with these directly.
+ */
 struct adhd_task {
    unsigned long period;
    unsigned long elapsed;

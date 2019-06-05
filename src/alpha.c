@@ -1,5 +1,8 @@
 
+#define ALPHA_C
 #include "alpha.h"
+#include "console.h"
+#include "strings.h"
 
 uint16_t alpha_atou( const struct astring* src, uint8_t base ) {
    uint16_t value = 0;

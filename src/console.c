@@ -1,4 +1,6 @@
 
+#ifdef USE_CONSOLE
+
 #define CONSOLE_C
 #include "console.h"
 #include "display.h"
@@ -181,4 +183,6 @@ TASK_RETVAL trepl_task( TASK_PID pid ) {
 
    return 0;
 }
+
+#endif /* USE_CONSOLE */
 
