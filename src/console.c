@@ -9,29 +9,37 @@
 #include "stdlib.h"
 #include "alpha.h"
 #include "strings.h"
+#include "commands.h"
 
 #ifdef CONSOLE_SERIAL
 #else
 #include "keyboard.h"
 #endif /* CONSOLE_SERIAL */
 
+int trepl_service() {
+   return 0;
+}
+
+/* === Command Registration === */
+
+struct command {
+   struct astring command;
+   int (*callback)();
+};
+
+#define cmd_def( cmd, callback ) \
+   { astring_l( cmd ), callback }
+
+static const struct command g_commands[] = {
+   cmd_def( "service", trepl_service ),
+   cmd_def( "", NULL )
+};
+
+/* === Console Functions === */
+
 /* Memory IDs for console tasks. */
 #define REPL_MID_LINE 1
 #define REPL_MID_CUR_POS 2
-
-void tregcmd( struct repl_command* cmd ) {
-   uint8_t idx = 0;
-
-   while( 0 != g_repl_commands[idx].command->len ) {
-      idx++;
-      if( REPL_COMMANDS_MAX <= idx ) {
-         /* No slots free! */
-         return;
-      }
-   }
-
-   mcopy( &(g_repl_commands[idx]), cmd, sizeof( struct repl_command ) );
-}
 
 void tputs( const struct astring* str ) {
 #ifdef CONSOLE_SERIAL
@@ -100,6 +108,8 @@ void tprintf( const struct astring* pattern, ... ) {
                spec.c = va_arg( args, int );
                display_putc( spec.c );
                break;
+
+            case ' ':
 
             case '0':
             case '1':
