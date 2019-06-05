@@ -6,6 +6,76 @@
 
 #include <stdlib.h>
 
+static const struct astring g_str_sentence =
+   astring_l( "The quick brown fox jumped over the lazy dog!" );
+static const struct astring g_str_the = astring_l( "The" );
+static const struct astring g_str_quick = astring_l( "quick" );
+static const struct astring g_str_brown = astring_l( "brown" );
+static const struct astring g_str_fox = astring_l( "fox" );
+static const struct astring g_str_jumped = astring_l( "jumped" );
+static const struct astring g_str_over = astring_l( "over" );
+
+START_TEST( test_alpha_tok_cmp_c ) {
+   const char* c = NULL;
+   c = alpha_tok( &g_str_sentence, ' ', _i );
+   ck_assert_int_eq( 0, alpha_cmp_c( "The", &g_str_sentence, ' ' ) );
+   switch( _i ) {
+      case 0:
+         ck_assert_int_eq( 0, alpha_cmp_c( c, &g_str_the, ' ' ) );
+         ck_assert_int_ne( 0, alpha_cmp_c( c, &g_str_quick, ' ' ) );
+         break;
+      case 1:
+         ck_assert_int_ne( 0, alpha_cmp_c( c, &g_str_the, ' ' ) );
+         ck_assert_int_eq( 0, alpha_cmp_c( c, &g_str_quick, ' ' ) );
+         ck_assert_int_ne( 0, alpha_cmp_c( c, &g_str_brown, ' ' ) );
+         break;
+      case 2:
+         ck_assert_int_ne( 0, alpha_cmp_c( c, &g_str_quick, ' ' ) );
+         ck_assert_int_eq( 0, alpha_cmp_c( c, &g_str_brown, ' ' ) );
+         ck_assert_int_ne( 0, alpha_cmp_c( c, &g_str_fox, ' ' ) );
+         break;
+      case 3:
+         ck_assert_int_ne( 0, alpha_cmp_c( c, &g_str_brown, ' ' ) );
+         ck_assert_int_eq( 0, alpha_cmp_c( c, &g_str_fox, ' ' ) );
+         ck_assert_int_ne( 0, alpha_cmp_c( c, &g_str_jumped, ' ' ) );
+         break;
+      case 4:
+         ck_assert_int_ne( 0, alpha_cmp_c( c, &g_str_fox, ' ' ) );
+         ck_assert_int_eq( 0, alpha_cmp_c( c, &g_str_jumped, ' ' ) );
+         ck_assert_int_ne( 0, alpha_cmp_c( c, &g_str_over, ' ' ) );
+         break;
+   }
+}
+END_TEST
+
+START_TEST( test_alpha_cmp_c ) {
+   ck_assert_int_eq( 0, alpha_cmp_c( "The", &g_str_sentence, ' ' ) );
+}
+END_TEST
+
+START_TEST( test_alpha_tok ) {
+   const char* c = NULL;
+   c = alpha_tok( &g_str_sentence, ' ', _i );
+   switch( _i ) {
+      case 0:
+         ck_assert_str_le( "The", c );
+         break;
+      case 1:
+         ck_assert_str_le( "quick", c );
+         break;
+      case 2:
+         ck_assert_str_le( "brown", c );
+         break;
+      case 3:
+         ck_assert_str_le( "fox", c );
+         break;
+      case 4:
+         ck_assert_str_le( "jumped", c );
+         break;
+   }
+}
+END_TEST
+
 START_TEST( test_alpha_udigits ) {
    ck_assert_int_eq( 4, alpha_udigits( 1234, 10 ) );
    ck_assert_int_eq( 3, alpha_udigits( 123, 10 ) );
@@ -76,6 +146,9 @@ Suite* alpha_suite( void ) {
    tcase_add_test( tc_core, test_alpha_utoa );
    tcase_add_test( tc_core, test_alpha_utoa_hex );
    //tcase_add_test( tc_core, test_alpha_insert );
+   tcase_add_loop_test( tc_core, test_alpha_tok, 0, 4 );
+   tcase_add_test( tc_core, test_alpha_cmp_c );
+   tcase_add_loop_test( tc_core, test_alpha_tok_cmp_c, 0, 4 );
 
    suite_add_tcase( s, tc_core );
 
