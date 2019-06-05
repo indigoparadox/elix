@@ -8,15 +8,17 @@ typedef int16_t MEMLEN_T;
 typedef uint16_t BITFIELD;
 typedef uint8_t MEM_ID;
 
+#define MGET_UNSET      -1
+#define MGET_NO_CREATE  0
+
 struct mvar {
    uint8_t pid;
    MEM_ID mid;
-   MEMLEN_T len;  /* Used. */
    MEMLEN_T size; /* Allocated. */
    uint8_t data[];
 } __attribute__((packed));
 
-#define MEM_HEAP_SIZE 370
+#define MEM_HEAP_SIZE 420
 
 #ifdef CHECK
 void mshift( MEMLEN_T start, MEMLEN_T offset );
@@ -26,9 +28,9 @@ void mshift( MEMLEN_T start, MEMLEN_T offset );
 void mprint();
 #endif /* MPRINT || CHECK */
 
-#ifdef DEBUG
+#ifdef CHECK
 int mget_pos( int pid, int mid );
-#endif /* DEBUG */
+#endif /* CHECK */
 
 void minit();
 void* mget( uint8_t pid, MEM_ID mid, MEMLEN_T sz );

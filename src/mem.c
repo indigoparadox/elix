@@ -156,7 +156,7 @@ static struct mvar* mresize(
 }
 
 static struct mvar* mcreate( MEMLEN_T sz ) {
-   MEMLEN_T start = 0;
+   struct mvar* out = NULL;
 
    /* Not found. Create it. */
    if(
@@ -168,12 +168,13 @@ static struct mvar* mcreate( MEMLEN_T sz ) {
    }
 
    /* Move to the next free spot and reset convenience ptr. */
-   start = g_mheap_top;
+   out = (struct mvar*)&(g_mheap[g_mheap_top]);
+   mzero( &(out->data), sz );
 
    /* Advance the heap top. */
    g_mheap_top += sizeof( struct mvar ) + sz;
  
-   return (struct mvar*)&(g_mheap[start]);
+   return out;
 }
 
 /**
