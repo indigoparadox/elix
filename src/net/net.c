@@ -135,3 +135,7 @@ cleanup:
    return retval;
 }
 
+void net_init() {
+
+}
+

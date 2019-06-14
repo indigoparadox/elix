@@ -9,14 +9,19 @@
 #include "stdlib.h"
 #include "alpha.h"
 #include "strings.h"
-#include "commands.h"
+
+#include <chiipy.h>
 
 #ifdef CONSOLE_SERIAL
 #else
 #include "keyboard.h"
 #endif /* CONSOLE_SERIAL */
 
-int trepl_service() {
+int trepl_service( char* cli ) {
+   //const char* svc;
+
+   //svc = alpha_tok( cli, 1, ' ' );
+
    return 0;
 }
 
@@ -24,7 +29,7 @@ int trepl_service() {
 
 struct command {
    struct astring command;
-   int (*callback)();
+   int (*callback)( char* cli );
 };
 
 #define cmd_def( cmd, callback ) \
@@ -38,8 +43,11 @@ static const struct command g_commands[] = {
 /* === Console Functions === */
 
 /* Memory IDs for console tasks. */
-#define REPL_MID_LINE 1
-#define REPL_MID_CUR_POS 2
+#define REPL_MID_LINE      1
+#define REPL_MID_CUR_POS   2
+#define REPL_MID_ARG_MIN   10
+/* Empty */
+#define REPL_MID_ARG_MAX   20
 
 void tputs( const struct astring* str ) {
 #ifdef CONSOLE_SERIAL
@@ -109,8 +117,6 @@ void tprintf( const struct astring* pattern, ... ) {
                display_putc( spec.c );
                break;
 
-            case ' ':
-
             case '0':
             case '1':
             case '2':
@@ -150,6 +156,9 @@ void truncmd( char* line, int line_len ) {
 TASK_RETVAL trepl_task( TASK_PID pid ) {
    char c = '\0';
    struct astring* line;
+   //struct CHIIPY_TOKEN* token;
+   //struct astring* arg;
+   //uint8_t i = 0;
 
 #ifdef CONSOLE_SERIAL
    //if( 0 ) {
@@ -161,9 +170,10 @@ TASK_RETVAL trepl_task( TASK_PID pid ) {
    c = keyboard_getc();
 #endif /* CONSOLE_SERIAL */
    /* Dynamically allocate the line buffer so we can clear it from memory
-    * during other programs.
+    * during other programs. Add +1 so there's always a NULL.
     */
-   line = alpha_astring( pid, REPL_MID_LINE, REPL_LINE_SIZE_MAX );
+   line = alpha_astring( pid, REPL_MID_LINE, REPL_LINE_SIZE_MAX + 1 );
+   //token = mget( pid, REPL_MID_LINE, 30 );
 
    if( line->len + 1 >= line->sz ) {
       /* Line would be too long if we accepted this char. */
@@ -176,13 +186,20 @@ TASK_RETVAL trepl_task( TASK_PID pid ) {
    switch( c ) {
       case '\r':
       case '\n':
-         //truncmd( line, cur_pos );
          display_newline();
          tputs( &g_str_invalid );
          astring_clear( line );
          break;
 
+      case ' ':
+         /*i = REPL_MID_ARG_MIN;
+         do {
+            arg = mget( pid, i
+         cstack_push( */
+         break;
+
       default:
+         //chiipy_lex_tok( c, token );
          astring_append( line, c );
 #ifdef CONSOLE_SERIAL
 #else

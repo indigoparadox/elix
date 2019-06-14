@@ -22,7 +22,7 @@ MKVFAT=/sbin/mkfs.vfat
 SYSLINUX=syslinux
 MCOPY=mcopy
 
-CFLAGS=-Wall -Werror -DUSE_CONSOLE
+CFLAGS=-Wall -Werror -DUSE_CONSOLE -DUSE_NET -I../../chiipy/src
 SOURCES=net/tcp.c net/ether.c net/arp.c mem.c console.c net/net.c adhd.c strings.c alpha.c io.c
 CHECKOBJ=check.o check_ether.o check_mem.o check_console.o check_alpha.o check_net.o
 OBJECTS=$(subst .c,.o,$(SOURCES))
@@ -33,8 +33,8 @@ DRIVERS_COLINUX=colinux/net.o colinux/display.o colinux/keyboard.o
 ISODIRX86=../isodir/x86
 CHECKSDIR=../tests
 
-$(BIN_LIN): CFLAGS += -g -DDEBUG -DMPRINT -DPLATFORM_COLINUX
-$(BIN_LIN): LDFLAGS += -lpcap -lcurses
+$(BIN_LIN): CFLAGS += -g -DDEBUG -DMPRINT -DPLATFORM_COLINUX -DCOLINUX_CURSES
+$(BIN_LIN): LDFLAGS += -lpcap -lncurses -L../../chiipy/bin/Debug-Linux/ -lchiipy
 $(BIN_LIN): OBJDIR := ../obj/linux
 
 $(BIN_WIN): CC := i686-w64-mingw32-g
@@ -50,6 +50,7 @@ $(BIN_MSP430): CFLAGS += -DPLATFORM_MSP430 -mmcu=msp430g2553 -DCONSOLE_SERIAL -O
 $(BIN_MSP430): CC := msp430-gcc
 $(BIN_MSP430): STRIP := msp430-strip
 $(BIN_MSP430): OBJDIR := ../obj/msp430
+$(BIN_MSP430): LDFLAGS += -L../../chiipy/bin/Debug-MSP430/ -lchiipy
 
 tests: LDFLAGS += -lpcap $(shell pkg-config --libs check)
 tests: CFLAGS += -DCHECK -g

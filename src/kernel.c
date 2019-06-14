@@ -29,6 +29,7 @@ void kmain() {
    keyboard_init();
    display_init();
 #endif /* CONSOLE_SERIAL */
+   net_init();
 
    tputs( &g_str_hello );
 

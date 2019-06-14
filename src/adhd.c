@@ -7,8 +7,8 @@
  * with these directly.
  */
 struct adhd_task {
-   unsigned long period;
-   unsigned long elapsed;
+   /*unsigned long period;
+   unsigned long elapsed;*/
    TASK_RETVAL (*callback)( TASK_PID );
 };
 
