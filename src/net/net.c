@@ -33,7 +33,7 @@ void net_respond_con_request( TASK_PID pid ) {
    switch( g_net_con_request ) {
       case NET_REQ_RCVD:
          received = mget( pid, NET_MID_RECEIVED, sizeof( int ) );
-         tprintf( &g_str_frames_rcvd, *received );
+         tprintf( "frames rcvd: %d\n", *received );
          break;
    }
 
