@@ -9,6 +9,7 @@
 #include "stdlib.h"
 #include "alpha.h"
 #include "strings.h"
+#include "net/net.h"
 
 #include <chiipy.h>
 
@@ -163,7 +164,7 @@ TASK_RETVAL trepl_task() {
    //if( 0 ) {
 #else
    if( !keyboard_hit() ) {
-      return 0;
+      adhd_yield();
    }
 
    c = keyboard_getc();
@@ -175,12 +176,16 @@ TASK_RETVAL trepl_task() {
       adhd_get_pid(), REPL_MID_LINE, REPL_LINE_SIZE_MAX + 1 );
    //token = mget( pid, REPL_MID_LINE, 30 );
 
-   if( line->len + 1 >= line->sz ) {
+   if(
+      line->len + 1 >= line->sz ||
+      (('\r' == c || '\n' == c) && 0 == line->len)
+   ) {
       /* Line would be too long if we accepted this char. */
       display_newline();
       tputs( &g_str_invalid );
       astring_clear( line );
-      return 0;
+      adhd_yield();
+      adhd_continue_loop();
    }
 
    switch( c ) {
@@ -189,6 +194,8 @@ TASK_RETVAL trepl_task() {
          display_newline();
          if( 0 == alpha_cmp_c( "exit", line, '\n' ) ) {
             g_system_state = SYSTEM_SHUTDOWN;
+         } else if( 0 == alpha_cmp_c( "net", line, '\n' ) ) {
+            adhd_launch_task( net_respond_task );
          } else {
             tputs( &g_str_invalid );
          }
@@ -212,7 +219,8 @@ TASK_RETVAL trepl_task() {
          break;
    }
 
-   return 0;
+   adhd_yield();
+   adhd_end_loop();
 }
 
 #endif /* USE_CONSOLE */

@@ -36,6 +36,7 @@ TASK_PID adhd_new_task() {
       goto cleanup;
    }
 
+   task->status = TASK_STATUS_RUN;
    task->pid = g_next_pid;
    g_next_pid++;
 
@@ -86,9 +87,6 @@ TASK_RETVAL adhd_call_task( TASK_PID pid ) {
    return g_tasks[pid].callback();
 }
 
-#endif /* SCHEDULE_COOP */
-
-#if 0
 void adhd_kill_task( TASK_PID pid ) {
    if( 0 > pid || pid >= ADHD_TASKS_MAX || NULL == g_tasks[pid].callback ) {
       /* Invalid task index. */
@@ -98,6 +96,9 @@ void adhd_kill_task( TASK_PID pid ) {
    g_tasks[pid].callback = NULL;
 }
 
+#endif /* SCHEDULE_COOP */
+
+#if 0
 void adhd_wait( BITFIELD status, BITFIELD condition ) {
    //while( test_status( status ) != condition ) {
       /* TODO: Keep calling handlers or the status may never go away. */

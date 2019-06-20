@@ -28,7 +28,7 @@ int net_send_frame(
 int net_poll_frame(
    const NET_SOCK socket, struct ether_frame* frame, int frame_sz );
 void net_print_frame( struct ether_frame* frame, int frame_len );
-TASK_RETVAL net_respond_task( TASK_PID pid );
+TASK_RETVAL net_respond_task();
 void net_init();
 
 #endif /* NET_H */

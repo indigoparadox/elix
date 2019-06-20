@@ -23,15 +23,26 @@ typedef TASK_RETVAL (*ADHD_TASK)();
 struct adhd_task;
 
 #define RETVAL_OK 0
-#define RETVAL_KILL 255
-#define RETVAL_YIELD 254
 #define RETVAL_INVALID_PID 0
+#define RETVAL_YIELD 254
+
+#ifdef SCHEDULE_COOP
+
+#define TASK_STATUS_RUN 1
+#define TASK_STATUS_EXIT 0
+
+#else
+
+#define RETVAL_KILL 255
+
+#endif /* SCHEDULE_COOP */
 
 struct adhd_task {
    /*unsigned long period;
    unsigned long elapsed;*/
 #ifdef SCHEDULE_COOP
    jmp_buf  env;
+   uint8_t status;
 #endif /* SCHEDULE_COOP */
    TASK_PID pid;
    /* char gid[5]; */ /* 4 chars and 1 NULL. */
@@ -77,6 +88,12 @@ struct adhd_task {
       longjmp( g_sched_env->env, 1 ); \
    }
 
+#define adhd_continue_loop() continue
+
+#define adhd_end_loop() }
+
+#define adhd_exit_task() g_curr_env->status = TASK_STATUS_EXIT
+
 #else /* !SCHEDULE_COOP */
 
 #define adhd_yield() \
@@ -85,6 +102,12 @@ struct adhd_task {
 #define adhd_task_setup()
 
 #define adhd_start()
+
+#define adhd_continue_loop() return RETVAL_OK
+
+#define adhd_end_loop()
+
+#define adhd_exit_task() return RETVAL_KILL
 
 void adhd_launch_task( ADHD_TASK callback );
 TASK_RETVAL adhd_call_task( TASK_PID pid );

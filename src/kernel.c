@@ -34,7 +34,6 @@ void kmain() {
    net_init();
 
    /* Create network task. */
-   //adhd_add_task( net_respond_task );
 #ifdef USE_CONSOLE
    tputs( &g_str_hello );
 #endif /* USE_CONSOLE */
@@ -42,13 +41,15 @@ void kmain() {
    adhd_start();
    adhd_launch_task( trepl_task );
 
+   /* TODO: Kill task on request in COOP mode. */
+
 #ifndef SCHEDULE_COOP
    while( SYSTEM_SHUTDOWN != g_system_state ) {
       for( active = 0 ; ADHD_TASKS_MAX > active ; active++ ) {
          retval = adhd_call_task( active );
          if( RETVAL_KILL == retval ) {
             /* Task returned -1; kill it. */
-            /* adhd_kill_task( active ); */
+            adhd_kill_task( active );
          }
       }
    }
