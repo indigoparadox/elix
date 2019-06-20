@@ -67,7 +67,7 @@ union tprintf_spec {
    struct astring* s;
 };
 
-void tprintf( const struct astring* pattern, ... ) {
+void tprintf( const char* pattern, ... ) {
    va_list args;
    int i = 0;
    char last = '\0';
@@ -82,15 +82,12 @@ void tprintf( const struct astring* pattern, ... ) {
 
    va_start( args, pattern );
 
-   for( i = 0 ; pattern->len > i ; i++ ) {
-      c = pattern->data[i]; /* Separate so we can play tricks below. */
-      if( '\0' == pattern->data[i] ) {
-         break; /* Early. */
-      }
+   for( i = 0 ; '\0' != pattern[i] ; i++ ) {
+      c = pattern[i]; /* Separate so we can play tricks below. */
  
       if( '%' == last ) {
          /* Conversion specifier encountered. */
-         switch( pattern->data[i] ) {
+         switch( pattern[i] ) {
             case 's':
                spec.s = va_arg( args, struct astring* );
                tputs( spec.s );
@@ -187,10 +184,11 @@ TASK_RETVAL trepl_task( TASK_PID pid ) {
       case '\r':
       case '\n':
          display_newline();
-         if( 0 == alpha_cmp_c( "exit", line, '\n' ) ); {
+         if( 0 == alpha_cmp_c( "exit", line, '\n' ) ) {
             g_system_state = SYSTEM_SHUTDOWN;
+         } else {
+            tputs( &g_str_invalid );
          }
-         tputs( &g_str_invalid );
          astring_clear( line );
          break;
 

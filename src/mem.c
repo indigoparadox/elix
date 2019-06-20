@@ -74,8 +74,7 @@ void mprint() {
          tputs( &g_str_xx );
       } else {
          /* TODO: Implement hex tprintf. */
-         //printf( "%02X ", g_mheap[i] );
-         tprintf( &g_str_x, g_mheap[i] );
+         tprintf( "%2X ", g_mheap[i] );
       }
    }
    tputs( &g_str_newline );

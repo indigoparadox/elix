@@ -24,7 +24,7 @@
 
 #define console_const( id, str ) astring_const( id, str )
 
-void tprintf( const struct astring* pattern, ... );
+void tprintf( const char* pattern, ... );
 void tputs( const struct astring* str );
 TASK_RETVAL trepl_task( TASK_PID pid );
 
