@@ -21,8 +21,10 @@ const struct astring g_str_stopping = astring_l( "stopping...\n" );
 
 #include <stdio.h>
 void kmain() {
-   //TASK_PID active = 0;
-   //TASK_RETVAL retval = 0;
+#ifndef SCHEDULE_COOP
+   TASK_PID active = 0;
+   TASK_RETVAL retval = 0;
+#endif /* !SCHEDULE_COOP */
 
    minit();
 #ifndef CONSOLE_SERIAL
@@ -35,24 +37,22 @@ void kmain() {
    //adhd_add_task( net_respond_task );
 #ifdef USE_CONSOLE
    tputs( &g_str_hello );
-
-   tprintf( "%d\n", sizeof( jmp_buf ) );
 #endif /* USE_CONSOLE */
 
-#ifdef SCHEDULE_COOP
    adhd_start();
    adhd_launch_task( trepl_task );
-#else
+
+#ifndef SCHEDULE_COOP
    while( SYSTEM_SHUTDOWN != g_system_state ) {
       for( active = 0 ; ADHD_TASKS_MAX > active ; active++ ) {
          retval = adhd_call_task( active );
          if( RETVAL_KILL == retval ) {
             /* Task returned -1; kill it. */
-            adhd_kill_task( active );
+            /* adhd_kill_task( active ); */
          }
       }
    }
-#endif /* SCHEDULE_COOP */
+#endif /* !SCHEDULE_COOP */
 
    tputs( &g_str_stopping );
 

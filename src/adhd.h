@@ -4,7 +4,6 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include <setjmp.h>
 
 #include "mem.h"
 
@@ -19,28 +18,36 @@
 
 typedef uint8_t TASK_PID;
 typedef uint8_t TASK_RETVAL;
-typedef TASK_RETVAL (*ADHD_TASK)( TASK_PID );
+typedef TASK_RETVAL (*ADHD_TASK)();
 
 struct adhd_task;
 
 #define RETVAL_OK 0
 #define RETVAL_KILL 255
 #define RETVAL_YIELD 254
+#define RETVAL_INVALID_PID 0
 
 struct adhd_task {
    /*unsigned long period;
    unsigned long elapsed;*/
+#ifdef SCHEDULE_COOP
    jmp_buf  env;
+#endif /* SCHEDULE_COOP */
    TASK_PID pid;
    /* char gid[5]; */ /* 4 chars and 1 NULL. */
-   /* TASK_RETVAL (*callback)( TASK_PID ); */
+   ADHD_TASK callback;
    struct adhd_task* next;
 };
 
+#define adhd_get_pid() \
+   (g_curr_env->pid)
+
 #ifdef SCHEDULE_COOP
 
+#include <setjmp.h>
+
 #define adhd_yield() \
-   if( !setjmp( env->env ) ) { \
+   if( !setjmp( g_curr_env->env ) ) { \
       longjmp( g_sched_env->env, 1 ); \
    }
 
@@ -48,9 +55,8 @@ struct adhd_task {
   *        from within the task function before doing anything else.
   */
 #define adhd_task_setup() \
-   struct adhd_task* task; \
-   task = adhd_new_task(); \
-   if( !setjmp( task->env ) ) { \
+   adhd_new_task(); \
+   if( !setjmp( g_curr_env->env ) ) { \
       longjmp( g_main_env->env, 1 ); \
    }
 
@@ -71,11 +77,17 @@ struct adhd_task {
       longjmp( g_sched_env->env, 1 ); \
    }
 
-#else
+#else /* !SCHEDULE_COOP */
 
 #define adhd_yield() \
    return RETVAL_YIELD
 
+#define adhd_task_setup()
+
+#define adhd_start()
+
+void adhd_launch_task( ADHD_TASK callback );
+TASK_RETVAL adhd_call_task( TASK_PID pid );
 #endif /* SCHEDULE_COOP */
 
 void adhd_step();
@@ -84,11 +96,21 @@ void adhd_kill_task( TASK_PID pid );
 void adhd_wait( BITFIELD status, BITFIELD condition );
 
 #ifdef ADHD_C
+
+#ifdef SCHEDULE_COOP
 struct adhd_task* g_main_env = NULL;
+#endif /* SCHEDULE_COOP */
 struct adhd_task* g_sched_env = NULL;
+struct adhd_task* g_curr_env = NULL;
+
 #else
+
+#ifdef SCHEDULE_COOP
 extern struct adhd_task* g_main_env;
+#endif /* SCHEDULE_COOP */
 extern struct adhd_task* g_sched_env;
+extern struct adhd_task* g_curr_env;
+
 #endif /* ADHD_C */
 
 #endif /* ADHD_H */

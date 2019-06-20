@@ -34,7 +34,7 @@ ISODIRX86=../isodir/x86
 CHECKSDIR=../tests
 
 $(BIN_LIN): CFLAGS += -g -DDEBUG -DMPRINT -DPLATFORM_COLINUX -DCOLINUX_TERMIOS
-$(BIN_LIN): LDFLAGS += -lpcap -lncurses -L../../chiipy/bin/Debug-Linux/ -lchiipy
+$(BIN_LIN): LDFLAGS += -lpcap -lncurses -L../../chiipy/src/ -lchiipy
 $(BIN_LIN): OBJDIR := ../obj/linux
 
 $(BIN_WIN): CC := i686-w64-mingw32-g
@@ -50,7 +50,7 @@ $(BIN_MSP430): CFLAGS += -DPLATFORM_MSP430 -mmcu=msp430g2553 -DCONSOLE_SERIAL -O
 $(BIN_MSP430): CC := msp430-gcc
 $(BIN_MSP430): STRIP := msp430-strip
 $(BIN_MSP430): OBJDIR := ../obj/msp430
-$(BIN_MSP430): LDFLAGS += -L../../chiipy/bin/Debug-MSP430/ -lchiipy
+$(BIN_MSP430): LDFLAGS += -L../../chiipy/src/ -lchiipy
 
 tests: LDFLAGS += -lpcap $(shell pkg-config --libs check)
 tests: CFLAGS += -DCHECK -g
