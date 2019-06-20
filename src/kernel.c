@@ -39,11 +39,10 @@ void kmain() {
    tprintf( "%d\n", sizeof( jmp_buf ) );
 #endif /* USE_CONSOLE */
 
-      adhd_start();
-
+#ifdef SCHEDULE_COOP
+   adhd_start();
    adhd_launch_task( trepl_task );
-
-#if 0
+#else
    while( SYSTEM_SHUTDOWN != g_system_state ) {
       for( active = 0 ; ADHD_TASKS_MAX > active ; active++ ) {
          retval = adhd_call_task( active );
@@ -53,7 +52,7 @@ void kmain() {
          }
       }
    }
-#endif
+#endif /* SCHEDULE_COOP */
 
    tputs( &g_str_stopping );
 
