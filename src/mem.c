@@ -17,6 +17,8 @@
 #include <assert.h>
 #endif /* CHECK */
 
+extern uint8_t* heap;
+
 #ifndef CHECK
 static
 #endif /* CHECK */

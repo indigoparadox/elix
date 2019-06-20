@@ -150,12 +150,14 @@ void truncmd( char* line, int line_len ) {
 */
 
 #include <stdio.h>
-TASK_RETVAL trepl_task( TASK_PID pid ) {
+TASK_RETVAL trepl_task() {
    char c = '\0';
    struct astring* line;
    //struct CHIIPY_TOKEN* token;
    //struct astring* arg;
    //uint8_t i = 0;
+
+   adhd_task_setup();
 
 #ifdef CONSOLE_SERIAL
    //if( 0 ) {
@@ -169,7 +171,7 @@ TASK_RETVAL trepl_task( TASK_PID pid ) {
    /* Dynamically allocate the line buffer so we can clear it from memory
     * during other programs. Add +1 so there's always a NULL.
     */
-   line = alpha_astring( pid, REPL_MID_LINE, REPL_LINE_SIZE_MAX + 1 );
+   line = alpha_astring( task->pid, REPL_MID_LINE, REPL_LINE_SIZE_MAX + 1 );
    //token = mget( pid, REPL_MID_LINE, 30 );
 
    if( line->len + 1 >= line->sz ) {

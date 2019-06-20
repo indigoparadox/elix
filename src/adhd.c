@@ -1,32 +1,60 @@
 
+#define ADHD_C
 #include "adhd.h"
 
 #include <stddef.h>
-#include <setjmp.h>
 
-/* Define this inside the scheduler since we don't want other modules working
- * with these directly.
- */
-struct adhd_task {
-   /*unsigned long period;
-   unsigned long elapsed;*/
-   jmp_buf  env;
-   TASK_PID pid;
-   char gid[5]; /* 4 chars and 1 NULL. */
-   TASK_RETVAL (*callback)( TASK_PID );
-   /* struct adhd_task* next; */
-};
-
+/*
 static struct adhd_task g_tasks[ADHD_TASKS_MAX];
 jmp_buf g_env_adhd;
 jmp_buf g_env_main;
+*/
 
-void adhd_start() {
-   if( !setjmp( g_env_adhd ) ) {
-      longjmp( g_env_main, 1 );
+static struct adhd_task* g_head_env = NULL;
+static struct adhd_task* g_curr_env = NULL;
+static uint8_t g_next_pid = ADHD_PID_FIRST;
+
+void adhd_step() {
+   /* Setup the scheduler target and go back to main if successful. */
+   if( !setjmp( g_sched_env->env ) ) {
+      longjmp( g_main_env->env, 1 );
    }
+
+   /* Scheduler target starts here. */
+
+   /* Jump to the next task. */
+   g_curr_env = g_curr_env->next;
+   longjmp( g_curr_env->env, 1 );
 }
 
+struct adhd_task* adhd_new_task() {
+   struct adhd_task* task = NULL;
+
+   /* Setup the task struct and PID. */
+   task = mget( ADHD_PID_MAIN, g_next_pid, sizeof( struct adhd_task ) );
+   if( NULL == task ) {
+      goto cleanup;
+   }
+
+   task->pid = g_next_pid;
+   g_next_pid++;
+
+   if( NULL == g_head_env ) {
+      /* Start the ring with this task. */
+      g_head_env = task;
+      task->next = g_head_env;
+      g_curr_env = g_head_env;
+   } else {
+      /* Insert the task into the ring. */
+      task->next = g_curr_env->next;
+      g_curr_env->next = task;
+   }
+
+cleanup:
+   return task;
+}
+
+#if 0
 TASK_PID adhd_add_task( TASK_RETVAL (*callback)( TASK_PID ) ) {
    struct adhd_task* task = NULL;
    TASK_PID pid_iter = 0;
@@ -46,6 +74,7 @@ TASK_PID adhd_add_task( TASK_RETVAL (*callback)( TASK_PID ) ) {
    /* Return new task index. */
    return pid_iter;
 }
+#endif
 
 #if 0
 TASK_RETVAL adhd_call_task( TASK_PID pid ) {
@@ -57,6 +86,7 @@ TASK_RETVAL adhd_call_task( TASK_PID pid ) {
 }
 #endif
 
+#if 0
 void adhd_kill_task( TASK_PID pid ) {
    if( 0 > pid || pid >= ADHD_TASKS_MAX || NULL == g_tasks[pid].callback ) {
       /* Invalid task index. */
@@ -72,4 +102,5 @@ void adhd_wait( BITFIELD status, BITFIELD condition ) {
       /* TODO: Otherwise, just wait for IRQ. */
    //}
 }
+#endif
 

@@ -26,7 +26,7 @@
 
 void tprintf( const char* pattern, ... );
 void tputs( const struct astring* str );
-TASK_RETVAL trepl_task( TASK_PID pid );
+TASK_RETVAL trepl_task();
 
 #else /* USE_CONSOLE */
 
