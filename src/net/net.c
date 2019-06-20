@@ -91,30 +91,31 @@ uint8_t net_respond_arp(
    return ARP_INVALID_PACKET;
 }
 
-#include <stdio.h>
-TASK_RETVAL net_respond_task( TASK_PID pid ) {
+TASK_RETVAL net_respond_task() {
    struct ether_frame frame;
    int frame_len = 0;
    NET_SOCK* socket = NULL;
    int* received = NULL;
-   uint8_t retval = 0;
 
-   socket = mget( pid, NET_MID_SOCKET, sizeof( NET_SOCK ) );
+   adhd_task_setup();
+
+   socket = mget( adhd_get_pid(), NET_MID_SOCKET, sizeof( NET_SOCK ) );
    if( NULL == *socket ) {
       *socket = net_open_socket( g_ifname );
       if( NULL == *socket ) {
-         tputs( &g_str_no_socket );
-         return RETVAL_KILL;
+         tprintf( "no socket\n" );
+         adhd_exit_task();
       }
    }
 
    frame_len = 
       net_poll_frame( *socket, &frame, sizeof( struct ether_frame ) );
    if( 0 >= frame_len ) {
-      goto cleanup;
+      adhd_yield();
+      adhd_continue_loop();
    }
 
-   received = mget( pid, NET_MID_RECEIVED, sizeof( int ) );
+   received = mget( adhd_get_pid(), NET_MID_RECEIVED, sizeof( int ) );
    (*received)++;
 
 #ifdef NET_CON_ECHO
@@ -123,16 +124,17 @@ TASK_RETVAL net_respond_task( TASK_PID pid ) {
    switch( ether_ntohs( frame.header.type ) ) {
       case ETHER_TYPE_ARP:
          /* Shuck the Ethernet frame and handle the packet. */
-         retval = net_respond_arp( pid, &socket, &frame, frame_len );
-         goto cleanup;
+         net_respond_arp( adhd_get_pid(), &socket, &frame, frame_len );
+         adhd_yield();
+         adhd_continue_loop();
    }
 
 #ifdef USE_CONSOLE
-   net_respond_con_request( pid );
+   net_respond_con_request( adhd_get_pid() );
 #endif /* USE_CONSOLE */
 
-cleanup:
-   return retval;
+   adhd_yield();
+   adhd_end_loop();
 }
 
 void net_init() {

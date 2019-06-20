@@ -10,7 +10,6 @@ console_const( g_str_xx, "** " );
 console_const( g_str_service, "service" );
 #ifdef USE_NET
 console_const( g_str_responding, "responding\n" );
-console_const( g_str_no_socket, "no socket\n" );
 #ifdef NET_CON_ECHO
 console_const( g_str_self_match, "self match\n" );
 #endif /* NET_CON_ECHO */
