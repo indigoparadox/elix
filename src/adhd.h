@@ -25,6 +25,7 @@ struct adhd_task;
 
 #define RETVAL_OK 0
 #define RETVAL_KILL 255
+#define RETVAL_YIELD 254
 
 struct adhd_task {
    /*unsigned long period;
@@ -35,6 +36,8 @@ struct adhd_task {
    /* TASK_RETVAL (*callback)( TASK_PID ); */
    struct adhd_task* next;
 };
+
+#ifdef SCHEDULE_COOP
 
 #define adhd_yield() \
    if( !setjmp( env->env ) ) { \
@@ -67,6 +70,13 @@ struct adhd_task {
       } \
       longjmp( g_sched_env->env, 1 ); \
    }
+
+#else
+
+#define adhd_yield() \
+   return RETVAL_YIELD
+
+#endif /* SCHEDULE_COOP */
 
 void adhd_step();
 struct adhd_task* adhd_new_task();

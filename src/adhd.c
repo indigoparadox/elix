@@ -14,6 +14,8 @@ static struct adhd_task* g_head_env = NULL;
 static struct adhd_task* g_curr_env = NULL;
 static uint8_t g_next_pid = ADHD_PID_FIRST;
 
+#ifdef SCHEDULE_COOP
+
 void adhd_step() {
    /* Setup the scheduler target and go back to main if successful. */
    if( !setjmp( g_sched_env->env ) ) {
@@ -54,7 +56,8 @@ cleanup:
    return task;
 }
 
-#if 0
+#else
+
 TASK_PID adhd_add_task( TASK_RETVAL (*callback)( TASK_PID ) ) {
    struct adhd_task* task = NULL;
    TASK_PID pid_iter = 0;
@@ -74,9 +77,7 @@ TASK_PID adhd_add_task( TASK_RETVAL (*callback)( TASK_PID ) ) {
    /* Return new task index. */
    return pid_iter;
 }
-#endif
 
-#if 0
 TASK_RETVAL adhd_call_task( TASK_PID pid ) {
    if( 0 > pid || pid >= ADHD_TASKS_MAX || NULL == g_tasks[pid].callback ) {
       /* Invalid task index. */
@@ -84,7 +85,7 @@ TASK_RETVAL adhd_call_task( TASK_PID pid ) {
    }
    return g_tasks[pid].callback( pid );
 }
-#endif
+#endif /* SCHEDULE_COOP */
 
 #if 0
 void adhd_kill_task( TASK_PID pid ) {
