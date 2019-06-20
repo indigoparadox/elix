@@ -21,8 +21,8 @@ const struct astring g_str_stopping = astring_l( "stopping...\n" );
 
 #include <stdio.h>
 void kmain() {
-   TASK_PID active = 0;
-   TASK_RETVAL retval = 0;
+   //TASK_PID active = 0;
+   //TASK_RETVAL retval = 0;
 
    minit();
 #ifndef CONSOLE_SERIAL
@@ -39,6 +39,7 @@ void kmain() {
    adhd_add_task( trepl_task );
 #endif /* USE_CONSOLE */
 
+#if 0
    while( SYSTEM_SHUTDOWN != g_system_state ) {
       for( active = 0 ; ADHD_TASKS_MAX > active ; active++ ) {
          retval = adhd_call_task( active );
@@ -48,6 +49,7 @@ void kmain() {
          }
       }
    }
+#endif
 
    tputs( &g_str_stopping );
 

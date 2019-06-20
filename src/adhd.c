@@ -2,6 +2,7 @@
 #include "adhd.h"
 
 #include <stddef.h>
+#include <setjmp.h>
 
 /* Define this inside the scheduler since we don't want other modules working
  * with these directly.
@@ -9,10 +10,22 @@
 struct adhd_task {
    /*unsigned long period;
    unsigned long elapsed;*/
+   jmp_buf  env;
+   TASK_PID pid;
+   char gid[5]; /* 4 chars and 1 NULL. */
    TASK_RETVAL (*callback)( TASK_PID );
+   /* struct adhd_task* next; */
 };
 
 static struct adhd_task g_tasks[ADHD_TASKS_MAX];
+jmp_buf g_env_adhd;
+jmp_buf g_env_main;
+
+void adhd_start() {
+   if( !setjmp( g_env_adhd ) ) {
+      longjmp( g_env_main, 1 );
+   }
+}
 
 TASK_PID adhd_add_task( TASK_RETVAL (*callback)( TASK_PID ) ) {
    struct adhd_task* task = NULL;
@@ -34,6 +47,7 @@ TASK_PID adhd_add_task( TASK_RETVAL (*callback)( TASK_PID ) ) {
    return pid_iter;
 }
 
+#if 0
 TASK_RETVAL adhd_call_task( TASK_PID pid ) {
    if( 0 > pid || pid >= ADHD_TASKS_MAX || NULL == g_tasks[pid].callback ) {
       /* Invalid task index. */
@@ -41,6 +55,7 @@ TASK_RETVAL adhd_call_task( TASK_PID pid ) {
    }
    return g_tasks[pid].callback( pid );
 }
+#endif
 
 void adhd_kill_task( TASK_PID pid ) {
    if( 0 > pid || pid >= ADHD_TASKS_MAX || NULL == g_tasks[pid].callback ) {

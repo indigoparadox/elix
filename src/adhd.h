@@ -10,13 +10,19 @@
 
 typedef uint8_t TASK_PID;
 typedef uint8_t TASK_RETVAL;
+typedef TASK_RETVAL (*ADHD_TASK)( TASK_PID );
+
+struct adhd_task;
 
 #define RETVAL_OK 0
 #define RETVAL_KILL 255
 
-struct adhd_task;
+#define adhd_yield( pid ) \
+   if( !setjmp( env->env ) ) { \
+      longjmp( g_env_adhd, 1 ); \
+   }
 
-TASK_PID adhd_add_task( TASK_RETVAL (*callback)( TASK_PID ) );
+TASK_PID adhd_add_task( ADHD_TASK callback );
 TASK_PID adhd_get_tasks_len();
 TASK_RETVAL adhd_call_task( TASK_PID pid );
 void adhd_kill_task( TASK_PID pid );
