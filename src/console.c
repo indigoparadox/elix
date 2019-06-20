@@ -171,7 +171,8 @@ TASK_RETVAL trepl_task() {
    /* Dynamically allocate the line buffer so we can clear it from memory
     * during other programs. Add +1 so there's always a NULL.
     */
-   line = alpha_astring( task->pid, REPL_MID_LINE, REPL_LINE_SIZE_MAX + 1 );
+   line = alpha_astring(
+      adhd_get_pid(), REPL_MID_LINE, REPL_LINE_SIZE_MAX + 1 );
    //token = mget( pid, REPL_MID_LINE, 30 );
 
    if( line->len + 1 >= line->sz ) {
