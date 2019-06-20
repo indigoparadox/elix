@@ -7,6 +7,7 @@
 #include <sys/select.h>
 #ifdef COLINUX_TERMIOS
 #include <termios.h>
+#include <stdio.h>
 #elif defined( COLINUX_CURSES )
 #include <ncurses.h>
 #elif defined( COLINUX_READLINE )
@@ -24,9 +25,11 @@ void display_set_colors( uint8_t fg, uint8_t bg ) {
 void display_init() {
 #ifdef COLINUX_TERMIOS
    struct termios term;
+#endif /* COLINUX_TERMIOS */
 
    io_regoutdev( display_putc );
 
+#ifdef COLINUX_TERMIOS
    /* Disable echo. */
    tcgetattr( STDIN, &term );
    term.c_lflag &= ~ECHO;

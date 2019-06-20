@@ -6,9 +6,10 @@
 #include <sys/time.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <sys/select.h>
 #ifdef COLINUX_TERMIOS
+#include <sys/select.h>
 #include <termios.h>
+#include <sys/ioctl.h>
 #elif defined( COLINUX_CURSES )
 #include <ncurses.h>
 #elif defined( COLINUX_READLINE )
@@ -46,11 +47,13 @@ void keyboard_init() {
    /* Handle CTRL-C. */
    signal( SIGINT, handle_ctrl_c );
 
-#ifdef COLINUX_TERMIOS
    io_regindev( keyboard_getc );
 
+#ifdef COLINUX_TERMIOS
    tcgetattr( STDIN, &term );
+
    term.c_lflag &= ~ICANON;
+   term.c_lflag &= ~ECHO;
    tcsetattr( STDIN, TCSANOW, &term );
 
    setbuf( stdin, NULL );
