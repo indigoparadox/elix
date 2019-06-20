@@ -36,8 +36,12 @@ void kmain() {
 #ifdef USE_CONSOLE
    tputs( &g_str_hello );
 
-   adhd_add_task( trepl_task );
+   tprintf( "%d\n", sizeof( jmp_buf ) );
 #endif /* USE_CONSOLE */
+
+      adhd_start();
+
+   adhd_launch_task( trepl_task );
 
 #if 0
    while( SYSTEM_SHUTDOWN != g_system_state ) {
