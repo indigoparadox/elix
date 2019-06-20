@@ -187,6 +187,9 @@ TASK_RETVAL trepl_task( TASK_PID pid ) {
       case '\r':
       case '\n':
          display_newline();
+         if( 0 == alpha_cmp_c( "exit", line, '\n' ) ); {
+            g_system_state = SYSTEM_SHUTDOWN;
+         }
          tputs( &g_str_invalid );
          astring_clear( line );
          break;

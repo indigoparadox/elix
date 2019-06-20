@@ -31,11 +31,11 @@ void kmain() {
 #endif /* CONSOLE_SERIAL */
    net_init();
 
-   tputs( &g_str_hello );
-
    /* Create network task. */
    //adhd_add_task( net_respond_task );
 #ifdef USE_CONSOLE
+   tputs( &g_str_hello );
+
    adhd_add_task( trepl_task );
 #endif /* USE_CONSOLE */
 

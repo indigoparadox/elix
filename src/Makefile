@@ -33,7 +33,7 @@ DRIVERS_COLINUX=colinux/net.o colinux/display.o colinux/keyboard.o
 ISODIRX86=../isodir/x86
 CHECKSDIR=../tests
 
-$(BIN_LIN): CFLAGS += -g -DDEBUG -DMPRINT -DPLATFORM_COLINUX -DCOLINUX_CURSES
+$(BIN_LIN): CFLAGS += -g -DDEBUG -DMPRINT -DPLATFORM_COLINUX -DCOLINUX_TERMIOS
 $(BIN_LIN): LDFLAGS += -lpcap -lncurses -L../../chiipy/bin/Debug-Linux/ -lchiipy
 $(BIN_LIN): OBJDIR := ../obj/linux
 

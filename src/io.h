@@ -7,7 +7,7 @@
 #define IO_DEVS_MAX 8
 
 typedef void (*io_putc_cb)( char c );
-typedef unsigned char (*io_getc_cb)();
+typedef char (*io_getc_cb)();
 
 void io_regoutdev( io_putc_cb cb );
 void io_regindev( io_getc_cb cb );
