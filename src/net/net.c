@@ -17,29 +17,14 @@
 
 /* Memory IDs for network tasks. */
 #define NET_MID_SOCKET 1
-#define NET_MID_RECEIVED 2
-#define NET_MID_RESPONDED 3
 
-uint8_t g_bcast_mac[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
-uint8_t g_src_ip[4] = { 10, 137, 2, 88 };
-uint8_t g_search_ip[4] = { 10, 137, 2, 11 };
-uint8_t g_src_mac[6] = { 0xab, 0xcd, 0xef, 0xde, 0xad, 0xbf };
-char* g_ifname = "eth0";
+const uint8_t g_bcast_mac[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+const uint8_t g_src_ip[4] = { 10, 137, 2, 88 };
+const uint8_t g_search_ip[4] = { 10, 137, 2, 11 };
+const uint8_t g_src_mac[6] = { 0xab, 0xcd, 0xef, 0xde, 0xad, 0xbf };
+const char* g_ifname = "eth0";
 
-#ifdef USE_CONSOLE
-void net_respond_con_request( TASK_PID pid ) {
-   int* received = NULL;
-
-   switch( g_net_con_request ) {
-      case NET_REQ_RCVD:
-         received = mget( pid, NET_MID_RECEIVED, sizeof( int ) );
-         tprintf( "frames rcvd: %d\n", *received );
-         break;
-   }
-
-   g_net_con_request = 0;
-}
-#endif /* USE_CONSOLE */
+const struct astring g_str_netp = astring_l( "netp" );
 
 uint8_t net_respond_arp_request(
    TASK_PID pid, NET_SOCK socket, struct ether_frame* frame, int frame_len
@@ -99,6 +84,8 @@ TASK_RETVAL net_respond_task() {
 
    adhd_task_setup();
 
+   adhd_set_gid( &g_str_netp );
+
    socket = mget( adhd_get_pid(), NET_MID_SOCKET, sizeof( NET_SOCK ) );
    if( NULL == *socket ) {
       *socket = net_open_socket( g_ifname );
@@ -128,10 +115,6 @@ TASK_RETVAL net_respond_task() {
          adhd_yield();
          adhd_continue_loop();
    }
-
-#ifdef USE_CONSOLE
-   net_respond_con_request( adhd_get_pid() );
-#endif /* USE_CONSOLE */
 
    adhd_yield();
    adhd_end_loop();

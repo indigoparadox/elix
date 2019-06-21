@@ -130,15 +130,71 @@ struct astring* alpha_astring( uint8_t pid, MEM_ID mid, STRLEN_T len ) {
    return str_out;
 }
 
+STRLEN_T alpha_cmp(
+   const struct astring* str1, const struct astring* str2, char sep
+) {
+   STRLEN_T i = 0;
+   while(
+      str1->data[i] != sep && str2->data[i] != sep &&
+      i < str1->len && i < str2->len
+   ) {
+      if( str1->data[i] != str2->data[i] ) {
+         return 1;
+      }
+      i++;
+   }
+   return 0;
+}
+
 STRLEN_T alpha_cmp_c( const char* cstr, const struct astring* astr, char sep ) {
    STRLEN_T i = 0;
-   while( cstr[i] != sep && '\0' != cstr[i] && i < astr->len ) {
+   while(
+      cstr[i] != sep && 
+      astr->data[i] != sep && 
+      '\0' != cstr[i] && i < astr->len
+   ) {
       if( astr->data[i] != cstr[i] ) {
          return 1;
       }
       i++;
    }
    return 0;
+}
+
+/** \brief  Return the index of the current string in the given list, or
+ *          ASTR_NOT_FOUND if string is not in list.
+ */
+uint8_t alpha_cmp_l(
+   const struct astring* str, const struct astring list[], uint8_t len,
+   char sep
+) {
+   uint8_t idx = 0;
+
+   for( idx = 0 ; len > idx ; idx++ ) {
+      if( 0 == alpha_cmp( &(list[idx]), str, sep ) ) {
+         return idx;
+      }
+   }
+
+   return ASTR_NOT_FOUND;
+}
+
+/** \brief  Return the index of the current string in the given list, or
+ *          ASTR_NOT_FOUND if string is not in list.
+ */
+uint8_t alpha_cmp_cl(
+   const char* cstr, STRLEN_T strlen, const struct astring list[], uint8_t len,
+   char sep
+) {
+   uint8_t idx = 0;
+
+   for( idx = 0 ; len > idx ; idx++ ) {
+      if( 0 == alpha_cmp_c( cstr, &(list[idx]), sep ) ) {
+         return idx;
+      }
+   }
+
+   return ASTR_NOT_FOUND;
 }
 
 #if 0

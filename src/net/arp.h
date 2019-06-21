@@ -55,7 +55,7 @@ int arp_get_dest_mac( uint8_t* mac, int mac_sz, struct arp_packet* arp );
 int arp_respond( 
    struct arp_packet* call_packet, int call_packet_sz,
    struct arp_packet* resp_packet, int resp_packet_sz,
-   uint8_t* my_mac, int my_mac_len, uint8_t* my_ip, int my_ip_len );
+   const uint8_t* my_mac, int my_mac_len, const uint8_t* my_ip, int my_ip_len );
 /*
 struct arp_packet_ipv4* arp_new_packet_ipv4(
    enum arp_opcode op, const uint8_t* src_mac, const uint8_t* dest_mac,

@@ -34,7 +34,6 @@
 
 #define console_const( id, str ) astring_const( id, str )
 
-int trepl_service( char* cli );
 void tprintf( const char* pattern, ... );
 void tputs( const struct astring* str );
 TASK_RETVAL trepl_task();
