@@ -2,7 +2,6 @@
 #include "../display.h"
 #include "../kernel.h"
 #include "../mem.h"
-#include "../io.h"
 
 #include <sys/select.h>
 #ifdef COLINUX_TERMIOS
@@ -26,8 +25,6 @@ void display_init() {
 #ifdef COLINUX_TERMIOS
    struct termios term;
 #endif /* COLINUX_TERMIOS */
-
-   io_regoutdev( display_putc );
 
 #ifdef COLINUX_TERMIOS
    /* Disable echo. */
@@ -73,6 +70,7 @@ void display_putc( char c ) {
       g_cur_pos = 0;
    }
    printf( "%c", c );
+   fflush( stdout );
 #elif defined( COLINUX_CURSES )
    //printw( "%c", c );
    //refresh();

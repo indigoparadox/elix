@@ -10,13 +10,20 @@
 #include "alpha.h"
 #include "strings.h"
 #include "net/net.h"
+#include "commands.h"
 
 #include <chiipy.h>
 
-#ifdef CONSOLE_SERIAL
-#else
-#include "keyboard.h"
-#endif /* CONSOLE_SERIAL */
+const char qd_logo[8][16] = {
+   "     _____     ",
+   "   .`_   _`.   ",
+   "  / / | | \\ \\  ",
+   " | |  | |  | | ",
+   " | |  | |  | | ",
+   "  \\ \\_| |_/ /  ",
+   "   `._`\\ \\.'   ",
+   "        \\_\\    "
+};
 
 int trepl_service( char* cli ) {
    //const char* svc;
@@ -26,22 +33,7 @@ int trepl_service( char* cli ) {
    return 0;
 }
 
-/* === Command Registration === */
-
-struct command {
-   struct astring command;
-   int (*callback)( char* cli );
-};
-
-#define cmd_def( cmd, callback ) \
-   { astring_l( cmd ), callback }
-
-static const struct command g_commands[] = {
-   cmd_def( "service", trepl_service ),
-   cmd_def( "", NULL )
-};
-
-/* === Console Functions === */
+uint8_t g_console_flags = 0;
 
 /* Memory IDs for console tasks. */
 #define REPL_MID_LINE      1
@@ -55,7 +47,7 @@ void tputs( const struct astring* str ) {
 #else
    STRLEN_T i = 0;
    for( i = 0 ; str->len > i ; i++ ) {
-      display_putc( str->data[i] );
+      tputc( str->data[i] );
    }
 #endif /* CONSOLE_SERIAL */
 }
@@ -112,7 +104,7 @@ void tprintf( const char* pattern, ... ) {
 
             case 'c':
                spec.c = va_arg( args, int );
-               display_putc( spec.c );
+               tputc( spec.c );
                break;
 
             case '0':
@@ -132,7 +124,7 @@ void tprintf( const char* pattern, ... ) {
          }
       } else if( '%' != c ) {
          /* Print non-escape characters verbatim. */
-         display_putc( c );
+         tputc( c );
       }
 
       last = c;
@@ -156,18 +148,28 @@ TASK_RETVAL trepl_task() {
    struct astring* line;
    //struct CHIIPY_TOKEN* token;
    //struct astring* arg;
-   //uint8_t i = 0;
+   uint8_t i = 0;
 
    adhd_task_setup();
+
+   if( !(g_console_flags & CONSOLE_FLAG_INITIALIZED) ) {
+      for( i = 0 ; 8 > i ; i++ ) {
+         tprintf( qd_logo[i] );
+         tputc( '\n' );
+      }
+      tprintf( "QD console v" VERSION "\n" );
+      tprintf( "ready\n" );
+      g_console_flags |= CONSOLE_FLAG_INITIALIZED;
+   }
 
 #ifdef CONSOLE_SERIAL
    //if( 0 ) {
 #else
-   if( !keyboard_hit() ) {
+   if( !twaitc() ) {
       adhd_yield();
    }
 
-   c = keyboard_getc();
+   c = tgetc();
 #endif /* CONSOLE_SERIAL */
    /* Dynamically allocate the line buffer so we can clear it from memory
     * during other programs. Add +1 so there's always a NULL.
@@ -214,7 +216,7 @@ TASK_RETVAL trepl_task() {
          astring_append( line, c );
 #ifdef CONSOLE_SERIAL
 #else
-         display_putc( c );
+         tputc( c );
 #endif /* CONSOLE_SERIAL */
          break;
    }

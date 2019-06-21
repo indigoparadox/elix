@@ -1,8 +1,6 @@
 
 #include "../display.h"
 
-#include <stdio.h>
-
 void display_set_colors( uint8_t fg, uint8_t bg ) {
 }
 

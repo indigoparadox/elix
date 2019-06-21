@@ -35,7 +35,6 @@ void kmain() {
 
    /* Create network task. */
 #ifdef USE_CONSOLE
-   tputs( &g_str_hello );
 #endif /* USE_CONSOLE */
 
    adhd_start();
