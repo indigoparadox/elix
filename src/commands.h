@@ -10,7 +10,7 @@ typedef TASK_RETVAL (*CONSOLE_CMD)( const struct astring* );
 struct command {
    struct astring command;
    CONSOLE_CMD callback;
-};
+} __attribute__( (packed) );
 
 TASK_RETVAL do_command( const struct astring* cli );
 

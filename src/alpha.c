@@ -130,6 +130,15 @@ struct astring* alpha_astring( uint8_t pid, MEM_ID mid, STRLEN_T len ) {
    return str_out;
 }
 
+struct astring* alpha_astring_list_next( const struct astring* str_in ) {
+   uint8_t* str_out = (uint8_t*)str_in;
+
+   str_out += sizeof( struct astring );
+   str_out += str_in->sz;
+
+   return (struct astring*)str_out;
+}
+
 STRLEN_T alpha_cmp(
    const struct astring* str1, const struct astring* str2, char sep
 ) {
@@ -146,13 +155,18 @@ STRLEN_T alpha_cmp(
    return 0;
 }
 
-STRLEN_T alpha_cmp_c( const char* cstr, const struct astring* astr, char sep ) {
+STRLEN_T alpha_cmp_c(
+   const char* cstr, STRLEN_T clen, const struct astring* astr, char sep
+) {
    STRLEN_T i = 0;
    while(
       cstr[i] != sep && 
+      clen > i &&
       astr->data[i] != sep && 
-      '\0' != cstr[i] && i < astr->len
+      astr->len > i &&
+      '\0' != cstr[i]
    ) {
+      tprintf( "%c vs %c\n", cstr[i], astr->data[i] );
       if( astr->data[i] != cstr[i] ) {
          return 1;
       }
@@ -164,7 +178,7 @@ STRLEN_T alpha_cmp_c( const char* cstr, const struct astring* astr, char sep ) {
 /** \brief  Return the index of the current string in the given list, or
  *          ASTR_NOT_FOUND if string is not in list.
  */
-uint8_t alpha_cmp_l(
+int8_t alpha_cmp_l(
    const struct astring* str, const struct astring list[], uint8_t len,
    char sep
 ) {
@@ -182,14 +196,15 @@ uint8_t alpha_cmp_l(
 /** \brief  Return the index of the current string in the given list, or
  *          ASTR_NOT_FOUND if string is not in list.
  */
-uint8_t alpha_cmp_cl(
-   const char* cstr, STRLEN_T strlen, const struct astring list[], uint8_t len,
+int8_t alpha_cmp_cl(
+   const char* cstr, STRLEN_T clen, const struct astring list[], uint8_t len,
    char sep
 ) {
    uint8_t idx = 0;
 
    for( idx = 0 ; len > idx ; idx++ ) {
-      if( 0 == alpha_cmp_c( cstr, &(list[idx]), sep ) ) {
+      tprintf( "ll - %a\n", &(list[idx]) );
+      if( 0 == alpha_cmp_c( cstr, clen, &(list[idx]), sep ) ) {
          return idx;
       }
    }

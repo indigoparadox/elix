@@ -27,6 +27,8 @@ const char qd_logo[8][16] = {
 
 uint8_t g_console_flags = 0;
 
+const struct astring g_str_ready = astring_l( "ready\n" );
+
 /* Memory IDs for console tasks. */
 #define REPL_MID_LINE      1
 #define REPL_MID_CUR_POS   2
@@ -49,12 +51,13 @@ union tprintf_spec {
    int d;
    char c;
    uint8_t x;
-   struct astring* s;
+   struct astring* a;
+   char* s;
 };
 
 void tprintf( const char* pattern, ... ) {
    va_list args;
-   int i = 0;
+   int i = 0, j = 0;
    char last = '\0';
    union tprintf_spec spec;
    uint8_t num_buffer[sizeof( struct astring ) + INT_DIGITS_MAX] = { 0 };
@@ -73,9 +76,17 @@ void tprintf( const char* pattern, ... ) {
       if( '%' == last ) {
          /* Conversion specifier encountered. */
          switch( pattern[i] ) {
+            case 'a':
+               spec.a = va_arg( args, struct astring* );
+               tputs( spec.a );
+               break;
+
             case 's':
-               spec.s = va_arg( args, struct astring* );
-               tputs( spec.s );
+               spec.s = va_arg( args, char* );
+               j = 0;
+               while( '\0' != spec.s[j] ) {
+                  tputc( spec.s[j++] );
+               }
                break;
 
             case 'd':
@@ -141,6 +152,7 @@ TASK_RETVAL trepl_task() {
    //struct CHIIPY_TOKEN* token;
    //struct astring* arg;
    uint8_t i = 0;
+   uint8_t retval = 0;
 
    adhd_task_setup();
 
@@ -150,7 +162,7 @@ TASK_RETVAL trepl_task() {
          tputc( '\n' );
       }
       tprintf( "QD console v" VERSION "\n" );
-      tprintf( "ready\n" );
+      tputs( &g_str_ready );
       g_console_flags |= CONSOLE_FLAG_INITIALIZED;
    }
 
@@ -195,7 +207,14 @@ TASK_RETVAL trepl_task() {
          } else {
             tputs( &g_str_invalid );
          }*/
-         do_command( line );
+         retval = do_command( line );
+         if( RETVAL_NOT_FOUND == retval ) {
+            tputs( &g_str_invalid );
+         } else if( RETVAL_BAD_ARGS == retval ) {
+            tprintf( "bad arguments\n" );
+         } else {
+            tputs( &g_str_ready );
+         }
          astring_clear( line );
          break;
 
