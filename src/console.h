@@ -8,7 +8,6 @@
 #include <stdarg.h>
 
 #include "adhd.h"
-#include "io.h"
 #include "alpha.h"
 
 #define REPL_LINE_SIZE_MAX 20
@@ -22,8 +21,20 @@
 #define CONSOLE_OP_DIV  0x6
 #define CONSOLE_OP_MOD  0x7
 
+#define CONSOLE_FLAG_INITIALIZED    0x01
+
+#define VERSION "2019.21"
+
+#include "keyboard.h"
+#include "display.h"
+
+#define tputc( c ) display_putc( c )
+#define twaitc() keyboard_hit()
+#define tgetc() keyboard_getc()
+
 #define console_const( id, str ) astring_const( id, str )
 
+int trepl_service( char* cli );
 void tprintf( const char* pattern, ... );
 void tputs( const struct astring* str );
 TASK_RETVAL trepl_task();
