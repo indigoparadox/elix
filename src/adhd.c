@@ -4,11 +4,6 @@
 
 #include <stddef.h>
 
-/*
-jmp_buf g_env_adhd;
-jmp_buf g_env_main;
-*/
-
 #ifdef SCHEDULE_COOP
 
 static struct adhd_task* g_head_env = NULL;
