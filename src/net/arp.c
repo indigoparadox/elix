@@ -77,7 +77,7 @@ cleanup:
 int arp_respond( 
    struct arp_packet* call_packet, int call_packet_sz,
    struct arp_packet* resp_packet, int resp_packet_sz,
-   uint8_t* my_mac, int my_mac_len, uint8_t* my_ip, int my_ip_len
+   const uint8_t* my_mac, int my_mac_len, const uint8_t* my_ip, int my_ip_len
 ) {
    uint8_t* arp_packet_data = (uint8_t*)call_packet;
    uint8_t* incoming_mac = NULL;

@@ -3,21 +3,16 @@
 #define COMMANDS_H
 
 #include "alpha.h"
+#include "adhd.h"
 
-typedef int (*CONSOLE_CMD)( char* );
+typedef TASK_RETVAL (*CONSOLE_CMD)( const struct astring* );
 
 struct command {
    struct astring command;
-   int (*callback)( char* cli );
+   CONSOLE_CMD callback;
 };
 
-#define cmd_def( cmd, callback ) \
-   { astring_l( cmd ), callback }
-
-static const struct command g_commands[] = {
-   cmd_def( "service", trepl_service ),
-   cmd_def( "", NULL )
-};
+TASK_RETVAL do_command( const struct astring* cli );
 
 #endif /* COMMANDS_H */
 

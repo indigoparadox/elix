@@ -14,6 +14,10 @@ jmp_buf g_env_main;
 static struct adhd_task* g_head_env = NULL;
 static uint8_t g_next_pid = ADHD_PID_FIRST;
 
+TASK_PID adhd_get_pid_by_gid( char* gid ) {
+   /* TODO */
+}
+
 void adhd_step() {
    /* Setup the scheduler target and go back to main if successful. */
    if( !setjmp( g_sched_env->env ) ) {
@@ -94,6 +98,22 @@ void adhd_kill_task( TASK_PID pid ) {
    }
    
    g_tasks[pid].callback = NULL;
+}
+
+TASK_PID adhd_get_pid_by_gid( const char* gid ) {
+   TASK_PID i = 0;
+   
+   for( i = 0 ; ADHD_TASKS_MAX > i ; i++ ) {
+      if(
+         NULL != g_tasks[i].callback &&
+         NULL != g_tasks[i].gid &&
+         0 == alpha_cmp_c( gid, g_tasks[i].gid, ' ' )
+      ) {
+         return i;
+      }
+   }
+
+   return -1;
 }
 
 #endif /* SCHEDULE_COOP */

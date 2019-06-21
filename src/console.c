@@ -25,14 +25,6 @@ const char qd_logo[8][16] = {
    "        \\_\\    "
 };
 
-int trepl_service( char* cli ) {
-   //const char* svc;
-
-   //svc = alpha_tok( cli, 1, ' ' );
-
-   return 0;
-}
-
 uint8_t g_console_flags = 0;
 
 /* Memory IDs for console tasks. */
@@ -194,21 +186,17 @@ TASK_RETVAL trepl_task() {
       case '\r':
       case '\n':
          display_newline();
-         if( 0 == alpha_cmp_c( "exit", line, '\n' ) ) {
+         /*if( 0 == alpha_cmp_c( "exit", line, '\n' ) ) {
             g_system_state = SYSTEM_SHUTDOWN;
-         } else if( 0 == alpha_cmp_c( "net", line, '\n' ) ) {
+         } else if( 0 == alpha_cmp_c( "net start", line, '\n' ) ) {
             adhd_launch_task( net_respond_task );
+         } else if( 0 == alpha_cmp_c( "net rcvd", line, '\n' ) ) {
+            net_
          } else {
             tputs( &g_str_invalid );
-         }
+         }*/
+         do_command( line );
          astring_clear( line );
-         break;
-
-      case ' ':
-         /*i = REPL_MID_ARG_MIN;
-         do {
-            arg = mget( pid, i
-         cstack_push( */
          break;
 
       default:

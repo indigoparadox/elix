@@ -6,6 +6,7 @@
 #include <stddef.h>
 
 #include "mem.h"
+#include "alpha.h"
 
 #define ADHD_PID_MAIN 1
 #define ADHD_PID_FIRST 1
@@ -45,13 +46,15 @@ struct adhd_task {
    uint8_t status;
 #endif /* SCHEDULE_COOP */
    TASK_PID pid;
-   /* char gid[5]; */ /* 4 chars and 1 NULL. */
+   const struct astring* gid;
    ADHD_TASK callback;
    struct adhd_task* next;
 };
 
 #define adhd_get_pid() \
    (g_curr_env->pid)
+
+#define adhd_set_gid( str ) g_curr_env->gid = str
 
 #ifdef SCHEDULE_COOP
 
@@ -113,6 +116,7 @@ void adhd_launch_task( ADHD_TASK callback );
 TASK_RETVAL adhd_call_task( TASK_PID pid );
 #endif /* SCHEDULE_COOP */
 
+TASK_PID adhd_get_pid_by_gid( const char* gid );
 void adhd_step();
 struct adhd_task* adhd_new_task();
 void adhd_kill_task( TASK_PID pid );

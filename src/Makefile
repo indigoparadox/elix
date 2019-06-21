@@ -23,7 +23,7 @@ SYSLINUX=syslinux
 MCOPY=mcopy
 
 CFLAGS=-Wall -Werror -DUSE_CONSOLE -DUSE_NET -I../../chiipy/src
-SOURCES=net/tcp.c net/ether.c net/arp.c mem.c console.c net/net.c adhd.c strings.c alpha.c
+SOURCES=net/tcp.c net/ether.c net/arp.c mem.c console.c net/net.c adhd.c strings.c alpha.c commands.o
 CHECKOBJ=check.o check_ether.o check_mem.o check_console.o check_alpha.o check_net.o
 OBJECTS=$(subst .c,.o,$(SOURCES))
 LDFLAGS=
