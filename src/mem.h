@@ -8,6 +8,8 @@ typedef int16_t MEMLEN_T;
 typedef uint16_t BITFIELD;
 typedef uint8_t MEM_ID;
 
+#include "adhd.h"
+
 #define MGET_UNSET      -1
 #define MGET_NO_CREATE  0
 
@@ -33,7 +35,7 @@ int mget_pos( int pid, int mid );
 #endif /* CHECK */
 
 void minit();
-void* mget( uint8_t pid, MEM_ID mid, MEMLEN_T sz );
+void* mget( TASK_PID pid, MEM_ID mid, MEMLEN_T sz );
 void mzero( void* dest, int sz );
 int mcopy( void* dest, const void* src, int sz );
 int mcompare( const void* c1, const void* c2, int sz );

@@ -16,7 +16,7 @@ struct astring {
    STRLEN_T sz;
    STRLEN_T len;
    char data[];
-};
+} __attribute__( (packed) );
 
 #define ASTR_NOT_FOUND -1
 
@@ -60,15 +60,18 @@ int16_t alpha_utoa(
    STRLEN_T zero_pad_spaces, uint8_t base );
 int16_t alpha_charinstr( char c, const struct astring* string );
 struct astring* alpha_astring( uint8_t pid, MEM_ID mid, STRLEN_T len );
+struct astring* alpha_astring_list_next( const struct astring* );
 STRLEN_T alpha_cmp(
    const struct astring* str1, const struct astring* str2, char sep
 );
-STRLEN_T alpha_cmp_c( const char* cstr, const struct astring* astr, char sep );
-uint8_t alpha_cmp_l(
+STRLEN_T alpha_cmp_c(
+   const char* cstr, STRLEN_T clen, const struct astring* astr, char sep
+);
+int8_t alpha_cmp_l(
    const struct astring* str, const struct astring list[], uint8_t len,
    char sep
 );
-uint8_t alpha_cmp_cl(
+int8_t alpha_cmp_cl(
    const char* cstr, STRLEN_T strlen, const struct astring list[], uint8_t len,
    char sep
 );

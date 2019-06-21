@@ -15,41 +15,77 @@ static const struct astring g_str_fox = astring_l( "fox" );
 static const struct astring g_str_jumped = astring_l( "jumped" );
 static const struct astring g_str_over = astring_l( "over" );
 
+static const struct astring g_str_list[4] = {
+   astring_l( "Lorem" ),
+   astring_l( "Ipsum" ),
+   astring_l( "Sit" ),
+   astring_l( "Amet" )
+};
+
+static const int g_str_list_lens[4] = {
+   6, 6, 4, 5
+};
+
+static const int g_str_list_szs[4] = {
+   6, 6, 4, 5
+};
+
+#include <stdio.h>
+
+START_TEST( test_alpha_astr_len ) {
+   int i = 0;
+   const struct astring* test = g_str_list;
+
+   for( i = 0 ; _i > i ; i++ ) {
+      uint8_t* cp = (uint8_t*)test;
+      int j = 0;
+      int max = sizeof( struct astring ) + test->len;
+      for( j = 0 ; max > j ; j++ ) {
+         printf( "%d - %c\n", j, cp[j] );
+      }
+
+      test = alpha_astring_list_next( test );
+   }
+
+   ck_assert_int_eq( test->len, g_str_list_lens[_i] );
+}
+END_TEST
+
 START_TEST( test_alpha_tok_cmp_c ) {
    const char* c = NULL;
    c = alpha_tok( &g_str_sentence, ' ', _i );
-   ck_assert_int_eq( 0, alpha_cmp_c( "The", &g_str_sentence, ' ' ) );
+   ck_assert_int_eq( 0, alpha_cmp_c( "The", 3, &g_str_sentence, ' ' ) );
    switch( _i ) {
       case 0:
-         ck_assert_int_eq( 0, alpha_cmp_c( c, &g_str_the, ' ' ) );
-         ck_assert_int_ne( 0, alpha_cmp_c( c, &g_str_quick, ' ' ) );
+         ck_assert_int_eq( 0, alpha_cmp_c( c, 3, &g_str_the, ' ' ) );
+         ck_assert_int_ne( 0, alpha_cmp_c( c, 5, &g_str_quick, ' ' ) );
          break;
       case 1:
-         ck_assert_int_ne( 0, alpha_cmp_c( c, &g_str_the, ' ' ) );
-         ck_assert_int_eq( 0, alpha_cmp_c( c, &g_str_quick, ' ' ) );
-         ck_assert_int_ne( 0, alpha_cmp_c( c, &g_str_brown, ' ' ) );
+         ck_assert_int_ne( 0, alpha_cmp_c( c, 3, &g_str_the, ' ' ) );
+         ck_assert_int_eq( 0, alpha_cmp_c( c, 5, &g_str_quick, ' ' ) );
+         ck_assert_int_ne( 0, alpha_cmp_c( c, 5, &g_str_brown, ' ' ) );
          break;
       case 2:
-         ck_assert_int_ne( 0, alpha_cmp_c( c, &g_str_quick, ' ' ) );
-         ck_assert_int_eq( 0, alpha_cmp_c( c, &g_str_brown, ' ' ) );
-         ck_assert_int_ne( 0, alpha_cmp_c( c, &g_str_fox, ' ' ) );
+         ck_assert_int_ne( 0, alpha_cmp_c( c, 5, &g_str_quick, ' ' ) );
+         ck_assert_int_eq( 0, alpha_cmp_c( c, 5, &g_str_brown, ' ' ) );
+         ck_assert_int_ne( 0, alpha_cmp_c( c, 3, &g_str_fox, ' ' ) );
          break;
       case 3:
-         ck_assert_int_ne( 0, alpha_cmp_c( c, &g_str_brown, ' ' ) );
-         ck_assert_int_eq( 0, alpha_cmp_c( c, &g_str_fox, ' ' ) );
-         ck_assert_int_ne( 0, alpha_cmp_c( c, &g_str_jumped, ' ' ) );
+         ck_assert_int_ne( 0, alpha_cmp_c( c, 5, &g_str_brown, ' ' ) );
+         ck_assert_int_eq( 0, alpha_cmp_c( c, 3, &g_str_fox, ' ' ) );
+         ck_assert_int_ne( 0, alpha_cmp_c( c, 6, &g_str_jumped, ' ' ) );
          break;
       case 4:
-         ck_assert_int_ne( 0, alpha_cmp_c( c, &g_str_fox, ' ' ) );
-         ck_assert_int_eq( 0, alpha_cmp_c( c, &g_str_jumped, ' ' ) );
-         ck_assert_int_ne( 0, alpha_cmp_c( c, &g_str_over, ' ' ) );
+         ck_assert_int_ne( 0, alpha_cmp_c( c, 3, &g_str_fox, ' ' ) );
+         ck_assert_int_eq( 0, alpha_cmp_c( c, 6, &g_str_jumped, ' ' ) );
+         ck_assert_int_ne( 0, alpha_cmp_c( c, 4, &g_str_over, ' ' ) );
          break;
    }
 }
 END_TEST
 
 START_TEST( test_alpha_cmp_c ) {
-   ck_assert_int_eq( 0, alpha_cmp_c( "The", &g_str_sentence, ' ' ) );
+   ck_assert_int_eq( 0, alpha_cmp_c( "The", 3, &g_str_sentence, ' ' ) );
 }
 END_TEST
 
@@ -141,6 +177,7 @@ Suite* alpha_suite( void ) {
    /* Core test case */
    tc_core = tcase_create( "Core" );
 
+   tcase_add_loop_test( tc_core, test_alpha_astr_len, 0, 4 );
    tcase_add_test( tc_core, test_alpha_udigits );
    tcase_add_test( tc_core, test_alpha_udigits_hex );
    tcase_add_test( tc_core, test_alpha_utoa );

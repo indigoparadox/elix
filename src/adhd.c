@@ -100,20 +100,20 @@ void adhd_kill_task( TASK_PID pid ) {
    g_tasks[pid].callback = NULL;
 }
 
-TASK_PID adhd_get_pid_by_gid( const char* gid ) {
+TASK_PID adhd_get_pid_by_gid( struct astring* gid ) {
    TASK_PID i = 0;
    
    for( i = 0 ; ADHD_TASKS_MAX > i ; i++ ) {
       if(
          NULL != g_tasks[i].callback &&
          NULL != g_tasks[i].gid &&
-         0 == alpha_cmp_c( gid, g_tasks[i].gid, ' ' )
+         0 == alpha_cmp( gid, g_tasks[i].gid, ' ' )
       ) {
          return i;
       }
    }
 
-   return -1;
+   return TASK_PID_INVALID;
 }
 
 #endif /* SCHEDULE_COOP */
