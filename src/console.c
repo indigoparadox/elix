@@ -214,7 +214,8 @@ TASK_RETVAL trepl_task() {
          astring_append( line, c );
 #ifdef CONSOLE_SERIAL
 #else
-         display_putc( c );
+         /* display_putc( c ); */
+         tprintf( "%c", c );
 #endif /* CONSOLE_SERIAL */
          break;
    }

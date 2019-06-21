@@ -45,7 +45,6 @@ struct adhd_task {
    uint8_t status;
 #endif /* SCHEDULE_COOP */
    TASK_PID pid;
-   /* char gid[5]; */ /* 4 chars and 1 NULL. */
    ADHD_TASK callback;
    struct adhd_task* next;
 };

@@ -10,6 +10,7 @@
 #include <sys/select.h>
 #include <termios.h>
 #include <sys/ioctl.h>
+#include <unistd.h>
 #elif defined( COLINUX_CURSES )
 #include <ncurses.h>
 #elif defined( COLINUX_READLINE )
@@ -93,7 +94,8 @@ char keyboard_getc() {
       return 0;
    } */
 #ifdef COLINUX_TERMIOS
-   buffer = getchar();
+   /*buffer = getchar();*/
+   read( STDIN_FILENO, &buffer, 1 );
 #elif defined( COLINUX_CURSES )
    buffer = getch();
 #elif defined( COLINUX_READLINE )

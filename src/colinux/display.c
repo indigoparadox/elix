@@ -8,6 +8,7 @@
 #ifdef COLINUX_TERMIOS
 #include <termios.h>
 #include <stdio.h>
+#include <unistd.h>
 #elif defined( COLINUX_CURSES )
 #include <ncurses.h>
 #elif defined( COLINUX_READLINE )
@@ -33,7 +34,9 @@ void display_init() {
    /* Disable echo. */
    tcgetattr( STDIN, &term );
    term.c_lflag &= ~ECHO;
-   tcsetattr( STDIN, TCSANOW, &term );
+   term.c_lflag &= ~ICANON;
+   term.c_lflag &= ~IXON;
+   tcsetattr( STDIN_FILENO, TCSAFLUSH, &term );
    setbuf( stdin, NULL );
 #elif defined( COLINUX_CURSES )
    initscr();
@@ -51,6 +54,8 @@ void display_shutdown() {
    /* Re-enable echo. */
    tcgetattr( STDIN, &term );
    term.c_lflag |= ECHO;
+   term.c_lflag |= ICANON;
+   term.c_lflag |= IXON;
    tcsetattr( STDIN, TCSANOW, &term );
 #elif defined( COLINUX_CURSES )
    endwin();
@@ -73,6 +78,7 @@ void display_putc( char c ) {
       g_cur_pos = 0;
    }
    printf( "%c", c );
+   fflush( stdout );
 #elif defined( COLINUX_CURSES )
    //printw( "%c", c );
    //refresh();
