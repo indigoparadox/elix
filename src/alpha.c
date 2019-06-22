@@ -166,8 +166,28 @@ STRLEN_T alpha_cmp_c(
       astr->len > i &&
       '\0' != cstr[i]
    ) {
-      tprintf( "%c vs %c\n", cstr[i], astr->data[i] );
       if( astr->data[i] != cstr[i] ) {
+         return 1;
+      }
+      i++;
+   }
+   return 0;
+}
+
+STRLEN_T alpha_cmp_cc(
+   const char* cstr1, STRLEN_T clen1, const char* cstr2, STRLEN_T clen2, 
+   char sep
+) {
+   STRLEN_T i = 0;
+   while(
+      cstr1[i] != sep && 
+      clen1 > i &&
+      cstr2[i] != sep && 
+      clen2 > i &&
+      '\0' != cstr1[i] &&
+      '\0' != cstr2[i]
+   ) {
+      if( cstr1[i] != cstr2[i] ) {
          return 1;
       }
       i++;
@@ -203,7 +223,6 @@ int8_t alpha_cmp_cl(
    uint8_t idx = 0;
 
    for( idx = 0 ; len > idx ; idx++ ) {
-      tprintf( "ll - %a\n", &(list[idx]) );
       if( 0 == alpha_cmp_c( cstr, clen, &(list[idx]), sep ) ) {
          return idx;
       }

@@ -7,8 +7,10 @@
 
 typedef TASK_RETVAL (*CONSOLE_CMD)( const struct astring* );
 
+#define CMD_MAX_LEN 10
+
 struct command {
-   struct astring command;
+   char command[CMD_MAX_LEN];
    CONSOLE_CMD callback;
 } __attribute__( (packed) );
 
