@@ -5,11 +5,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#if defined( PLATFORM_X86 ) || defined( PLATFORM_COLINUX )
-#define DISPLAY_WIDTH 80
-#define DISPLAY_HEIGHT 40
-#define DISPLAY_INDEX_MAX (DISPLAY_WIDTH * DISPLAY_HEIGHT)
-#endif /* PLATFORM_X86 || PLATFORM_COLINUX */
+#include "platform.h"
 
 /* These are defines and not an enum, as enum args may be > 8 bits. */
 
@@ -30,13 +26,13 @@
 #define COLOR_LIGHT_BROWN     0x0e
 #define COLOR_WHITE           0x0f
 
-#define display_newline() display_putc( '\n' )
+#define display_newline( dev_index ) display_putc( dev_index, '\n' )
 
 void display_set_colors( uint8_t fg, uint8_t bg );
 void display_init();
 void display_shutdown();
 void display_putc_at( char c, int x, int y );
-void display_putc( char c );
+void display_putc( uint8_t dev_index, char c );
 
 #endif /* DISPLAY_H */
  

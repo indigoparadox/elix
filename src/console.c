@@ -36,16 +36,6 @@ const struct astring g_str_ready = astring_l( "ready\n" );
 /* Empty */
 #define REPL_MID_ARG_MAX   20
 
-void tputs( const struct astring* str ) {
-#ifdef CONSOLE_SERIAL
-#else
-   STRLEN_T i = 0;
-   for( i = 0 ; str->len > i ; i++ ) {
-      tputc( str->data[i] );
-   }
-#endif /* CONSOLE_SERIAL */
-}
-
 /* Try to save some stack. */
 union tprintf_spec {
    int d;
@@ -78,7 +68,10 @@ void tprintf( const char* pattern, ... ) {
          switch( pattern[i] ) {
             case 'a':
                spec.a = va_arg( args, struct astring* );
-               tputs( spec.a );
+               j = 0;
+               while( '\0' != spec.a->data[j] && spec.a->len > j ) {
+                  tputc( spec.a->data[j++] );
+               }
                break;
 
             case 's':
@@ -187,7 +180,7 @@ TASK_RETVAL trepl_task() {
       (('\r' == c || '\n' == c) && 0 == line->len)
    ) {
       /* Line would be too long if we accepted this char. */
-      display_newline();
+      display_newline( g_console_dev_index );
       tputs( &g_str_invalid );
       astring_clear( line );
       adhd_yield();
@@ -197,7 +190,7 @@ TASK_RETVAL trepl_task() {
    switch( c ) {
       case '\r':
       case '\n':
-         display_newline();
+         display_newline( g_console_dev_index );
          /*if( 0 == alpha_cmp_c( "exit", line, '\n' ) ) {
             g_system_state = SYSTEM_SHUTDOWN;
          } else if( 0 == alpha_cmp_c( "net start", line, '\n' ) ) {

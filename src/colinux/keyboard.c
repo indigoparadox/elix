@@ -63,7 +63,7 @@ void keyboard_init() {
 void keyboard_shutdown() {
 }
 
-int keyboard_hit() {
+int keyboard_hit( uint8_t dev_index ) {
    int bytes = 0;
 #ifdef COLINUX_TERMIOS
 /*
@@ -84,7 +84,7 @@ int keyboard_hit() {
    return bytes;
 }
 
-char keyboard_getc() {
+char keyboard_getc( uint8_t dev_index ) {
    char buffer = 0;
    /* if( 1 != read( &buffer, 1 ) ) {
       return 0;

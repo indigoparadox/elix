@@ -29,24 +29,33 @@ OBJECTS=$(subst .c,.o,$(SOURCES))
 LDFLAGS=
 
 DRIVERS_COLINUX=colinux/net.o colinux/display.o colinux/keyboard.o
+DRIVERS_MSP430=msp430/display.o msp430/boot.o msp430/net.o msp430/spi.o msp430/uart.o
 
 ISODIRX86=../isodir/x86
 CHECKSDIR=../tests
 
-$(BIN_LIN): CFLAGS += -g -DDEBUG -DMPRINT -DPLATFORM_COLINUX -DCOLINUX_TERMIOS
+$(BIN_LIN): CFLAGS += -g -DDEBUG -DMPRINT -DQD_PLATFORM=colinux -DCOLINUX_TERMIOS
 $(BIN_LIN): LDFLAGS += -lpcap -lncurses -L../../chiipy/src/ -lchiipy
 $(BIN_LIN): OBJDIR := ../obj/linux
 
 $(BIN_WIN): CC := i686-w64-mingw32-g
-$(BIN_WIN): CFLAGS += -DNET_CON_ECHO -g -DPLATFORM_COLINUX
+$(BIN_WIN): CFLAGS += -DNET_CON_ECHO -g -DQD_PLATFORM=colinux
 $(BIN_WIN): LDFLAGS += -lwpcap
 $(BIN_WIN): OBJDIR := ../obj/windows
 
-$(BIN_X86): CFLAGS += -ffreestanding -nostdlib -nostartfiles -nodefaultlibs -DPLATFORM_X86 -DCONSOLE_COLOR
+$(BIN_X86): CFLAGS += -ffreestanding -nostdlib -nostartfiles -nodefaultlibs -DQD_PLATFORM=x86
 $(BIN_X86): OBJDIR := ../obj/os
 $(BIN_X86): LDFLAGS := 
 
-$(BIN_MSP430): CFLAGS += -DPLATFORM_MSP430 -mmcu=msp430g2553 -DCONSOLE_SERIAL -Os
+$(BIN_MSP430): CFLAGS += \
+	-DQD_PLATFORM=msp430 \
+	-mmcu=msp430g2553 \
+	-DQD_CONSOLE_IN=uart \
+	-DQD_CONSOLE_OUT=uart \
+	-Os \
+	-DQD_CPU_MHZ=16 \
+	-DQD_SPI \
+	-DQD_UART
 $(BIN_MSP430): CC := msp430-gcc
 $(BIN_MSP430): STRIP := msp430-strip
 $(BIN_MSP430): OBJDIR := ../obj/msp430
@@ -84,7 +93,7 @@ $(BIN_X86): $(OBJECTS) x86/display.o x86/net.o x86/keyboard.o kernel.o
 	$(AS) x86/boot.s -o $(OBJDIR)/boot.o
 	$(CC) -T x86/linker.ld -o $@ $(addprefix $(OBJDIR)/,$^) $(LDFLAGS) $(CFLAGS)
 
-$(BIN_MSP430): $(OBJECTS) msp430/display.o msp430/boot.o msp430/net.o kernel.o
+$(BIN_MSP430): $(OBJECTS) $(DRIVERS_MSP430) kernel.o
 	$(CC) -o $@ $(addprefix $(OBJDIR)/,$^) $(CFLAGS) $(LDFLAGS)
 
 tests: $(OBJECTS) $(addprefix $(CHECKSDIR)/,$(CHECKOBJ))
