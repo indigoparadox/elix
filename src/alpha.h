@@ -20,6 +20,9 @@ struct astring {
 
 #define ASTR_NOT_FOUND -1
 
+#define PPCONCAT_I( a, b ) a##b
+#define PPCONCAT( a, b ) PPCONCAT_I( a, b )
+
 #define astring_l( str ) { sizeof( str ), sizeof( str ), str }
 #define astring_append( str, c ) \
    if( str->len + 1 < str->sz ) { \
@@ -51,6 +54,9 @@ struct astring {
 #else
 #define astring_const( id, str ) extern struct astring id
 #endif /* STRINGS_C */
+
+#define alpha_16_lobyte( i ) ((i) & 0xFF)
+#define alpha_16_hibyte( i ) ((i) >> 8)
 
 uint16_t alpha_atou( const struct astring* src, uint8_t base );
 const char* alpha_tok( const struct astring* src, char sep, uint8_t idx );

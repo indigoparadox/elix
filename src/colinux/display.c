@@ -60,7 +60,7 @@ void display_putc_at( char c, int x, int y ) {
 /* Put a character at the cursor's current spot and shift the cursor right by
  * one. If the cursor is past the edge of the screen, move to a new line.
  */
-void display_putc( char c ) {
+void display_putc( uint8_t dev_index, char c ) {
 #if defined( COLINUX_TERMIOS ) || defined( COLINUX_READLINE )
    if( DISPLAY_WIDTH <= g_cur_pos ) {
       printf( "\n" );

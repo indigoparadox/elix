@@ -8,12 +8,9 @@ void display_init() {
 
 }
 
-void display_puts( const char* str ) {
-}
-
 void display_putc_at( char c, int x, int y ) {
 }
 
-void display_putc( char c ) {
+void display_putc( uint8_t dev_index, char c ) {
 }
 
