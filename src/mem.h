@@ -20,7 +20,7 @@ struct mvar {
    uint8_t data[];
 } __attribute__((packed));
 
-#define MEM_HEAP_SIZE 440
+#define MEM_HEAP_SIZE 380
 
 #ifdef CHECK
 void mshift( MEMLEN_T start, MEMLEN_T offset );

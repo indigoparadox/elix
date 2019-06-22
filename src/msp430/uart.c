@@ -1,18 +1,27 @@
 
-#include "uart.h"
+#include "../uart.h"
 
-#ifdef DRIVER_UART_INTERNAL
+#include "../ring.h"
+#include "../alpha.h"
+#include "../io.h"
+#include "../platform.h"
 
-system_status_enable();
+#include <msp430.h>
+
+#define UART_BIT_CYCLES ((QD_CPU_MHZ * 1000000) / UART_BAUD_RATE)
+#define UART_BIT_CYCLES_DIV2 ((QD_CPU_MHZ * 1000000) / (UART_BAUD_RATE * 2))
+
+#define uart_is_sw( dev_index ) (dev_index != 0)
 
 #ifdef UART_RX_BUFFER_DISABLED
 static unsigned char uart_rx_buffer[UART_COUNT] = { '\0' };
 #else
 static unsigned char rx_buffer_array[UART_COUNT][UART_RX_BUFFER_LENGTH];
-struct mispos_ring_buffer rx_buffer_info[UART_COUNT];
+struct ring_buffer rx_buffer_info[UART_COUNT];
 #endif /* UART_RX_BUFFER_DISABLED */
 
-static BOOL uart_process_rx( uint8_t index, unsigned char c ) {
+#if QD_UART_SW || QD_UART_HW
+static bool uart_process_rx( uint8_t index, unsigned char c ) {
 #ifdef UART_ANTI_NEW_LINE
 	if( UART_ANTI_NEW_LINE == c ) {
 		/* Skip cleanup, we don't want to wake up. */
@@ -23,55 +32,42 @@ static BOOL uart_process_rx( uint8_t index, unsigned char c ) {
 #ifdef UART_RX_BUFFER_DISABLED
    uart_rx_buffer[index] = c;
 #else
-   mispos_ring_buffer_push( c, &(rx_buffer_info[index]) );
+   ring_buffer_push( c, &(rx_buffer_info[index]) );
 #endif /* UART_RX_BUFFER_DISABLED */
 
-#ifndef UART_IGNORE_NEWLINE_FLAG
-	if( UART_NEW_LINE == c ) {
-		/* TODO: Scale for multiple indexes. */
-		system_status_on( STATUS_UART_NEWLINE );
-	}
-#endif /* UART_IGNORE_NEWLINE_FLAG */
-
-	return TRUE;
+	return true;
 }
+#endif /* QD_UART_SW || QD_UART_HW */
 
-#if defined( DRIVER_UART_SOFT ) || defined( DRIVER_UART_MULTI )
-
+#if QD_UART_SW
 static volatile uint16_t uart_tx_buffer[UART_COUNT] = { 0 };
 static volatile uint8_t uart_tx_bit_count[] = {[0 ... UART_COUNT] = 10 }; /* Includes encapsulation. */
 
 #pragma vector = TIMERA0_VECTOR
 __interrupt void SOFTUARTTX_ISR( void ) {
-	/* TODO: Scale for multiple indexes. */
-#ifdef DRIVER_UART_MULTI
-	uint8_t index;
+	uint8_t i = 0;
 
-	for( index = UART_SOFT_START_IDX ; UART_COUNT > index ; index++ ) {
-#else
-   uint8_t index = 0;
-#endif /* DRIVER_UART_MULTI */
-      if( !system_status( STATUS_UART_READY ) ) {
+   for( i = 0 ; UART_MAX_COUNT > i ; i++ ) {
+      if( !io_flag( i, UART_READY ) && !uart_is_sw( i ) ) {
+         /* Hardware UART doesn't need to use PWM. */
          return;
-      } else if( 0 == uart_tx_bit_count[index] ) {
+      } else if( 0 == uart_tx_bit_count[i] ) {
          /* Done transmitting, so shut off and clean up. */
          TACCTL0 &= ~CCIE;
-         uart_tx_bit_count[index] = 10;
-         system_status_off( STATUS_PWM_TA0 );
+         uart_tx_bit_count[i] = 10;
+         io_flag_off( 0, PWM_ON ); /* Soft UART always uses PWM1. */
       } else {
          /* Transmit the next bit and then shove it off the end. */
          TACCR0 += UART_BIT_CYCLES;
-         if( 0x01 & uart_tx_buffer[index] ) {
+         if( 0x01 & uart_tx_buffer[i] ) {
             TACCTL0 &= ~OUTMOD2;
          } else {
             TACCTL0 |= OUTMOD2;
          }
-         uart_tx_buffer[index] >>= 1;
-         uart_tx_bit_count[index]--;
+         uart_tx_buffer[i] >>= 1;
+         uart_tx_bit_count[i]--;
       }
-#ifdef DRIVER_UART_MULTI
-	}
-#endif /* DRIVER_UART_MULTI */
+   }
 }
 
 static volatile uint8_t uart_rx_bit_count[] = {[0 ... UART_COUNT] = 8 };
@@ -79,15 +75,8 @@ static unsigned char uart_rx_c[UART_COUNT] = { 0 };
 
 #pragma vector = TIMERA1_VECTOR
 __interrupt void SOFTUARTRX_ISR( void ) {
-	uint8_t index;
+	const uint8_t index = 0; /* Soft UART is always index 0. */
 
-#ifdef DRIVER_UART_MULTI
-	/* In a multi-UART system, UART 0 is always hardware. */
-	for( index = 1 ; UART_COUNT > index ; index++ ) {
-#elif defined( DRIVER_UART_SOFT )
-	/* If using a single soft UART, replace hardware UART 0. */
-	index = 0; 
-#endif /* DRIVER_UART_MULTI */
    if( TA0IV == TA0IV_TACCR1 ) {
     	TACCR1 += UART_BIT_CYCLES;
       if( TACCTL1 & CAP ) {
@@ -108,254 +97,222 @@ __interrupt void SOFTUARTRX_ISR( void ) {
          }
       }
    }
-#ifdef DRIVER_UART_MULTI
-	}
-#endif /* DRIVER_UART_MULTI */
 }
 
-#else /* DRIVER_UART_SOFT */
+#endif /* QD_UART_SW */
+
+#ifdef QD_UART_HW
 
 #pragma vector = USCIAB0RX_VECTOR
 __interrupt void USCI0RX_ISR( void ) {
 	unsigned char rx_in = UCA0RXBUF;
+   uint8_t i = 0;
 
-   if( !system_status( STATUS_UART_READY ) ) {
-      return;
-	/* TODO: Scale for multiple indexes. */
-	} else if( uart_process_rx( 0, rx_in ) ) {
-      mispos_wake_on_exit();
-	}
+   for( i = 0 ; UART_MAX_COUNT > i ; i++ ) {
+      if( !io_flag( i, UART_READY ) ) {
+         continue;
+      }
+      if( !io_flag( i, UART_READY ) ) {
+         continue;
+      } else if( uart_process_rx( i, rx_in ) ) {
+         /* Wake on exit. */
+         __bic_SR_register_on_exit( LPM0_bits );
+      }
+   }
 }
 
-#endif /* DRIVER_UART_SOFT */
+#endif /* QD_UART_HW */
 
-#ifndef DRIVER_UART_SOFT
-
-uint8_t uart_init( uint8_t index ) {
+uint8_t uart_init( uint8_t dev_index ) {
 	uint8_t retval = 0;
 
 #ifndef UART_RX_BUFFER_DISABLED
-   mispos_ring_buffer_init(
-      &(rx_buffer_info[index]),
-		&(rx_buffer_array[index][0]),
+   ring_buffer_init(
+      &(rx_buffer_info[dev_index]),
+		&(rx_buffer_array[dev_index][0]),
 		UART_RX_BUFFER_LENGTH
    );
 #endif /* UART_RX_BUFFER_DISABLED */
 
-	/* Setup the hardware UART. */
+   switch( dev_index ) {
+#ifdef QD_UART_SW
+   case 0:
+      /* #0 is always software if present. */
+      /* These don't use all this hardware init stuff. */
+      uart_soft_resume( dev_index );
+      break;
+#endif /* QD_UART_SW */
 
-	/* (1) Set state machine to the reset state. */
-   UCA0CTL1 = UCSWRST;
+#ifdef QD_UART_HW
+   case 1:
+      /* (1) Set state machine to the reset state. */
+      UCA0CTL1 = UCSWRST;
 
-   /* (2) Initialize USCI registers. */
-   UCA0CTL1 |= UCSSEL_2;               /* CLK = SMCLK */
+      /* (2) Initialize USCI registers. */
+      UCA0CTL1 |= UCSSEL_2;               /* CLK = SMCLK */
 
-	/* We get some large numbers above, so we have to truncate them. */
-	UCA0BR0 = (uint8_t)UART_BIT_CYCLES;
-	UCA0BR1 = (uint8_t)(UART_BIT_CYCLES >> 8);                     
+      /* We get some large numbers above, so we have to truncate them. */
+      UCA0BR0 = (uint8_t)UART_BIT_CYCLES;
+      UCA0BR1 = (uint8_t)(UART_BIT_CYCLES >> 8);                     
 
-#ifdef CPU_CLOCK_1MHZ
-	/* Modulation UCBRSx = 1 */
-	UCA0MCTL = UCBRS0;
-#elif defined( CPU_CLOCK_8MHZ )
-	UCA0MCTL = UCBRS_3 + UCBRF_0;
-#elif defined( CPU_CLOCK_16MHZ )
-	/* TODO */
-	UCA0MCTL = UCBRS_3 + UCBRF_0;
-#endif /* CPU_CLOCK */
+#if QD_CPU_MHZ == 1
+      /* Modulation UCBRSx = 1 */
+      UCA0MCTL = UCBRS0;
+#elif QD_CPU_MHZ == 8
+      UCA0MCTL = UCBRS_3 + UCBRF_0;
+#elif QD_CPU_MHZ == 16
+      /* TODO */
+      UCA0MCTL = UCBRS_3 + UCBRF_0;
+#else
+#error Invalid CPU clock speed specified!
+#endif /* QD_CPU_MHZ */
 
-   /* (3) Configure ports. */
+      /* (3) Configure ports. */
 #ifndef P3SEL
-   P1SEL |= mispos_bits_or( UART_RX, UART_TX );
-   P1SEL2 |= mispos_bits_or( UART_RX, UART_TX );
+      P1SEL |= UART_RX | UART_TX;
+      P1SEL2 |= UART_RX | UART_TX;
 #else /* P3SEL */
-   P3SEL |= BIT3 | BIT4;
+      P3SEL |= BIT3 | BIT4;
 #endif /* P3SEL */
 
-cleanup:
+      /* (4) Clear UCSWRST flag. */
+      UCA0CTL1 &= ~UCSWRST; /* Initialize USCI state machine. */
 
-   /* (4) Clear UCSWRST flag. */
-   UCA0CTL1 &= ~UCSWRST;               /* Initialize USCI state machine. */
-
-	if( 0 == retval ) {
+      if( 0 == retval ) {
 #ifdef IE2_
-		IE2 |= UCA0RXIE;                    /* Enable USCI_A0 RX interrupt. */
+         IE2 |= UCA0RXIE; /* Enable USCI_A0 RX interrupt. */
 #else /* IE2_ */
-      UCA0IE |= UCTXIE;
+         UCA0IE |= UCTXIE;
 #endif /* IE2_ */
-	}
+      }
+
+      break;
+
+   case 2:
+      /* TODO */
+      break;
+#endif /* QD_UART_HW */
+   }
 
    /* Enable the STATUS_UART_READY bit, even if not using soft UART. */
-   system_status_on( STATUS_UART_READY );
+   io_flag_on( dev_index, UART_READY );
 
 	return retval;
 }
 
-#endif /* DRIVER_UART_SOFT */
-
 #ifdef UART_BUFFER_CLEARABLE
-void uart_clear( uint8_t index ) {
+void uart_clear() {
 	rx_buffer_index_start = rx_buffer_index_end;
 }
 #endif /* UART_BUFFER_CLEARABLE */
 
-unsigned char uart_getc( uint8_t index ) {
-#if 0
-#ifdef DRIVER_UART_SOFT
-   if( !system_status( STATUS_UART_READY ) ) {
-      /* Detect if UART is paused. */
-      return '\0';
-	} else 
-#endif /* DRIVER_UART_SOFT */
-#endif
+uint8_t uart_hit( uint8_t dev_index ) {
+   return 0; /* TODO */
+}
 
+unsigned char uart_getc( uint8_t dev_index ) {
 #ifdef UART_RX_BUFFER_DISABLED
    unsigned char out;
-   while( '\0' == uart_rx_buffer[index] ) {
+   while( '\0' == uart_rx_buffer[dev_index] ) {
       irqal_call_handlers();
-      mispos_suspend();
+      /* Suspend. */
+      __bis_SR_register( GIE + LPM0_bits )
    }
-   out = uart_rx_buffer[index];
-   uart_rx_buffer[index] = '\0';
+   out = uart_rx_buffer[dev_index];
+   uart_rx_buffer[dev_index] = '\0';
    return out;
 #else
    /* Wait until an actual character is present. */
-   mispos_ring_buffer_wait( &(rx_buffer_info[index]) );
+   ring_buffer_wait( &(rx_buffer_info[dev_index]) );
 
-   return (unsigned char)mispos_ring_buffer_pop( &(rx_buffer_info[index]) );
+   return (unsigned char)ring_buffer_pop( &(rx_buffer_info[dev_index]) );
 #endif /* UART_RX_BUFFER_DISABLED */
 }
 
-#ifdef UART_GETS
-BOOL uart_gets( char* buffer, uint8_t length ) {
-	uint8_t i = 0;
-	char c;
-	BOOL retval = TRUE;
+void uart_putc( uint8_t dev_index, const char c ) {
 
-	while( length > i ) {
-		c = uart_getc();
-		if( 0 == i && ('\0' == c || UART_NEW_LINE == c) ) {
-#ifndef UART_IGNORE_NEWLINE_FLAG
-			system_status_off( STATUS_UART_NEWLINE );
-#endif /* UART_IGNORE_NEWLINE_FLAG */
-			while( length > i ) {
-				buffer[i] = '\0';
-				i++;
-			}
-			retval = FALSE;
-			goto cleanup;
-		} else if( UART_NEW_LINE == c ) {
-#ifndef UART_IGNORE_NEWLINE_FLAG
-			system_status_off( STATUS_UART_NEWLINE );
-#endif /* UART_IGNORE_NEWLINE_FLAG */
-			while( length > i ) {
-				buffer[i] = '\0';
-				i++;
-			}
-			goto cleanup;
-		}
-
-		buffer[i] = c;
-		i++;
-	}
-
-cleanup:
-
-	return retval;
-}
-#endif /* UART_GETS */
-
-void uart_putc( uint8_t index, const char c ) {
-
-#ifdef DRIVER_UART_SOFT
    /* Detect if UART is paused. */
-	/* TODO: Scale for multiple indexes. */
-   if( !system_status( STATUS_UART_READY ) ) {
+   if( !io_flag( dev_index, UART_READY ) ) {
       return;
    }
-#endif /* DRIVER_UART_SOFT */
 
-#ifdef DRIVER_UART_SOFT
+   switch( dev_index ) {
+#if QD_UART_SW
+   case 0:
+      /* UART 0 is always software if present. */
 
-   while( TACCTL0 & CCIE ) {
-      asm( ";" ); /* Don't optimize away. */
-   }
+      while( TACCTL0 & CCIE ) {
+         asm( ";" ); /* Don't optimize away. */
+      }
 
-#ifdef UART_SOFT_BLINK_TX
-   led_1_blink( 200 );
+#ifdef UART_SW_BLINK_TX
+      /* led_1_blink( 200 ); */
 #endif /* UART_SOFT_BLINK_TX */
 
-   uart_tx_buffer[index] = c;
+      uart_tx_buffer[dev_index] = c;
 
-	/* Add encapsulation bits. */
-   uart_tx_buffer[index] |= 0x100;
-   uart_tx_buffer[index] <<= 1;
+      /* Add encapsulation bits. */
+      uart_tx_buffer[dev_index] |= 0x100;
+      uart_tx_buffer[dev_index] <<= 1;
 
-	/* Ready timer to transmit new byte. */
-   TA0CCR0 = TAR;
-   TA0CCR0 += UART_BIT_CYCLES;
-   TA0CCTL0 = OUTMOD0 + CCIE;
+      /* Ready timer to transmit new byte. */
+      TA0CCR0 = TAR;
+      TA0CCR0 += UART_BIT_CYCLES;
+      TA0CCTL0 = OUTMOD0 + CCIE;
+#endif /* QD_UART_SW */
 
-#else /* DRIVER_UART_SOFT */
-
+#if QD_UART_HW
+   case 1:
 #ifdef IFG2_
-	while( !(IFG2 & UCA0TXIFG) );
+      while( !(IFG2 & UCA0TXIFG) );
 #else /* IFG2_ */
-	while( !(UCA0IFG & UCTXIFG) );
+      while( !(UCA0IFG & UCTXIFG) );
 #endif /* IFG2_ */
-  	UCA0TXBUF = c;
+      UCA0TXBUF = c;
+      break;
 
-#endif /* DRIVER_UART_SOFT */
+   case 2:
+      /* TODO */
+      break;
+#endif /* QD_UART_HW */
+   }
 }
-
-/*
- * Parameters:
- *    - index: Index of UART to print to.
- *    - str: Address of string to print.
- *    - len: Number of chars to print at max.
- */
-void uart_puts( uint8_t index, const char *str, uint8_t len ) {
-	int i = 0;
-
-#ifdef BOUNDS_CHECK_DISABLED
-   while( '\0' != str[i] ) {
-#else
-   while( '\0' != str[i] && len > i ) {
-#endif /* BOUNDS_CHECK_DISABLED */
-
-#ifdef UART_NEW_LINE_DOUBLE_OUT
-		if( '\n' == str[i] ) {
-			uart_putc( index, '\r' );
-		}
-#endif /* UART_NEW_LINE_DOUBLE_OUT */
- 		uart_putc( index, str[i++] );
-	}
-   return;
-}
-
-void uart_putn( uint8_t index, uint16_t num, uint8_t base ) {
-	char str[UINT16_DIGITS];
-	mispos_utoa( num, str, UINT16_DIGITS, base );
-	uart_puts( index, str, UINT16_DIGITS );
-}
-
-#ifdef DRIVER_UART_SOFT
 
 void uart_soft_pause( uint8_t index ) {
+#ifdef QD_UART_SW
    TACCR0 = 0;
    TACCTL0 = 0;
    TACCTL1 = 0;
    TACTL = 0;
-   system_status_off( STATUS_PWM_TA0 );
+   io_flag_off( 0, PWM_ON ); /* Turn off PWM used to simulate UART. */
 
    /* Only ever pause the soft UART. No reason to pause hard UART. */
-   system_status_off( STATUS_UART_READY );
+   
+   io_flag_off( index, UART_READY );
+#endif /* QD_UART_SW */
 }
 
-void uart_soft_resume( uint8_t index ) {
-   mispos_lock_wait( STATUS_PWM_TA0, TRUE );
+#ifdef QD_UART_SW
+static void uart_lock_wait( uint8_t dev_index, uint8_t flag, bool is_true ) {
+   while(
+		(is_true && io_flag( dev_index, flag )) ||
+		(!is_true && !io_flag( dev_index, flag ))
+	) {
+      /* Keep calling handlers or the status may never go away. */
+      //io_call_handlers();
+      /* Otherwise, suspend and wait for IRQ. */
+      /* TODO: Multitask. */
+      __bis_SR_register( GIE + LPM0_bits );
+   }
+}
+#endif /* QD_UART_SW */
 
-   system_status_on( STATUS_PWM_TA0 );
+void uart_soft_resume( uint8_t index ) {
+#ifdef QD_UART_SW
+   /* Wait for PWM timer to finish. */
+   uart_lock_wait( 0, BIT1, true );
+
+   io_flag_on( 0, PWM_ON );
 
 	mispos_reg( UART_PORT, OUT ) |= mispos_bits_or( UART_TX, UART_RX );
 	mispos_reg( UART_PORT, SEL ) |= mispos_bits_plus( UART_TX, UART_RX );
@@ -366,7 +323,7 @@ void uart_soft_resume( uint8_t index ) {
    TACCTL1 = SCS + CM1 + CAP + CCIE;
    TACTL = TASSEL_2 + MC_2 + TACLR;
 
-   system_status_on( STATUS_UART_READY );
+   io_flag_on( index, UART_READY );
 
 #ifdef UART_PRIME_U
    if( !system_status( STATUS_UART_READY ) ) {
@@ -376,9 +333,6 @@ void uart_soft_resume( uint8_t index ) {
    }
 #endif /* UART_PRIME_U */
 
+#endif /* QD_UART_SW */
 }
-
-#endif /* DRIVER_UART_SOFT */
-
-#endif /* DRIVER_UART_INTERNAL */
 
