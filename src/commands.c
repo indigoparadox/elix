@@ -10,6 +10,7 @@
 /* = Command Callbacks */
 
 extern struct astring g_str_netp;
+extern MEMLEN_T g_mheap_top;
 
 static TASK_RETVAL tnet_start( const struct astring* cli ) {
    tprintf( "start?\n" );
@@ -60,6 +61,10 @@ static TASK_RETVAL tsys_exit( const struct astring* cli ) {
 }
 
 static TASK_RETVAL tsys_mem( const struct astring* cli ) {
+   tprintf(
+      "mem:\nused: %d\ntotal: %d\nfree: %d\n",
+      get_mem_used(), MEM_HEAP_SIZE, MEM_HEAP_SIZE - get_mem_used()
+   );
    return RETVAL_OK;
 }
 

@@ -35,6 +35,7 @@ int mget_pos( int pid, int mid );
 #endif /* CHECK */
 
 void minit();
+MEMLEN_T get_mem_used();
 void* mget( TASK_PID pid, MEM_ID mid, MEMLEN_T sz );
 void mzero( void* dest, int sz );
 int mcopy( void* dest, const void* src, int sz );
