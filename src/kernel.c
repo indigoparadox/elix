@@ -27,10 +27,8 @@ void kmain() {
 #endif /* !SCHEDULE_COOP */
 
    minit();
-#ifndef CONSOLE_SERIAL
    keyboard_init();
    display_init();
-#endif /* CONSOLE_SERIAL */
    net_init();
 
    /* Create network task. */

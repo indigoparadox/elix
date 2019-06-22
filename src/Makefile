@@ -23,35 +23,69 @@ SYSLINUX=syslinux
 MCOPY=mcopy
 
 CFLAGS=-Wall -Werror -DUSE_CONSOLE -DUSE_NET -I../../chiipy/src
-SOURCES=net/tcp.c net/ether.c net/arp.c mem.c console.c net/net.c adhd.c strings.c alpha.c commands.o
+SOURCES=\
+	net/tcp.c \
+	net/ether.c \
+	net/arp.c \
+	mem.c \
+	console.c \
+	net/net.c \
+	adhd.c \
+	strings.c \
+	alpha.c \
+	commands.c \
+	ring.c \
+	io.c
 CHECKOBJ=check.o check_ether.o check_mem.o check_console.o check_alpha.o check_net.o
 OBJECTS=$(subst .c,.o,$(SOURCES))
 LDFLAGS=
 
 DRIVERS_COLINUX=colinux/net.o colinux/display.o colinux/keyboard.o
-DRIVERS_MSP430=msp430/display.o msp430/boot.o msp430/net.o msp430/spi.o msp430/uart.o
+DRIVERS_MSP430=\
+	msp430/display.o \
+	msp430/boot.o \
+	msp430/net.o \
+	msp430/spi.o \
+	msp430/uart.o \
+	msp430/keyboard.o
 
 ISODIRX86=../isodir/x86
 CHECKSDIR=../tests
 
-$(BIN_LIN): CFLAGS += -g -DDEBUG -DMPRINT -DQD_PLATFORM=colinux -DCOLINUX_TERMIOS
+$(BIN_LIN): CFLAGS += \
+	-g \
+	-DDEBUG \
+	-DMPRINT \
+	-DQD_PLATFORM=QD_PLATFORM_COLINUX \
+	-DCOLINUX_TERMIOS
 $(BIN_LIN): LDFLAGS += -lpcap -lncurses -L../../chiipy/src/ -lchiipy
 $(BIN_LIN): OBJDIR := ../obj/linux
 
 $(BIN_WIN): CC := i686-w64-mingw32-g
-$(BIN_WIN): CFLAGS += -DNET_CON_ECHO -g -DQD_PLATFORM=colinux
+$(BIN_WIN): CFLAGS += \
+	-DNET_CON_ECHO \
+	-g \
+	-DQD_PLATFORM=QD_PLATFORM_COLINUX
 $(BIN_WIN): LDFLAGS += -lwpcap
 $(BIN_WIN): OBJDIR := ../obj/windows
 
-$(BIN_X86): CFLAGS += -ffreestanding -nostdlib -nostartfiles -nodefaultlibs -DQD_PLATFORM=x86
+$(BIN_X86): CFLAGS += \
+	-ffreestanding \
+	-nostdlib \
+	-nostartfiles \
+	-nodefaultlibs \
+	-DQD_PLATFORM=QD_PLATFORM_X86
 $(BIN_X86): OBJDIR := ../obj/os
 $(BIN_X86): LDFLAGS := 
 
 $(BIN_MSP430): CFLAGS += \
-	-DQD_PLATFORM=msp430 \
+	-DQD_PLATFORM=QD_PLATFORM_MSP430 \
 	-mmcu=msp430g2553 \
 	-DQD_CONSOLE_IN=uart \
 	-DQD_CONSOLE_OUT=uart \
+	-DQD_CONSOLE_IN_IDX=2 \
+	-DQD_CONSOLE_OUT_IDX=2 \
+	-DQD_UART_HW \
 	-Os \
 	-DQD_CPU_MHZ=16 \
 	-DQD_SPI \
