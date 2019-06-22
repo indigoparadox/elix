@@ -67,6 +67,10 @@ STRLEN_T alpha_cmp(
 STRLEN_T alpha_cmp_c(
    const char* cstr, STRLEN_T clen, const struct astring* astr, char sep
 );
+STRLEN_T alpha_cmp_cc(
+   const char* cstr1, STRLEN_T clen1, const char* cstr2, STRLEN_T clen2, 
+   char sep
+);
 int8_t alpha_cmp_l(
    const struct astring* str, const struct astring list[], uint8_t len,
    char sep
