@@ -26,12 +26,16 @@ uint8_t g_mheap[MEM_HEAP_SIZE];
 #ifndef CHECK
 static
 #endif /* CHECK */
-int g_mheap_top = 0;
+MEMLEN_T g_mheap_top = 0;
 
 /* Setup the heap. */
 void minit() {
    mzero( g_mheap, MEM_HEAP_SIZE );
    g_mheap_top = 0;
+}
+
+MEMLEN_T get_mem_used() {
+   return g_mheap_top;
 }
 
 /* Zero a given block of memory. */
