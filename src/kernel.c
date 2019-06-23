@@ -21,19 +21,25 @@ const struct astring g_str_stopping = astring_l( "stopping...\n" );
 
 #include <stdio.h>
 void kmain() {
+   //uint8_t i = 0;
 #ifndef SCHEDULE_COOP
    TASK_PID active = 0;
    TASK_RETVAL retval = 0;
 #endif /* !SCHEDULE_COOP */
 
+   P1DIR |= BIT6; /* XXX */
+   P1OUT &= ~BIT6;
+
    minit();
    keyboard_init();
    display_init();
+   /*
+   for( i = 0 ; 4 > i ; i++ ) {
+      uart_init( i );
+   }
+   */
+   uart_init( 1 );
    net_init();
-
-   /* Create network task. */
-#ifdef USE_CONSOLE
-#endif /* USE_CONSOLE */
 
    adhd_start();
    adhd_launch_task( trepl_task );
@@ -41,6 +47,7 @@ void kmain() {
    /* TODO: Kill task on request in COOP mode. */
 
 #ifndef SCHEDULE_COOP
+   P1OUT |= BIT6;
    while( SYSTEM_SHUTDOWN != g_system_state ) {
       for( active = 0 ; ADHD_TASKS_MAX > active ; active++ ) {
          retval = adhd_call_task( active );

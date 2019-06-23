@@ -47,7 +47,8 @@ DRIVERS_MSP430=\
 	msp430/net.o \
 	msp430/spi.o \
 	msp430/uart.o \
-	msp430/keyboard.o
+	msp430/keyboard.o \
+	msp430/wdt.o
 
 ISODIRX86=../isodir/x86
 CHECKSDIR=../tests
@@ -89,7 +90,8 @@ $(BIN_MSP430): CFLAGS += \
 	-Os \
 	-DQD_CPU_MHZ=16 \
 	-DQD_SPI \
-	-DQD_UART
+	-DQD_UART \
+	-DQD_WDT_DISABLED
 $(BIN_MSP430): CC := msp430-gcc
 $(BIN_MSP430): STRIP := msp430-strip
 $(BIN_MSP430): OBJDIR := ../obj/msp430

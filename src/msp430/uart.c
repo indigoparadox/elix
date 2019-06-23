@@ -20,7 +20,7 @@ static unsigned char rx_buffer_array[UART_COUNT][UART_RX_BUFFER_LENGTH];
 struct ring_buffer rx_buffer_info[UART_COUNT];
 #endif /* UART_RX_BUFFER_DISABLED */
 
-#if QD_UART_SW || QD_UART_HW
+#if defined( QD_UART_SW ) || defined( QD_UART_HW )
 static bool uart_process_rx( uint8_t index, unsigned char c ) {
 #ifdef UART_ANTI_NEW_LINE
 	if( UART_ANTI_NEW_LINE == c ) {
@@ -39,7 +39,7 @@ static bool uart_process_rx( uint8_t index, unsigned char c ) {
 }
 #endif /* QD_UART_SW || QD_UART_HW */
 
-#if QD_UART_SW
+#ifdef QD_UART_SW
 static volatile uint16_t uart_tx_buffer[UART_COUNT] = { 0 };
 static volatile uint8_t uart_tx_bit_count[] = {[0 ... UART_COUNT] = 10 }; /* Includes encapsulation. */
 
@@ -169,8 +169,8 @@ uint8_t uart_init( uint8_t dev_index ) {
 
       /* (3) Configure ports. */
 #ifndef P3SEL
-      P1SEL |= UART_RX | UART_TX;
-      P1SEL2 |= UART_RX | UART_TX;
+      P1SEL |= UART_1_RX | UART_1_TX;
+      P1SEL2 |= UART_1_RX | UART_1_TX;
 #else /* P3SEL */
       P3SEL |= BIT3 | BIT4;
 #endif /* P3SEL */
@@ -237,7 +237,7 @@ void uart_putc( uint8_t dev_index, const char c ) {
    }
 
    switch( dev_index ) {
-#if QD_UART_SW
+#ifdef QD_UART_SW
    case 0:
       /* UART 0 is always software if present. */
 
@@ -261,7 +261,7 @@ void uart_putc( uint8_t dev_index, const char c ) {
       TA0CCTL0 = OUTMOD0 + CCIE;
 #endif /* QD_UART_SW */
 
-#if QD_UART_HW
+#ifdef QD_UART_HW
    case 1:
 #ifdef IFG2_
       while( !(IFG2 & UCA0TXIFG) );
@@ -314,9 +314,9 @@ void uart_soft_resume( uint8_t index ) {
 
    io_flag_on( 0, PWM_ON );
 
-	mispos_reg( UART_PORT, OUT ) |= mispos_bits_or( UART_TX, UART_RX );
-	mispos_reg( UART_PORT, SEL ) |= mispos_bits_plus( UART_TX, UART_RX );
-	mispos_reg( UART_PORT, DIR ) |= mispos_bits_or( UART_TX );
+	P1OUT |= UART_0_TX | UART_RX;
+	P1SEL |= UART_0_TX | UART_RX;
+	P1DIR |= UART_0_TX;
 
 	/* UART has the timer allll to itself, for now. */
 	TACCTL0 = OUT;
@@ -326,7 +326,7 @@ void uart_soft_resume( uint8_t index ) {
    io_flag_on( index, UART_READY );
 
 #ifdef UART_PRIME_U
-   if( !system_status( STATUS_UART_READY ) ) {
+   if( !io_flag( index, UART_READY ) ) {
       /* U is 01010101, good to establish the connection. */
       /* XXX: This will cause a stack overflow. */
       uart_putc( index, 'U' );
