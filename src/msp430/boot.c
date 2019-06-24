@@ -67,6 +67,10 @@ int main() {
 
 #endif /* DRIVER_CRYSTAL */
 
+   P1DIR |= BIT6; /* XXX */
+   P1OUT &= ~BIT6;
+   P1OUT |= BIT6;
+
    kmain();
    return 0;
 }

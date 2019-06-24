@@ -27,9 +27,6 @@ void kmain() {
    TASK_RETVAL retval = 0;
 #endif /* !SCHEDULE_COOP */
 
-   P1DIR |= BIT6; /* XXX */
-   P1OUT &= ~BIT6;
-
    minit();
    keyboard_init();
    display_init();
@@ -47,7 +44,6 @@ void kmain() {
    /* TODO: Kill task on request in COOP mode. */
 
 #ifndef SCHEDULE_COOP
-   P1OUT |= BIT6;
    while( SYSTEM_SHUTDOWN != g_system_state ) {
       for( active = 0 ; ADHD_TASKS_MAX > active ; active++ ) {
          retval = adhd_call_task( active );

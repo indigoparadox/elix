@@ -40,7 +40,12 @@ CHECKOBJ=check.o check_ether.o check_mem.o check_console.o check_alpha.o check_n
 OBJECTS=$(subst .c,.o,$(SOURCES))
 LDFLAGS=
 
-DRIVERS_COLINUX=colinux/net.o colinux/display.o colinux/keyboard.o
+DRIVERS_COLINUX= \
+	colinux/net.o \
+	colinux/display.o \
+	colinux/keyboard.o \
+	colinux/uart.o
+
 DRIVERS_MSP430=\
 	msp430/display.o \
 	msp430/boot.o \
