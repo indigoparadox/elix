@@ -37,19 +37,12 @@ const struct astring g_str_ready = astring_l( "ready\n" );
 #define REPL_MID_ARG_MAX   20
 
 /* Try to save some stack. */
-union tprintf_spec {
-   int d;
-   char c;
-   uint8_t x;
-   struct astring* a;
-   char* s;
-};
-
 void tprintf( const char* pattern, ... ) {
    va_list args;
    int i = 0, j = 0;
    char last = '\0';
-   union tprintf_spec spec;
+   union mvalue spec;
+   struct astring* astr_spec = NULL;
    uint8_t num_buffer[sizeof( struct astring ) + INT_DIGITS_MAX] = { 0 };
    struct astring* buffer_ptr = (struct astring*)&num_buffer;
    STRLEN_T padding = 0;
@@ -67,10 +60,10 @@ void tprintf( const char* pattern, ... ) {
          /* Conversion specifier encountered. */
          switch( pattern[i] ) {
             case 'a':
-               spec.a = va_arg( args, struct astring* );
+               astr_spec = va_arg( args, struct astring* );
                j = 0;
-               while( '\0' != spec.a->data[j] && spec.a->len > j ) {
-                  tputc( spec.a->data[j++] );
+               while( '\0' != astr_spec->data[j] && astr_spec->len > j ) {
+                  tputc( astr_spec->data[j++] );
                }
                break;
 
@@ -129,7 +122,7 @@ void tprintf( const char* pattern, ... ) {
 
 TASK_RETVAL trepl_task() {
    char c = '\0';
-   struct astring* line;
+   const struct astring* line;
    //struct CHIIPY_TOKEN* token;
    //struct astring* arg;
    uint8_t i = 0;
@@ -156,7 +149,7 @@ TASK_RETVAL trepl_task() {
     * during other programs. Add +1 so there's always a NULL.
     */
    line = alpha_astring(
-      adhd_get_pid(), REPL_MID_LINE, REPL_LINE_SIZE_MAX + 1 );
+      adhd_get_pid(), REPL_MID_LINE, REPL_LINE_SIZE_MAX + 1, NULL );
    //token = mget( pid, REPL_MID_LINE, 30 );
 
    if(
@@ -166,7 +159,7 @@ TASK_RETVAL trepl_task() {
       /* Line would be too long if we accepted this char. */
       display_newline( g_console_dev_index );
       tputs( &g_str_invalid );
-      astring_clear( line );
+      alpha_astring_clear( adhd_get_pid(), REPL_MID_LINE );
       adhd_yield();
       adhd_continue_loop();
    }
@@ -183,12 +176,12 @@ TASK_RETVAL trepl_task() {
          } else {
             tputs( &g_str_ready );
          }
-         astring_clear( line );
+         alpha_astring_clear( adhd_get_pid(), REPL_MID_LINE );
          break;
 
       default:
          //chiipy_lex_tok( c, token );
-         astring_append( line, c );
+         alpha_astring_append( adhd_get_pid(), REPL_MID_LINE, c );
          tputc( c );
          break;
    }

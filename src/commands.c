@@ -19,7 +19,7 @@ static TASK_RETVAL tnet_start( const struct astring* cli ) {
 }
 
 static TASK_RETVAL tnet_rcvd( const struct astring* cli ) {
-   int* received = NULL;
+   const int* received = NULL;
    TASK_PID pid;
 
    pid = adhd_get_pid_by_gid( &g_str_netp );
