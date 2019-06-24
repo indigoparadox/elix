@@ -15,6 +15,8 @@
 #error "Unable to use soft UART when crystal driver is not enabled!"
 #endif /* DRIVER_CRYSTAL */
 
+#define CONSOLE_NEWLINE "\r\n"
+
 /* These are pretty much defined by hardware characteristics, so they can't	*
  * be overridden by config.																	*/
 #define UART_0_TX BIT1

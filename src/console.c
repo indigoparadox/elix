@@ -16,18 +16,18 @@
 
 const char qd_logo[8][16] = {
    "     _____     ",
-   "   .`_   _`.   ",
-   "  / / | | \\ \\  ",
-   " | |  | |  | | ",
-   " | |  | |  | | ",
-   "  \\ \\_| |_/ /  ",
-   "   `._`\\ \\.'   ",
-   "        \\_\\    "
+   "   .`_| |_`.   ",
+   "  / /_| |_\\ \\  ",
+   " |  __| |___|  ",
+   " | |  | |      ",
+   "  \\ \\_| |___   ",
+   "   `._|_____/  ",
+   "               "
 };
 
 uint8_t g_console_flags = 0;
 
-const struct astring g_str_ready = astring_l( "ready\n" );
+const struct astring g_str_ready = astring_l( "ready" CONSOLE_NEWLINE );
 
 /* Memory IDs for console tasks. */
 #define REPL_MID_LINE      1
@@ -133,9 +133,9 @@ TASK_RETVAL trepl_task() {
    if( !(g_console_flags & CONSOLE_FLAG_INITIALIZED) ) {
       for( i = 0 ; 8 > i ; i++ ) {
          tprintf( qd_logo[i] );
-         tputc( '\n' );
+         tprintf( CONSOLE_NEWLINE );
       }
-      tprintf( "QD console v" VERSION "\n" );
+      tprintf( "QD console v" VERSION CONSOLE_NEWLINE );
       tputs( &g_str_ready );
       g_console_flags |= CONSOLE_FLAG_INITIALIZED;
    }
@@ -157,7 +157,7 @@ TASK_RETVAL trepl_task() {
       (('\r' == c || '\n' == c) && 0 == line->len)
    ) {
       /* Line would be too long if we accepted this char. */
-      display_newline( g_console_dev_index );
+      tprintf( CONSOLE_NEWLINE );
       tputs( &g_str_invalid );
       alpha_astring_clear( adhd_get_pid(), REPL_MID_LINE );
       adhd_yield();
@@ -167,12 +167,12 @@ TASK_RETVAL trepl_task() {
    switch( c ) {
       case '\r':
       case '\n':
-         display_newline( g_console_dev_index );
+         tprintf( CONSOLE_NEWLINE );
          retval = do_command( line );
          if( RETVAL_NOT_FOUND == retval ) {
             tputs( &g_str_invalid );
          } else if( RETVAL_BAD_ARGS == retval ) {
-            tprintf( "bad arguments\n" );
+            tprintf( "bad arguments" CONSOLE_NEWLINE );
          } else {
             tputs( &g_str_ready );
          }

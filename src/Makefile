@@ -58,7 +58,6 @@ DRIVERS_MSP430=\
 	msp430/display.o \
 	msp430/boot.o \
 	msp430/net.o \
-	msp430/spi.o \
 	msp430/uart.o \
 	msp430/keyboard.o \
 	msp430/wdt.o
@@ -101,8 +100,9 @@ $(BIN_MSP430): CFLAGS += \
 	-mmcu=msp430g2553 \
 	-DQD_CONSOLE_IN=uart \
 	-DQD_CONSOLE_OUT=uart \
-	-DQD_CONSOLE_IN_IDX=2 \
-	-DQD_CONSOLE_OUT_IDX=2 \
+	-DQD_CONSOLE_IN_IDX=1 \
+	-DQD_CONSOLE_OUT_IDX=1 \
+	-DQD_UART_HW \
 	-DQD_CPU_MHZ=1 \
 	-DQD_SPI \
 	-DQD_UART \
@@ -110,7 +110,7 @@ $(BIN_MSP430): CFLAGS += \
 $(BIN_MSP430): CC := msp430-gcc
 $(BIN_MSP430): STRIP := msp430-strip
 $(BIN_MSP430): OBJDIR := ../obj/msp430
-$(BIN_MSP430): LDFLAGS += -L../../chiipy/src/ -lchiipy
+#$(BIN_MSP430): LDFLAGS += -L../../chiipy/src/ -lchiipy
 
 tests: LDFLAGS += -lpcap $(shell pkg-config --libs check)
 tests: CFLAGS += -DCHECK -g -DQD_PLATFORM=QD_PLATFORM_COLINUX

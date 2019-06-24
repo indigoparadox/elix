@@ -4,7 +4,11 @@
 #include "console.h"
 #include "strings.h"
 
+#ifdef DEBUG
 #include <assert.h>
+#else
+#define assert( x )
+#endif /* DEBUG */
 
 uint16_t alpha_atou( const struct astring* src, uint8_t base ) {
    uint16_t value = 0;
