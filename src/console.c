@@ -127,18 +127,6 @@ void tprintf( const char* pattern, ... ) {
    }
 }
 
-/* TODO: Move net command to net module. */
-/*
-void truncmd( char* line, int line_len ) {
-   if( 0 == mcompare( line, "netr", 4 ) ) {
-      g_net_con_request = NET_REQ_RCVD;
-   } else if( 0 == mcompare( line, "quit", 4 ) ) {
-      g_system_state = SYSTEM_SHUTDOWN;
-   }
-}
-*/
-
-#include <stdio.h>
 TASK_RETVAL trepl_task() {
    char c = '\0';
    struct astring* line;
@@ -159,15 +147,11 @@ TASK_RETVAL trepl_task() {
       g_console_flags |= CONSOLE_FLAG_INITIALIZED;
    }
 
-#ifdef CONSOLE_SERIAL
-   //if( 0 ) {
-#else
    if( !twaitc() ) {
       adhd_yield();
    }
 
    c = tgetc();
-#endif /* CONSOLE_SERIAL */
    /* Dynamically allocate the line buffer so we can clear it from memory
     * during other programs. Add +1 so there's always a NULL.
     */
@@ -191,15 +175,6 @@ TASK_RETVAL trepl_task() {
       case '\r':
       case '\n':
          display_newline( g_console_dev_index );
-         /*if( 0 == alpha_cmp_c( "exit", line, '\n' ) ) {
-            g_system_state = SYSTEM_SHUTDOWN;
-         } else if( 0 == alpha_cmp_c( "net start", line, '\n' ) ) {
-            adhd_launch_task( net_respond_task );
-         } else if( 0 == alpha_cmp_c( "net rcvd", line, '\n' ) ) {
-            net_
-         } else {
-            tputs( &g_str_invalid );
-         }*/
          retval = do_command( line );
          if( RETVAL_NOT_FOUND == retval ) {
             tputs( &g_str_invalid );
@@ -214,10 +189,7 @@ TASK_RETVAL trepl_task() {
       default:
          //chiipy_lex_tok( c, token );
          astring_append( line, c );
-#ifdef CONSOLE_SERIAL
-#else
          tputc( c );
-#endif /* CONSOLE_SERIAL */
          break;
    }
 
