@@ -192,6 +192,7 @@ static struct mvar* mfind( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
          return NULL;
       }
       var = mcreate( sz );
+      assert( NULL != var );
    } else if( 0 < sz ) {
       var = (struct mvar*)&(g_mheap[mheap_addr_iter]);
       if( sz > var->size ) {
@@ -223,9 +224,10 @@ const void* mget( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
    /* Fill out the header. */
    var->pid = pid;
    var->mid = mid;
-   if( 0 < sz ) {
+   if( 0 < sz && 0 == var->size ) {
       var->size = sz;
    }
+   assert( 0 > sz || sz == var->size );
 
    return &(var->data);
 }
@@ -243,6 +245,22 @@ void mset( TASK_PID pid, MEM_ID mid, MEMLEN_T sz, const void* data ) {
    if( NULL != data ) {
       mcopy( var->data, data, sz );
    }
+}
+
+void meditprop(
+   TASK_PID pid, MEM_ID mid, MEMLEN_T offset, MEMLEN_T sz, void* val
+) {
+   struct mvar* var = NULL;
+   uint8_t* bytes = NULL;
+   
+   var = mfind( pid, mid, MGET_NO_CREATE );
+   if( NULL == var ) {
+      return;
+   }
+
+   bytes = &(var->data[offset]);
+   mcopy( bytes, val, sz );
+   
 }
 
 int mincr( TASK_PID pid, MEM_ID mid ) {

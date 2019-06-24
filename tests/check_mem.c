@@ -2,7 +2,6 @@
 #include <check.h>
 #include <stdint.h>
 #include "../src/mem.h"
-#include "../src/console.h"
 
 #include <stdlib.h>
 
@@ -52,10 +51,10 @@ static void setup_mem() {
 
    /* Place the strings on the heap to check. */
    for( i = 0 ; 3 > i ; i++ ) {
-      mem_ptr = mget( CHECK_PID, i + 1, g_chk_len[i] );
+      mem_ptr = (uint8_t*)mget( CHECK_PID, i + 1, g_chk_len[i] );
       ck_assert_ptr_ne( mem_ptr, NULL );
       mcopy( mem_ptr, g_chk_str[i], g_chk_len[i] );
-      ck_assert_str_eq( mem_ptr, g_chk_str[i] );
+      ck_assert_str_eq( (char*)mem_ptr, g_chk_str[i] );
    }
 
    /* Fill up a simulated heap to compare. */
@@ -122,9 +121,9 @@ END_TEST
 START_TEST( test_mget_overwrite ) {
    uint8_t* mem_ptr = NULL;
 
-   mem_ptr = mget( CHECK_PID, _i + 1, g_chk_len[_i] + 5 );
+   mem_ptr = (uint8_t*)mget( CHECK_PID, _i + 1, g_chk_len[_i] + 5 );
    ck_assert_ptr_ne( mem_ptr, NULL );
-   ck_assert_str_eq( mem_ptr, g_chk_str[_i] );
+   ck_assert_str_eq( (char*)mem_ptr, g_chk_str[_i] );
 }
 END_TEST
 

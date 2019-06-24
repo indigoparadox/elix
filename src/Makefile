@@ -36,7 +36,15 @@ SOURCES=\
 	commands.c \
 	ring.c \
 	io.c
-CHECKOBJ=check.o check_ether.o check_mem.o check_console.o check_alpha.o check_net.o
+
+CHECKOBJ=\
+	check.o \
+	check_mem.o \
+#	check_ether.o \
+#	check_console.o \
+#	check_alpha.o \
+#	check_net.o
+
 OBJECTS=$(subst .c,.o,$(SOURCES))
 LDFLAGS=
 
@@ -105,7 +113,7 @@ $(BIN_MSP430): OBJDIR := ../obj/msp430
 $(BIN_MSP430): LDFLAGS += -L../../chiipy/src/ -lchiipy
 
 tests: LDFLAGS += -lpcap $(shell pkg-config --libs check)
-tests: CFLAGS += -DCHECK -g
+tests: CFLAGS += -DCHECK -g -DQD_PLATFORM=QD_PLATFORM_COLINUX
 tests: OBJDIR := ../obj/tests
 
 all:
@@ -139,7 +147,7 @@ $(BIN_X86): $(OBJECTS) x86/display.o x86/net.o x86/keyboard.o kernel.o
 $(BIN_MSP430): $(OBJECTS) $(DRIVERS_MSP430) kernel.o
 	$(CC) -o $@ $(addprefix $(OBJDIR)/,$^) $(CFLAGS) $(LDFLAGS)
 
-tests: $(OBJECTS) $(addprefix $(CHECKSDIR)/,$(CHECKOBJ))
+tests: $(OBJECTS) $(DRIVERS_COLINUX) $(addprefix $(CHECKSDIR)/,$(CHECKOBJ))
 	$(CC) -o $@ $(addprefix $(OBJDIR)/,$(subst $(CHECKSDIR),,$^)) $(LDFLAGS)
 
 %.o: %.c

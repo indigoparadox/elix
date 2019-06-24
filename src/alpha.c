@@ -119,19 +119,47 @@ int16_t alpha_charinstr( char c, const struct astring* string ) {
    return -1;
 }
 
-struct astring* alpha_astring( uint8_t pid, MEM_ID mid, STRLEN_T len ) {
+void alpha_astring_clear( TASK_PID pid, MEM_ID mid ) {
+   meditprop(
+      pid, mid, offsetof( struct astring, len ), sizeof( STRLEN_T ), 0 );
+}
+
+void alpha_astring_append( TASK_PID pid, MEM_ID mid, char c ) {
+   const struct astring* str = NULL;
+   STRLEN_T new_strlen = 0;
+
+   str = mget( pid, mid, sizeof( struct astring ) );
+   if( NULL == str ) {
+      return;
+   }
+
+   if( str->len + 1 < str->sz ) {
+      meditprop(
+         pid, mid, offsetof( struct astring, data  ) + str->len,
+         sizeof( char ), &c );
+      new_strlen = str->len + 1;
+      meditprop(
+         pid, mid, offsetof( struct astring, len  ),
+         sizeof( STRLEN_T ), &new_strlen );
+   }
+}
+
+const struct astring* alpha_astring(
+   uint8_t pid, MEM_ID mid, STRLEN_T len, char* str
+) {
    const struct astring* str_out = NULL;
    
-   mset( pid, mid, sizeof( struct astring ) + len );
-   str_out = mget( pid, mid, sizeof( struct astring + len ) );
+   mset( pid, mid, sizeof( struct astring ) + len, str );
+   str_out = mget( pid, mid, sizeof( struct astring ) + len );
    if( 0 == str_out->sz ) {
-      str_out->sz = len;
+      meditprop(
+         pid, mid, offsetof( struct astring, sz ), sizeof( STRLEN_T ), &len );
    }
 
    return str_out;
 }
 
-struct astring* alpha_astring_list_next( const struct astring* str_in ) {
+const struct astring* alpha_astring_list_next( const struct astring* str_in ) {
    uint8_t* str_out = (uint8_t*)str_in;
 
    str_out += sizeof( struct astring );
