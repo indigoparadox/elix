@@ -303,6 +303,18 @@ START_TEST( test_mset_line ) {
 END_TEST
 #endif
 
+/* Tests: Editing */
+
+START_TEST( test_meditprop ) {
+   const char* test_str = NULL;
+   char test_char = 'q' + _i;
+
+   test_str = mget( CHECK_PID, 7, g_chk_len[4] );
+   meditprop( CHECK_PID, 7, _i, sizeof( char ), &test_char );
+   ck_assert_int_eq( test_str[_i], 'q' + _i );
+}
+END_TEST
+
 Suite* mem_suite( void ) {
    Suite* s;
    TCase* tc_layout;
@@ -310,6 +322,7 @@ Suite* mem_suite( void ) {
    //TCase* tc_set;
    TCase* tc_overwrite;
    //TCase* tc_pid;
+   TCase* tc_edit;
 
    s = suite_create( "mem" );
 
@@ -319,6 +332,7 @@ Suite* mem_suite( void ) {
    tc_shift = tcase_create( "Shift" );
    tc_overwrite = tcase_create( "Overwrite" );
    //tc_pid = tcase_create( "PID" );
+   tc_edit = tcase_create( "Edit" );
 
    /* Tests: Set */
    
@@ -345,9 +359,13 @@ Suite* mem_suite( void ) {
    //tcase_add_test( tc_core, test_mget_pid_match );
    //tcase_add_test( tc_core, test_mset_line );
 
+   /* Tests: Edit */
+   tcase_add_loop_test( tc_edit, test_meditprop, 1, 4 );
+
    suite_add_tcase( s, tc_overwrite );
    suite_add_tcase( s, tc_layout );
    suite_add_tcase( s, tc_shift );
+   suite_add_tcase( s, tc_edit );
 
    return s;
 }

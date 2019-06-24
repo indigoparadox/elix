@@ -155,7 +155,11 @@ static struct mvar* mresize(
    if( 0 < size_diff ) {
       mshift( start, size_diff ); 
       var = (struct mvar*)&(g_mheap[start + size_diff]);
+      var->size = sz;
    }
+
+   assert( 0 != sz );
+   assert( sz == var->size );
 
    return var;
 }
@@ -174,6 +178,7 @@ static struct mvar* mcreate( MEMLEN_T sz ) {
 
    /* Move to the next free spot and reset convenience ptr. */
    out = (struct mvar*)&(g_mheap[g_mheap_top]);
+   out->size = sz;
    mzero( &(out->data), sz );
 
    /* Advance the heap top. */
@@ -192,8 +197,7 @@ static struct mvar* mfind( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
          return NULL;
       }
       var = mcreate( sz );
-      assert( NULL != var );
-   } else if( 0 < sz ) {
+   } else {
       var = (struct mvar*)&(g_mheap[mheap_addr_iter]);
       if( sz > var->size ) {
          var = mresize( var, mheap_addr_iter, sz );
@@ -224,10 +228,10 @@ const void* mget( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
    /* Fill out the header. */
    var->pid = pid;
    var->mid = mid;
-   if( 0 < sz && 0 == var->size ) {
+   /*if( 0 < sz && 0 == var->size ) {
       var->size = sz;
-   }
-   assert( 0 > sz || sz == var->size );
+   }*/
+   assert( 0 >= sz || sz == var->size );
 
    return &(var->data);
 }

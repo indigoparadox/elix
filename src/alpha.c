@@ -4,6 +4,8 @@
 #include "console.h"
 #include "strings.h"
 
+#include <assert.h>
+
 uint16_t alpha_atou( const struct astring* src, uint8_t base ) {
    uint16_t value = 0;
    const char* ch = src->data;
@@ -120,15 +122,16 @@ int16_t alpha_charinstr( char c, const struct astring* string ) {
 }
 
 void alpha_astring_clear( TASK_PID pid, MEM_ID mid ) {
+   STRLEN_T zero = 0;
    meditprop(
-      pid, mid, offsetof( struct astring, len ), sizeof( STRLEN_T ), 0 );
+      pid, mid, offsetof( struct astring, len ), sizeof( STRLEN_T ), &zero );
 }
 
 void alpha_astring_append( TASK_PID pid, MEM_ID mid, char c ) {
    const struct astring* str = NULL;
    STRLEN_T new_strlen = 0;
 
-   str = mget( pid, mid, sizeof( struct astring ) );
+   str = mget( pid, mid, MGET_NO_CREATE );
    if( NULL == str ) {
       return;
    }
@@ -148,6 +151,8 @@ const struct astring* alpha_astring(
    uint8_t pid, MEM_ID mid, STRLEN_T len, char* str
 ) {
    const struct astring* str_out = NULL;
+
+   assert( NULL == str || len > sizeof( str ) );
    
    mset( pid, mid, sizeof( struct astring ) + len, str );
    str_out = mget( pid, mid, sizeof( struct astring ) + len );
