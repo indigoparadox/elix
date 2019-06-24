@@ -2,6 +2,8 @@
 #include "platform.h"
 
 #include "../kernel.h"
+#include "../uart.h"
+#include "../console.h"
 
 #ifdef DRIVER_CRYSTAL
 static void crystal_set_dco( unsigned int delta ) {
@@ -48,10 +50,29 @@ int main() {
 	/* wdt_init(); */
    WDTCTL = WDTPW + WDTHOLD;
 
+   DCOCTL = 0;
+   BCSCTL1 = CALBC1_1MHZ;
+   DCOCTL = CALDCO_1MHZ;
+
+   P1DIR = BIT6;
+   P1OUT = BIT6;
+
+   g_console_dev_index = 1;
+
+#if 0
+   while( 1 ) {
+      //UCA0TXBUF = 'c';
+      uart_putc( 1, 'c' );
+   }
+#endif
+
+
+#if 0
 #ifdef DRIVER_CRYSTAL
 	crystal_set_dco( (QD_CPU_MHZ * 1000000) / 4096 );
 #else
    /* Use pre-calibrated values. */
+   DCOCTL = 0;
 #if QD_CPU_MHZ == 1
    BCSCTL1 = CALBC1_1MHZ;
    DCOCTL = CALDCO_1MHZ;
@@ -67,9 +88,12 @@ int main() {
 
 #endif /* DRIVER_CRYSTAL */
 
-   P1DIR |= BIT6; /* XXX */
-   P1OUT &= ~BIT6;
-   P1OUT |= BIT6;
+#if 0
+   P1DIR = BIT0; /* XXX */
+   //P1OUT &= ~BIT6;
+   P1OUT = BIT0;
+#endif
+#endif
 
    kmain();
    return 0;

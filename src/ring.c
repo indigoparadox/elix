@@ -6,10 +6,11 @@
 void ring_buffer_init(
    struct ring_buffer* info, uint8_t* buffer, uint8_t len
 ) {
-   info->buffer = buffer;
+   /* XXX: FIXME */
+   /*info->buffer = buffer;
    info->start = 0;
    info->end = 0;
-   info->len = len;
+   info->len = len;*/
 }
 
 void ring_buffer_push( uint8_t val, struct ring_buffer* buffer ) {

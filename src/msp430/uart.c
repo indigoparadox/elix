@@ -8,8 +8,8 @@
 
 #include <msp430.h>
 
-#define UART_BIT_CYCLES ((QD_CPU_MHZ * 1000000) / UART_BAUD_RATE)
-#define UART_BIT_CYCLES_DIV2 ((QD_CPU_MHZ * 1000000) / (UART_BAUD_RATE * 2))
+//#define UART_BIT_CYCLES ((QD_CPU_MHZ * 1000000) / UART_BAUD_RATE)
+//#define UART_BIT_CYCLES_DIV2 ((QD_CPU_MHZ * 1000000) / (UART_BAUD_RATE * 2))
 
 #define uart_is_sw( dev_index ) (dev_index != 0)
 
@@ -146,19 +146,18 @@ uint8_t uart_init( uint8_t dev_index ) {
 #ifdef QD_UART_HW
    case 1:
       /* (1) Set state machine to the reset state. */
-      UCA0CTL1 = UCSWRST;
+      UCA0CTL1 |= UCSWRST;
 
       /* (2) Initialize USCI registers. */
       UCA0CTL1 |= UCSSEL_2;               /* CLK = SMCLK */
 
-      /* We get some large numbers above, so we have to truncate them. */
-      UCA0BR0 = (uint8_t)UART_BIT_CYCLES;
-      UCA0BR1 = (uint8_t)(UART_BIT_CYCLES >> 8);                     
-
+      /* Modulation */
 #if QD_CPU_MHZ == 1
-      /* Modulation UCBRSx = 1 */
-      UCA0MCTL = UCBRS0;
+      UCA0BR0 = 104;
+      UCA0BR1 = 0x00;
+      UCA0MCTL = UCBRS_1;
 #elif QD_CPU_MHZ == 8
+      /* TODO */
       UCA0MCTL = UCBRS_3 + UCBRF_0;
 #elif QD_CPU_MHZ == 16
       /* TODO */
@@ -166,6 +165,9 @@ uint8_t uart_init( uint8_t dev_index ) {
 #else
 #error Invalid CPU clock speed specified!
 #endif /* QD_CPU_MHZ */
+
+      /* (4) Clear UCSWRST flag. */
+      UCA0CTL1 &= ~UCSWRST; /* Initialize USCI state machine. */
 
       /* (3) Configure ports. */
 #ifndef P3SEL
@@ -175,16 +177,11 @@ uint8_t uart_init( uint8_t dev_index ) {
       P3SEL |= BIT3 | BIT4;
 #endif /* P3SEL */
 
-      /* (4) Clear UCSWRST flag. */
-      UCA0CTL1 &= ~UCSWRST; /* Initialize USCI state machine. */
-
-      if( 0 == retval ) {
 #ifdef IE2_
-         IE2 |= UCA0RXIE; /* Enable USCI_A0 RX interrupt. */
+      IE2 |= UCA0RXIE; /* Enable USCI_A0 RX interrupt. */
 #else /* IE2_ */
-         UCA0IE |= UCTXIE;
+      UCA0IE |= UCTXIE;
 #endif /* IE2_ */
-      }
 
       break;
 
@@ -233,7 +230,7 @@ void uart_putc( uint8_t dev_index, const char c ) {
 
    /* Detect if UART is paused. */
    if( !io_flag( dev_index, UART_READY ) ) {
-      return;
+      //return;
    }
 
    switch( dev_index ) {

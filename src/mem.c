@@ -16,7 +16,11 @@
 #endif /* MEM_PRINTF_TRACE */
 #endif /* DEBUG */
 
+#ifdef DEBUG
 #include <assert.h>
+#else
+#define assert( x )
+#endif /* DEBUG */
 
 extern uint8_t* heap;
 
