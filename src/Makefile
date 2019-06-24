@@ -80,15 +80,17 @@ $(BIN_X86): OBJDIR := ../obj/os
 $(BIN_X86): LDFLAGS := 
 
 $(BIN_MSP430): CFLAGS += \
+	-g3 \
+	-O0 \
+	-ggdb \
+	-gdwarf-2 \
 	-DQD_PLATFORM=QD_PLATFORM_MSP430 \
 	-mmcu=msp430g2553 \
 	-DQD_CONSOLE_IN=uart \
 	-DQD_CONSOLE_OUT=uart \
 	-DQD_CONSOLE_IN_IDX=2 \
 	-DQD_CONSOLE_OUT_IDX=2 \
-	-DQD_UART_HW \
-	-Os \
-	-DQD_CPU_MHZ=16 \
+	-DQD_CPU_MHZ=1 \
 	-DQD_SPI \
 	-DQD_UART \
 	-DQD_WDT_DISABLED
