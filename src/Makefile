@@ -40,6 +40,7 @@ SOURCES=\
 CHECKOBJ=\
 	check.o \
 	check_mem.o \
+	check_ring.o
 #	check_ether.o \
 #	check_console.o \
 #	check_alpha.o \

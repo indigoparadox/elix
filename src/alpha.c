@@ -158,7 +158,7 @@ const struct astring* alpha_astring(
 
    assert( NULL == str || len > sizeof( str ) );
    
-   mset( pid, mid, sizeof( struct astring ) + len, str );
+   //mset( pid, mid, sizeof( struct astring ) + len, str );
    str_out = mget( pid, mid, sizeof( struct astring ) + len );
    if( 0 == str_out->sz ) {
       meditprop(

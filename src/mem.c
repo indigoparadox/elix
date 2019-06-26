@@ -271,6 +271,21 @@ void meditprop(
    
 }
 
+void mgetprop(
+   TASK_PID pid, MEM_ID mid, MEMLEN_T offset, MEMLEN_T sz, void* dest
+) {
+   struct mvar* var = NULL;
+   
+   var = mfind( pid, mid, MGET_NO_CREATE );
+   if( NULL == var ) {
+      return;
+   }
+
+   mcopy( dest, &(var->data[offset]), sz );
+   
+}
+
+
 int mincr( TASK_PID pid, MEM_ID mid ) {
    struct mvar* var = NULL;
    int* iptr = NULL;
