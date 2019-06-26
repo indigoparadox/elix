@@ -54,6 +54,8 @@ int mget_pos( int pid, int mid );
 void minit();
 MEMLEN_T get_mem_used();
 const void* mget( TASK_PID pid, MEM_ID mid, MEMLEN_T sz );
+void mgetprop(
+   TASK_PID pid, MEM_ID mid, MEMLEN_T offset, MEMLEN_T sz, void* dest );
 void mset( TASK_PID pid, MEM_ID mid, MEMLEN_T sz, const void* data );
 void mzero( void* dest, int sz );
 int mcopy( void* dest, const void* src, int sz );

@@ -4,6 +4,12 @@
 
 /* = Display Stuff = */
 
+#define MAIN_PID 1
+
+#define UART_MID_BASE 100
+
+#define UART_BUFFER_SZ 10
+
 #define QD_PLATFORM_COLINUX   1
 #define QD_PLATFORM_X86       2
 #define QD_PLATFORM_MSP430    3

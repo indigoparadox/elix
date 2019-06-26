@@ -305,13 +305,38 @@ END_TEST
 
 /* Tests: Editing */
 
+static void setup_medit() {
+   minit();
+
+   mset( CHECK_PID, 8, g_chk_len[0], &(g_chk_str[0]) );
+}
+
+static void teardown_medit() {
+
+}
+
 START_TEST( test_meditprop ) {
    const char* test_str = NULL;
    char test_char = 'q' + _i;
 
-   test_str = mget( CHECK_PID, 7, g_chk_len[4] );
-   meditprop( CHECK_PID, 7, _i, sizeof( char ), &test_char );
+   test_str = mget( CHECK_PID, 8, g_chk_len[0] );
+   ck_assert_ptr_ne( test_str, NULL );
+   meditprop( CHECK_PID, 8, _i, sizeof( char ), &test_char );
    ck_assert_int_eq( test_str[_i], 'q' + _i );
+}
+END_TEST
+
+START_TEST( test_mgetprop ) {
+   char* test_str = NULL;
+   char get_prop_c = '\0';
+
+   test_str = (char*)mget( CHECK_PID, 8, MGET_NO_CREATE );
+   ck_assert_ptr_ne( test_str, NULL );
+
+   mgetprop( CHECK_PID, 8, _i, sizeof( char ), &get_prop_c );
+
+   ck_assert_int_eq( test_str[_i], get_prop_c );
+   ck_assert_int_ne( get_prop_c, '\0' );
 }
 END_TEST
 
@@ -360,7 +385,9 @@ Suite* mem_suite( void ) {
    //tcase_add_test( tc_core, test_mset_line );
 
    /* Tests: Edit */
+   tcase_add_checked_fixture( tc_overwrite, setup_medit, teardown_medit );
    tcase_add_loop_test( tc_edit, test_meditprop, 1, 4 );
+   tcase_add_loop_test( tc_edit, test_mgetprop, 1, 4 );
 
    suite_add_tcase( s, tc_overwrite );
    suite_add_tcase( s, tc_layout );
