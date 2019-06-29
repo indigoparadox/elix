@@ -19,6 +19,7 @@ typedef uint8_t TASK_RETVAL;
 typedef TASK_RETVAL (*ADHD_TASK)();
 
 struct adhd_task;
+struct astring;
 
 #define TASK_PID_INVALID -1
 
@@ -29,7 +30,6 @@ struct adhd_task;
 #define RETVAL_BAD_ARGS 252
 
 #include "mem.h"
-#include "alpha.h"
 
 #ifdef SCHEDULE_COOP
 

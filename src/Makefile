@@ -36,7 +36,16 @@ SOURCES=\
 	commands.c \
 	ring.c \
 	io.c
-CHECKOBJ=check.o check_ether.o check_mem.o check_console.o check_alpha.o check_net.o
+
+CHECKOBJ=\
+	check.o \
+	check_mem.o \
+	check_ring.o
+#	check_ether.o \
+#	check_console.o \
+#	check_alpha.o \
+#	check_net.o
+
 OBJECTS=$(subst .c,.o,$(SOURCES))
 LDFLAGS=
 
@@ -50,7 +59,6 @@ DRIVERS_MSP430=\
 	msp430/display.o \
 	msp430/boot.o \
 	msp430/net.o \
-	msp430/spi.o \
 	msp430/uart.o \
 	msp430/keyboard.o \
 	msp430/wdt.o
@@ -93,8 +101,9 @@ $(BIN_MSP430): CFLAGS += \
 	-mmcu=msp430g2553 \
 	-DQD_CONSOLE_IN=uart \
 	-DQD_CONSOLE_OUT=uart \
-	-DQD_CONSOLE_IN_IDX=2 \
-	-DQD_CONSOLE_OUT_IDX=2 \
+	-DQD_CONSOLE_IN_IDX=1 \
+	-DQD_CONSOLE_OUT_IDX=1 \
+	-DQD_UART_HW \
 	-DQD_CPU_MHZ=1 \
 	-DQD_SPI \
 	-DQD_UART \
@@ -102,10 +111,10 @@ $(BIN_MSP430): CFLAGS += \
 $(BIN_MSP430): CC := msp430-gcc
 $(BIN_MSP430): STRIP := msp430-strip
 $(BIN_MSP430): OBJDIR := ../obj/msp430
-$(BIN_MSP430): LDFLAGS += -L../../chiipy/src/ -lchiipy
+#$(BIN_MSP430): LDFLAGS += -L../../chiipy/src/ -lchiipy
 
 tests: LDFLAGS += -lpcap $(shell pkg-config --libs check)
-tests: CFLAGS += -DCHECK -g
+tests: CFLAGS += -DCHECK -g -DQD_PLATFORM=QD_PLATFORM_COLINUX
 tests: OBJDIR := ../obj/tests
 
 all:
@@ -139,7 +148,7 @@ $(BIN_X86): $(OBJECTS) x86/display.o x86/net.o x86/keyboard.o kernel.o
 $(BIN_MSP430): $(OBJECTS) $(DRIVERS_MSP430) kernel.o
 	$(CC) -o $@ $(addprefix $(OBJDIR)/,$^) $(CFLAGS) $(LDFLAGS)
 
-tests: $(OBJECTS) $(addprefix $(CHECKSDIR)/,$(CHECKOBJ))
+tests: $(OBJECTS) $(DRIVERS_COLINUX) $(addprefix $(CHECKSDIR)/,$(CHECKOBJ))
 	$(CC) -o $@ $(addprefix $(OBJDIR)/,$(subst $(CHECKSDIR),,$^)) $(LDFLAGS)
 
 %.o: %.c

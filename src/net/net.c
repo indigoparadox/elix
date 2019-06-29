@@ -34,7 +34,6 @@ uint8_t net_respond_arp_request(
    int arp_sz = frame_len - ether_get_header_len( frame, frame_len );
    uint8_t retval = 0;
    uint8_t dest_mac[6];
-   int* responded = 0;
 
    arp_len = arp_respond( arp, arp_sz, NULL, 0,
       g_src_mac, ETHER_ADDRLEN, g_src_ip, ETHER_ADDRLEN_IPV4 );
@@ -42,8 +41,7 @@ uint8_t net_respond_arp_request(
       goto cleanup;
    }
 
-   responded = mget( pid, NET_MID_RESPONDED, sizeof( int ) );
-   (*responded)++;
+   mincr( pid, NET_MID_RESPONDED );
 
 #ifdef NET_CON_ECHO
    tputs( g_str_responding );
@@ -76,23 +74,34 @@ uint8_t net_respond_arp(
    return ARP_INVALID_PACKET;
 }
 
+static bool net_create_socket() {
+   NET_SOCK sock_tmp;
+
+   sock_tmp = (NET_SOCK*)net_open_socket( g_ifname );
+   if( NULL == sock_tmp ) {
+      return true;
+   }
+
+   mset( adhd_get_pid(), NET_MID_SOCKET, sizeof( NET_SOCK ), &sock_tmp );
+
+   return false;
+}
+
 TASK_RETVAL net_respond_task() {
    struct ether_frame frame;
    int frame_len = 0;
-   NET_SOCK* socket = NULL;
-   int* received = NULL;
+   const NET_SOCK* socket = NULL;
 
    adhd_task_setup();
 
    adhd_set_gid( &g_str_netp );
 
+   /* Try to get the socket. If we fail, create it and continue. */
    socket = mget( adhd_get_pid(), NET_MID_SOCKET, sizeof( NET_SOCK ) );
-   if( NULL == *socket ) {
-      *socket = net_open_socket( g_ifname );
-      if( NULL == *socket ) {
-         tprintf( "no socket\n" );
-         adhd_exit_task();
-      }
+   if( NULL == *socket && net_create_socket() ) {
+      /* Couldn't create it. */
+      tprintf( "no socket\n" );
+      adhd_exit_task();
    }
 
    frame_len = 
@@ -102,8 +111,7 @@ TASK_RETVAL net_respond_task() {
       adhd_continue_loop();
    }
 
-   received = mget( adhd_get_pid(), NET_MID_RECEIVED, sizeof( int ) );
-   (*received)++;
+   mincr( adhd_get_pid(), NET_MID_RECEIVED );
 
 #ifdef NET_CON_ECHO
    net_print_frame( &frame, frame_len );

@@ -2,6 +2,8 @@
 #define ADHD_C
 #include "adhd.h"
 
+#include "alpha.h"
+
 #include <stddef.h>
 
 /*

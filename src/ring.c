@@ -3,35 +3,87 @@
 
 #include "io.h"
 
-void ring_buffer_init(
-   struct ring_buffer* info, uint8_t* buffer, uint8_t len
-) {
-   info->buffer = buffer;
-   info->start = 0;
-   info->end = 0;
-   info->len = len;
+#ifdef DEBUG
+#include <assert.h>
+#else
+#define assert( x )
+#endif /* DEBUG */
+
+const struct ring_buffer* ring_buffer( uint8_t pid, MEM_ID mid, MEMLEN_T sz ) {
+   const struct ring_buffer* rb = NULL;
+
+   // mset( pid, mid, sizeof( struct ring_buffer ) + sz, NULL );
+   rb = mget( pid, mid, sizeof( struct ring_buffer ) + sz );
+   if( 0 == rb->sz ) {
+      meditprop(
+         pid, mid,
+         offsetof( struct ring_buffer, sz ), sizeof( MEMLEN_T ), &sz );
+   }
+
+   return rb;
 }
 
-void ring_buffer_push( uint8_t val, struct ring_buffer* buffer ) {
-   buffer->buffer[buffer->end++] = val;
-	if( buffer->len <= buffer->end ) {
+void ring_buffer_push( uint8_t pid, MEM_ID mid, char val ) {
+   MEMLEN_T start = 0, sz = 0, end = 0;
+
+   mget( pid, mid, sizeof( struct ring_buffer ) + sz );
+
+   mgetprop( pid, mid, offsetof( struct ring_buffer, sz ),
+      sizeof( MEMLEN_T ), &sz );
+   mgetprop( pid, mid, offsetof( struct ring_buffer, start ),
+      sizeof( MEMLEN_T ), &start );
+   mgetprop( pid, mid, offsetof( struct ring_buffer, end ),
+      sizeof( MEMLEN_T ), &end );
+
+   /* Append the val onto the end. */
+   meditprop(
+      pid, mid,
+      offsetof( struct ring_buffer, buffer ) + end,
+      sizeof( char ), &val );
+
+	if( end >= sz ) {
 		/* Circle around. */
-		buffer->end = 0;
-	}
+      end = 0;
+      meditprop(
+         pid, mid,
+         offsetof( struct ring_buffer, end ), sizeof( MEMLEN_T ), &end );
+	} else {
+      end++;
+      meditprop(
+         pid, mid,
+         offsetof( struct ring_buffer, end ), sizeof( MEMLEN_T ), &end );
+   }
 
-	if( buffer->end + 1 == buffer->start ) {
+	if( end + 1 == start ) {
 		/* Overwrite old data. */
-		buffer->start++;
+      start++;
+      meditprop(
+         pid, mid,
+         offsetof( struct ring_buffer, start ), sizeof( MEMLEN_T ), &start );
 	}
 }
 
-uint8_t ring_buffer_pop( struct ring_buffer* buffer ) {
-   uint8_t out;
-	out = buffer->buffer[buffer->start++];
-	if( buffer->len <= buffer->start ) {
+char ring_buffer_pop( uint8_t pid, MEM_ID mid ) {
+   MEMLEN_T start = 0, end = 0, sz = 0;
+   char out;
+
+   mgetprop( pid, mid, offsetof( struct ring_buffer, start ),
+      sizeof( MEMLEN_T ), &start );
+   mgetprop( pid, mid, offsetof( struct ring_buffer, end ),
+      sizeof( MEMLEN_T ), &end );
+   assert( start != end );
+   mgetprop( pid, mid, offsetof( struct ring_buffer, sz ),
+      sizeof( MEMLEN_T ), &sz );
+   mgetprop( pid, mid, offsetof( struct ring_buffer, buffer ) + start,
+      sizeof( char ), &out );
+   start++;
+   if( start >= sz ) {
 		/* Wrap around. */
-		buffer->start = 0;
-	}
+      start = 0;
+   }
+   meditprop( pid, mid, offsetof( struct ring_buffer, start ),
+      sizeof( MEMLEN_T ), &start );
+
    return out;
 }
 

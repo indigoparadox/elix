@@ -4,18 +4,18 @@
 
 #include <stdint.h>
 
+#include "mem.h"
+
 struct ring_buffer {
-   uint8_t* buffer;
-   uint8_t start;
-   uint8_t end;
-   uint8_t len;
+   MEMLEN_T sz;
+   MEMLEN_T start;
+   MEMLEN_T end;
+   char buffer[];
 };
 
-void ring_buffer_init(
-   struct ring_buffer* info, uint8_t* buffer, uint8_t len
-);
-void ring_buffer_push( uint8_t val, struct ring_buffer* buffer );
-uint8_t ring_buffer_pop( struct ring_buffer* buffer );
+const struct ring_buffer* ring_buffer( uint8_t pid, MEM_ID mid, MEMLEN_T sz );
+void ring_buffer_push( uint8_t pid, MEM_ID mid, char val );
+char ring_buffer_pop( uint8_t pid, MEM_ID mid );
 void ring_buffer_wait( struct ring_buffer* buffer );
 
 #endif /* RING_H */
