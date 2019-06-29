@@ -43,6 +43,10 @@
 #define tputc( c ) display_putc( g_console_dev_index, c )
 #endif /* QD_CONSOLE_OUT */
 
+#ifndef CONSOLE_NEWLINE
+#define CONSOLE_NEWLINE "\n"
+#endif /* CONSOLE_NEWLINE */
+
 #define console_const( id, str ) astring_const( id, str )
 
 #define tputs( str ) tprintf( "%a", str )

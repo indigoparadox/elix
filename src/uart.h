@@ -21,10 +21,6 @@
 #define UART_TX_BUFFER_LENGTH 20
 #endif /* UART_TX_BUFFER_LENGTH */
 
-#ifndef UART_COUNT
-#define UART_COUNT 1
-#endif /* UART_COUNT */
-
 #define UART_INDEX_ALL 0
 
 #define UART_PRESENT  0x1

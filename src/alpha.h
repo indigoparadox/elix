@@ -24,14 +24,6 @@ struct astring {
 #define PPCONCAT( a, b ) PPCONCAT_I( a, b )
 
 #define astring_l( str ) { sizeof( str ), sizeof( str ), str }
-#define astring_append( str, c ) \
-   if( str->len + 1 < str->sz ) { \
-      str->data[str->len] = c; \
-      str->len++; \
-   }
-#define astring_clear( str ) \
-   mzero( str->data, str->sz ); \
-   str->len = 0;
 #define astring_sizeof( str ) \
    (sizeof( struct astring ) + sizeof( str ))
 
@@ -65,8 +57,11 @@ int16_t alpha_utoa(
    uint16_t num, struct astring* str, STRLEN_T idx,
    STRLEN_T zero_pad_spaces, uint8_t base );
 int16_t alpha_charinstr( char c, const struct astring* string );
-struct astring* alpha_astring( uint8_t pid, MEM_ID mid, STRLEN_T len );
-struct astring* alpha_astring_list_next( const struct astring* );
+void alpha_astring_append( TASK_PID pid, MEM_ID mid, char c );
+void alpha_astring_clear( TASK_PID pid, MEM_ID mid );
+const struct astring* alpha_astring(
+   uint8_t pid, MEM_ID mid, STRLEN_T len, char* str );
+const struct astring* alpha_astring_list_next( const struct astring* );
 STRLEN_T alpha_cmp(
    const struct astring* str1, const struct astring* str2, char sep
 );

@@ -8,32 +8,27 @@
 
 #include <msp430.h>
 
-#define UART_BIT_CYCLES ((QD_CPU_MHZ * 1000000) / UART_BAUD_RATE)
-#define UART_BIT_CYCLES_DIV2 ((QD_CPU_MHZ * 1000000) / (UART_BAUD_RATE * 2))
+//#define UART_BIT_CYCLES ((QD_CPU_MHZ * 1000000) / UART_BAUD_RATE)
+//#define UART_BIT_CYCLES_DIV2 ((QD_CPU_MHZ * 1000000) / (UART_BAUD_RATE * 2))
 
-#define uart_is_sw( dev_index ) (dev_index != 0)
+#define uart_is_sw( dev_index ) (dev_index == 0)
 
+static unsigned char uart_rx_buffer[UART_MAX_COUNT] = { '\0' };
+
+#if 0
 #ifdef UART_RX_BUFFER_DISABLED
 static unsigned char uart_rx_buffer[UART_COUNT] = { '\0' };
 #else
 static unsigned char rx_buffer_array[UART_COUNT][UART_RX_BUFFER_LENGTH];
 struct ring_buffer rx_buffer_info[UART_COUNT];
 #endif /* UART_RX_BUFFER_DISABLED */
+#endif
 
 #if defined( QD_UART_SW ) || defined( QD_UART_HW )
 static bool uart_process_rx( uint8_t index, unsigned char c ) {
-#ifdef UART_ANTI_NEW_LINE
-	if( UART_ANTI_NEW_LINE == c ) {
-		/* Skip cleanup, we don't want to wake up. */
-      return FALSE;
-	}
-#endif /* UART_ANTI_NEW_LINE */
 
-#ifdef UART_RX_BUFFER_DISABLED
    uart_rx_buffer[index] = c;
-#else
-   ring_buffer_push( c, &(rx_buffer_info[index]) );
-#endif /* UART_RX_BUFFER_DISABLED */
+   //ring_buffer_push( MAIN_PID, UART_MID_BASE + index, c );
 
 	return true;
 }
@@ -111,12 +106,9 @@ __interrupt void USCI0RX_ISR( void ) {
    for( i = 0 ; UART_MAX_COUNT > i ; i++ ) {
       if( !io_flag( i, UART_READY ) ) {
          continue;
-      }
-      if( !io_flag( i, UART_READY ) ) {
-         continue;
       } else if( uart_process_rx( i, rx_in ) ) {
          /* Wake on exit. */
-         __bic_SR_register_on_exit( LPM0_bits );
+         //__bic_SR_register_on_exit( LPM0_bits );
       }
    }
 }
@@ -126,6 +118,7 @@ __interrupt void USCI0RX_ISR( void ) {
 uint8_t uart_init( uint8_t dev_index ) {
 	uint8_t retval = 0;
 
+#if 0
 #ifndef UART_RX_BUFFER_DISABLED
    ring_buffer_init(
       &(rx_buffer_info[dev_index]),
@@ -133,6 +126,7 @@ uint8_t uart_init( uint8_t dev_index ) {
 		UART_RX_BUFFER_LENGTH
    );
 #endif /* UART_RX_BUFFER_DISABLED */
+#endif
 
    switch( dev_index ) {
 #ifdef QD_UART_SW
@@ -145,20 +139,22 @@ uint8_t uart_init( uint8_t dev_index ) {
 
 #ifdef QD_UART_HW
    case 1:
+
+      //ring_buffer( MAIN_PID, UART_MID_BASE + 1, UART_BUFFER_SZ );  
+
       /* (1) Set state machine to the reset state. */
-      UCA0CTL1 = UCSWRST;
+      UCA0CTL1 |= UCSWRST;
 
       /* (2) Initialize USCI registers. */
       UCA0CTL1 |= UCSSEL_2;               /* CLK = SMCLK */
 
-      /* We get some large numbers above, so we have to truncate them. */
-      UCA0BR0 = (uint8_t)UART_BIT_CYCLES;
-      UCA0BR1 = (uint8_t)(UART_BIT_CYCLES >> 8);                     
-
+      /* Modulation */
 #if QD_CPU_MHZ == 1
-      /* Modulation UCBRSx = 1 */
-      UCA0MCTL = UCBRS0;
+      UCA0BR0 = 104;
+      UCA0BR1 = 0x00;
+      UCA0MCTL = UCBRS_1;
 #elif QD_CPU_MHZ == 8
+      /* TODO */
       UCA0MCTL = UCBRS_3 + UCBRF_0;
 #elif QD_CPU_MHZ == 16
       /* TODO */
@@ -166,6 +162,9 @@ uint8_t uart_init( uint8_t dev_index ) {
 #else
 #error Invalid CPU clock speed specified!
 #endif /* QD_CPU_MHZ */
+
+      /* (4) Clear UCSWRST flag. */
+      UCA0CTL1 &= ~UCSWRST; /* Initialize USCI state machine. */
 
       /* (3) Configure ports. */
 #ifndef P3SEL
@@ -175,16 +174,11 @@ uint8_t uart_init( uint8_t dev_index ) {
       P3SEL |= BIT3 | BIT4;
 #endif /* P3SEL */
 
-      /* (4) Clear UCSWRST flag. */
-      UCA0CTL1 &= ~UCSWRST; /* Initialize USCI state machine. */
-
-      if( 0 == retval ) {
 #ifdef IE2_
-         IE2 |= UCA0RXIE; /* Enable USCI_A0 RX interrupt. */
+      IE2 |= UCA0RXIE; /* Enable USCI_A0 RX interrupt. */
 #else /* IE2_ */
-         UCA0IE |= UCTXIE;
+      UCA0IE |= UCTXIE;
 #endif /* IE2_ */
-      }
 
       break;
 
@@ -207,26 +201,45 @@ void uart_clear() {
 #endif /* UART_BUFFER_CLEARABLE */
 
 uint8_t uart_hit( uint8_t dev_index ) {
-   return 0; /* TODO */
+/*
+   const struct ring_buffer* rb = NULL;
+
+   rb = mget( MAIN_PID, UART_MID_BASE + dev_index, MGET_NO_CREATE );
+   if( NULL != rb && rb->start != rb->end ) {
+      return 1;
+   }
+
+   return 0;
+   */
+   if( IFG2 & UCA0RXIFG ) {
+      uart_rx_buffer[dev_index] = UCA0RXBUF;
+      return uart_rx_buffer[dev_index];
+   } else {
+      return '\0';
+   }
+   //return uart_rx_buffer[dev_index];
 }
 
 unsigned char uart_getc( uint8_t dev_index ) {
-#ifdef UART_RX_BUFFER_DISABLED
+//#ifdef UART_RX_BUFFER_DISABLED
    unsigned char out;
-   while( '\0' == uart_rx_buffer[dev_index] ) {
-      irqal_call_handlers();
+   //while( '\0' == uart_rx_buffer[dev_index] ) {
+      //irqal_call_handlers();
       /* Suspend. */
-      __bis_SR_register( GIE + LPM0_bits )
-   }
+      //__bis_SR_register( GIE + LPM0_bits )
+  // }
+   //out = uart_rx_buffer[dev_index];
+   //uart_rx_buffer[dev_index] = '\0';
+   //return out;
    out = uart_rx_buffer[dev_index];
    uart_rx_buffer[dev_index] = '\0';
    return out;
-#else
+//#else
    /* Wait until an actual character is present. */
-   ring_buffer_wait( &(rx_buffer_info[dev_index]) );
+   //ring_buffer_wait( &(rx_buffer_info[dev_index]) );
 
-   return (unsigned char)ring_buffer_pop( &(rx_buffer_info[dev_index]) );
-#endif /* UART_RX_BUFFER_DISABLED */
+   //return (unsigned char)ring_buffer_pop( MAIN_PID, UART_MID_BASE + dev_index );
+//#endif /* UART_RX_BUFFER_DISABLED */
 }
 
 void uart_putc( uint8_t dev_index, const char c ) {

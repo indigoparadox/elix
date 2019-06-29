@@ -21,7 +21,7 @@ const struct astring g_str_stopping = astring_l( "stopping...\n" );
 
 #include <stdio.h>
 void kmain() {
-   //uint8_t i = 0;
+   uint8_t i = 0;
 #ifndef SCHEDULE_COOP
    TASK_PID active = 0;
    TASK_RETVAL retval = 0;
@@ -30,12 +30,9 @@ void kmain() {
    minit();
    keyboard_init();
    display_init();
-   /*
    for( i = 0 ; 4 > i ; i++ ) {
       uart_init( i );
    }
-   */
-   uart_init( 1 );
    net_init();
 
    adhd_start();
