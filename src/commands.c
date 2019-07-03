@@ -99,13 +99,14 @@ static TASK_RETVAL trepl_sys( const struct astring* cli ) {
 
 static TASK_RETVAL tdisk_dir( const struct astring* cli ) {
    uint16_t offset = 0;
-   char filename[12] = { 0 };
+   char filename[13] = { 0 };
 
    offset = mfat_get_root_dir_offset( 0, 0 );
    
    do {
       mfat_get_dir_entry_name( filename, offset, 0, 0 );
-      tprintf( "- %s\n", filename );
+      tprintf( "- %s\t%d\n", filename,
+         mfat_get_dir_entry_cyear( offset, 0, 0 ) + 1980 );
       offset = mfat_get_dir_entry_next_offset( offset, 0, 0 );
    } while( 0 < offset );
 
