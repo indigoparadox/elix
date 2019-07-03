@@ -22,7 +22,7 @@ MKVFAT=/sbin/mkfs.vfat
 SYSLINUX=syslinux
 MCOPY=mcopy
 
-CFLAGS=-Wall -Werror -DUSE_CONSOLE -DUSE_NET -I../../chiipy/src
+CFLAGS=-Wall -Werror -DUSE_CONSOLE -DUSE_NET -DUSE_DISK -I../../chiipy/src
 SOURCES=\
 	net/tcp.c \
 	net/ether.c \

@@ -1,4 +1,6 @@
 
+#ifdef USE_DISK
+
 #include "mfat.h"
 #include "disk.h"
 
@@ -131,4 +133,6 @@ uint8_t mfat_get_dir_entry_cluster(
 ) {
    return 0;
 }
+
+#endif /* USE_DISK */
 
