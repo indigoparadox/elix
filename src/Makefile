@@ -35,7 +35,8 @@ SOURCES=\
 	alpha.c \
 	commands.c \
 	ring.c \
-	io.c
+	io.c \
+	mfat.c
 
 CHECKOBJ=\
 	check.o \
@@ -53,7 +54,8 @@ DRIVERS_COLINUX= \
 	colinux/net.o \
 	colinux/display.o \
 	colinux/keyboard.o \
-	colinux/uart.o
+	colinux/uart.o \
+	colinux/disk.o
 
 DRIVERS_MSP430=\
 	msp430/display.o \
@@ -61,7 +63,8 @@ DRIVERS_MSP430=\
 	msp430/net.o \
 	msp430/uart.o \
 	msp430/keyboard.o \
-	msp430/wdt.o
+	msp430/wdt.o \
+	msp430/disk.o
 
 ISODIRX86=../isodir/x86
 CHECKSDIR=../tests

@@ -1,5 +1,5 @@
 
-#include "disk.h"
+#include "../disk.h"
 
 uint8_t* g_disk_map = NULL;
 

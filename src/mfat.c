@@ -2,39 +2,13 @@
 #include "mfat.h"
 #include "disk.h"
 
+#ifdef DEBUG
 #include <assert.h>
+#else
+#define assert( x )
+#endif /* DEBUG */
+
 #include <stdbool.h>
-
-/*
-struct mfat_bpb {
-   uint8_t  boot_block[3];
-   char     banner[8];
-   uint16_t bytes_per_sector;
-   uint8_t  sectors_per_cluster;
-   uint16_t reserved_sectors;
-   uint8_t  fat_count;
-   uint16_t max_dir_ids;
-   uint16_t sectors_per_fs;
-   uint8_t  fat_id;
-   uint16_t sectors_per_fat;
-   uint16_t sectors_per_track;
-   uint16_t heads;
-   uint32_t hidden_sectors;
-   uint32_t logical_sectors_ext;
-} __attribute__( (packed) );
-
-struct mfat_ebpb {
-   struct mfat_bpb bpb;
-   uint8_t  drive_num;
-   uint8_t  unused37;
-   uint8_t  e_boot_sig;
-   uint32_t serial;
-   char     label[11];
-   char     system_id[8];
-   uint8_t  unused62[448];
-   uint16_t boot_sig;
-} __attribute__( (packed) );
-*/
 
 #define MFAT_OFFSET_FAT 512
 
