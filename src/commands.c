@@ -94,13 +94,49 @@ static TASK_RETVAL trepl_sys( const struct astring* cli ) {
    return RETVAL_BAD_ARGS;
 }
 
+#ifdef USE_DISK
+
+static TASK_RETVAL tdisk_dir( const struct astring* cli ) {
+
+
+   return RETVAL_OK;
+}
+
+#define DISK_COMMANDS_COUNT 1
+const struct command g_disk_commands[DISK_COMMANDS_COUNT] = {
+   { "dir", tdisk_dir }
+};
+
+static TASK_RETVAL trepl_disk( const struct astring* cli ) {
+   const char* tok;
+   uint8_t i = 0;
+
+   tok = alpha_tok( cli, ' ', 1 );
+   if( NULL == tok ) {
+      return 1;
+   }
+
+   for( i = 0 ; DISK_COMMANDS_COUNT > i ; i++ ) {
+      if( 0 == alpha_cmp_cc(
+         tok, CMD_MAX_LEN, g_disk_commands[i].command, CMD_MAX_LEN, ' '
+      ) ) {
+         return g_disk_commands[i].callback( cli );
+      }
+   }
+
+   return RETVAL_BAD_ARGS;
+}
+
+#endif /* USE_DISK */
+
 /**
  * Map typed commands to callbacks.
  */
-#define COMMANDS_COUNT 2
+#define COMMANDS_COUNT 3
 static const struct command g_commands[COMMANDS_COUNT] = {
    { "sys", trepl_sys },
-   { "net", trepl_net }
+   { "net", trepl_net },
+   { "dsk", trepl_disk }
 };
 
 TASK_RETVAL do_command( const struct astring* cli ) {

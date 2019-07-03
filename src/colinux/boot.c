@@ -1,6 +1,8 @@
 
 #include "../kernel.h"
+#include "../disk.h"
 
+#include <assert.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <unistd.h>
