@@ -100,12 +100,25 @@ static TASK_RETVAL trepl_sys( const struct astring* cli ) {
 static TASK_RETVAL tdisk_dir( const struct astring* cli ) {
    uint16_t offset = 0;
    char filename[13] = { 0 };
+   uint8_t attrib = 0;
+   char attrib_str[5] = { 0 };
 
    offset = mfat_get_root_dir_offset( 0, 0 );
    
    do {
       mfat_get_dir_entry_name( filename, offset, 0, 0 );
-      tprintf( "- %s\t%d\n", filename,
+
+      /* Convert the attribs to a printable format. */
+      attrib = mfat_get_dir_entry_attrib( offset, 0, 0 );
+      attrib_str[0] = MFAT_ATTRIB_RO == (MFAT_ATTRIB_RO & attrib) ? 'R' : ' ';
+      attrib_str[1] = MFAT_ATTRIB_ARC == (MFAT_ATTRIB_ARC & attrib) ? 'A' : ' ';
+      attrib_str[2] =
+         MFAT_ATTRIB_SYSTEM == (MFAT_ATTRIB_SYSTEM & attrib) ? 'S' : ' ';
+      attrib_str[3] =
+         MFAT_ATTRIB_SYSTEM == (MFAT_ATTRIB_SYSTEM & attrib) ? 'D' : ' ';
+
+      /* Print the entry. */
+      tprintf( "- %s\t%12s\t%d\n", attrib_str, filename,
          mfat_get_dir_entry_cyear( offset, 0, 0 ) + 1980 );
       offset = mfat_get_dir_entry_next_offset( offset, 0, 0 );
    } while( 0 < offset );

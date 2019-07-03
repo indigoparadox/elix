@@ -10,10 +10,7 @@
 #define MFAT_ATTRIB_VOL_ID 0x08
 #define MFAT_ATTRIB_DIR    0x10
 #define MFAT_ATTRIB_ARC    0x20
-#define MFAT_ATTRIB_LFN    (MFAT_ATTRIB_RO | \
-                           MFAT_ATTRIB_HIDDEN | \
-                           MFAT_ATTRIB_SYSTEM | \
-                           MFAT_ATTRIB_VOL_ID)
+#define MFAT_ATTRIB_LFN    0x0f
 
 uint8_t  mfat_get_fat_count(           uint8_t dev_idx, uint8_t part_idx );
 uint16_t mfat_get_bytes_per_sector(    uint8_t dev_idx, uint8_t part_idx );

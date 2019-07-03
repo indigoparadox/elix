@@ -85,12 +85,26 @@ uint16_t mfat_get_entry( uint16_t idx,  uint8_t dev_idx, uint8_t part_idx ) {
 
 uint16_t mfat_get_root_dir_offset( uint8_t dev_idx, uint8_t part_idx ) {
    uint16_t dir_offset = 0;
+   uint8_t entry_id = 0;
+   uint8_t entry_attrib = 0;
 
    /* The root starts directly after the EBP and FATs. */
    dir_offset += MFAT_OFFSET_FAT;
    dir_offset += (mfat_get_bytes_per_sector( dev_idx, part_idx ) *
       mfat_get_sectors_per_fat( dev_idx, part_idx ) *
       mfat_get_fat_count( dev_idx, part_idx ));
+
+   /* Hunt for the first actual entry (i.e. skip LFNs, etc). */
+   entry_attrib = mfat_get_dir_entry_attrib( dir_offset, dev_idx, part_idx );
+   entry_id = disk_get_byte( dev_idx, part_idx, dir_offset );
+   while(
+      (0xe5 == entry_id || MFAT_ATTRIB_LFN == (MFAT_ATTRIB_LFN & entry_attrib))
+      && 0x00 != entry_id
+   ) {
+      dir_offset += MFAT_DIR_ENTRY_SZ;
+      entry_attrib = mfat_get_dir_entry_attrib( dir_offset, dev_idx, part_idx );
+      entry_id = disk_get_byte( dev_idx, part_idx, dir_offset );
+   }
    
    return dir_offset;
 }
@@ -119,13 +133,19 @@ uint16_t mfat_get_dir_entry_next_offset(
 ) {
    uint16_t offset_out = offset;
    uint8_t entry_id = 0;
+   uint8_t entry_attrib = 0;
 
    /* Loop through unused directory entries until we find a used one or just
     * reach the end of the directory. */
    do {
       offset_out += MFAT_DIR_ENTRY_SZ;
+      entry_attrib = mfat_get_dir_entry_attrib( offset_out, dev_idx, part_idx );
       entry_id = disk_get_byte( dev_idx, part_idx, offset_out );
-   } while( 0xe5 == entry_id && 0x00 != entry_id );
+   } while(
+      /* LFN entries are considered unused. */
+      (0xe5 == entry_id || MFAT_ATTRIB_LFN == (MFAT_ATTRIB_LFN & entry_attrib))
+      && 0x00 != entry_id
+   );
 
    if( 0x00 == entry_id ) {
       /* End of the directory. */
