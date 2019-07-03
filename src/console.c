@@ -70,7 +70,10 @@ void tprintf( const char* pattern, ... ) {
             case 's':
                spec.s = va_arg( args, char* );
                j = 0;
-               while( '\0' != spec.s[j] ) {
+               while(
+                  '\0' != spec.s[j] &&          /* NULL found, or... */
+                  (0 == padding || j < padding) /* Padding present. */
+               ) {
                   tputc( spec.s[j++] );
                }
                break;
@@ -106,12 +109,14 @@ void tprintf( const char* pattern, ... ) {
             case '7':
             case '8':
             case '9':
-               /* TODO: Handle multi-digit qty padding. */
-               padding = c - '0';
+               /* Handle multi-digit qty padding. */
+               padding *= 10;
+               padding += (c - '0'); /* Convert from char to int. */
                c = '%';
                break;
          }
       } else if( '%' != c ) {
+         padding = 0; /* Reset padding. */
          /* Print non-escape characters verbatim. */
          tputc( c );
       }
