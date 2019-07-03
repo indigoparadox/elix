@@ -5,8 +5,6 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#include "mem.h"
-
 #define ADHD_PID_MAIN 1
 #define ADHD_PID_FIRST 1
 
@@ -16,15 +14,22 @@
 
 #define ADHD_TASKS_MAX 5
 
-typedef uint8_t TASK_PID;
+typedef int16_t TASK_PID;
 typedef uint8_t TASK_RETVAL;
 typedef TASK_RETVAL (*ADHD_TASK)();
 
 struct adhd_task;
+struct astring;
+
+#define TASK_PID_INVALID -1
 
 #define RETVAL_OK 0
 #define RETVAL_INVALID_PID 0
 #define RETVAL_YIELD 254
+#define RETVAL_NOT_FOUND 253
+#define RETVAL_BAD_ARGS 252
+
+#include "mem.h"
 
 #ifdef SCHEDULE_COOP
 
@@ -45,12 +50,15 @@ struct adhd_task {
    uint8_t status;
 #endif /* SCHEDULE_COOP */
    TASK_PID pid;
+   const struct astring* gid;
    ADHD_TASK callback;
    struct adhd_task* next;
 };
 
 #define adhd_get_pid() \
    (g_curr_env->pid)
+
+#define adhd_set_gid( str ) g_curr_env->gid = str
 
 #ifdef SCHEDULE_COOP
 
@@ -112,6 +120,7 @@ void adhd_launch_task( ADHD_TASK callback );
 TASK_RETVAL adhd_call_task( TASK_PID pid );
 #endif /* SCHEDULE_COOP */
 
+TASK_PID adhd_get_pid_by_gid( struct astring* gid );
 void adhd_step();
 struct adhd_task* adhd_new_task();
 void adhd_kill_task( TASK_PID pid );

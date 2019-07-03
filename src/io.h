@@ -4,13 +4,34 @@
 
 #include <stdint.h>
 
-#define IO_DEVS_MAX 8
+/**
+ * This module helps to coordinate between different functions (UART/SPI/etc)
+ * that may need to share resources (e.g. physical pins).
+ */
 
-typedef void (*io_putc_cb)( char c );
-typedef char (*io_getc_cb)();
+#define UART_READY    0x01
+#define _UART_2_READY    0x02
+#define _UART_3_READY    0x04
+#define _UART_4_READY    0x08
+#define PWM_ON        0x0f
+#define _PWM_2_ON        0x20
 
-void io_regoutdev( io_putc_cb cb );
-void io_regindev( io_getc_cb cb );
+#define io_flag( dev_index, flag ) \
+   (g_io_flags & (flag << dev_index))
+
+#define io_flag_on( dev_index, flag ) \
+   g_io_flags |= (flag << dev_index)
+
+#define io_flag_off( dev_index, flag ) \
+   g_io_flags &= ~(flag << dev_index)
+
+#ifdef IO_C
+uint8_t g_io_flags;
+#else
+extern uint8_t g_io_flags;
+#endif /* IO_C */
+
+void io_call_handlers();
 
 #endif /* IO_H */
 

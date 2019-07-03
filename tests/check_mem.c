@@ -2,7 +2,6 @@
 #include <check.h>
 #include <stdint.h>
 #include "../src/mem.h"
-#include "../src/console.h"
 
 #include <stdlib.h>
 
@@ -52,10 +51,10 @@ static void setup_mem() {
 
    /* Place the strings on the heap to check. */
    for( i = 0 ; 3 > i ; i++ ) {
-      mem_ptr = mget( CHECK_PID, i + 1, g_chk_len[i] );
+      mem_ptr = (uint8_t*)mget( CHECK_PID, i + 1, g_chk_len[i] );
       ck_assert_ptr_ne( mem_ptr, NULL );
       mcopy( mem_ptr, g_chk_str[i], g_chk_len[i] );
-      ck_assert_str_eq( mem_ptr, g_chk_str[i] );
+      ck_assert_str_eq( (char*)mem_ptr, g_chk_str[i] );
    }
 
    /* Fill up a simulated heap to compare. */
@@ -122,9 +121,9 @@ END_TEST
 START_TEST( test_mget_overwrite ) {
    uint8_t* mem_ptr = NULL;
 
-   mem_ptr = mget( CHECK_PID, _i + 1, g_chk_len[_i] + 5 );
+   mem_ptr = (uint8_t*)mget( CHECK_PID, _i + 1, g_chk_len[_i] + 5 );
    ck_assert_ptr_ne( mem_ptr, NULL );
-   ck_assert_str_eq( mem_ptr, g_chk_str[_i] );
+   ck_assert_str_eq( (char*)mem_ptr, g_chk_str[_i] );
 }
 END_TEST
 
@@ -304,6 +303,43 @@ START_TEST( test_mset_line ) {
 END_TEST
 #endif
 
+/* Tests: Editing */
+
+static void setup_medit() {
+   minit();
+
+   mset( CHECK_PID, 8, g_chk_len[0], &(g_chk_str[0]) );
+}
+
+static void teardown_medit() {
+
+}
+
+START_TEST( test_meditprop ) {
+   const char* test_str = NULL;
+   char test_char = 'q' + _i;
+
+   test_str = mget( CHECK_PID, 8, g_chk_len[0] );
+   ck_assert_ptr_ne( test_str, NULL );
+   meditprop( CHECK_PID, 8, _i, sizeof( char ), &test_char );
+   ck_assert_int_eq( test_str[_i], 'q' + _i );
+}
+END_TEST
+
+START_TEST( test_mgetprop ) {
+   char* test_str = NULL;
+   char get_prop_c = '\0';
+
+   test_str = (char*)mget( CHECK_PID, 8, MGET_NO_CREATE );
+   ck_assert_ptr_ne( test_str, NULL );
+
+   mgetprop( CHECK_PID, 8, _i, sizeof( char ), &get_prop_c );
+
+   ck_assert_int_eq( test_str[_i], get_prop_c );
+   ck_assert_int_ne( get_prop_c, '\0' );
+}
+END_TEST
+
 Suite* mem_suite( void ) {
    Suite* s;
    TCase* tc_layout;
@@ -311,6 +347,7 @@ Suite* mem_suite( void ) {
    //TCase* tc_set;
    TCase* tc_overwrite;
    //TCase* tc_pid;
+   TCase* tc_edit;
 
    s = suite_create( "mem" );
 
@@ -320,6 +357,7 @@ Suite* mem_suite( void ) {
    tc_shift = tcase_create( "Shift" );
    tc_overwrite = tcase_create( "Overwrite" );
    //tc_pid = tcase_create( "PID" );
+   tc_edit = tcase_create( "Edit" );
 
    /* Tests: Set */
    
@@ -346,9 +384,15 @@ Suite* mem_suite( void ) {
    //tcase_add_test( tc_core, test_mget_pid_match );
    //tcase_add_test( tc_core, test_mset_line );
 
+   /* Tests: Edit */
+   tcase_add_checked_fixture( tc_overwrite, setup_medit, teardown_medit );
+   tcase_add_loop_test( tc_edit, test_meditprop, 1, 4 );
+   tcase_add_loop_test( tc_edit, test_mgetprop, 1, 4 );
+
    suite_add_tcase( s, tc_overwrite );
    suite_add_tcase( s, tc_layout );
    suite_add_tcase( s, tc_shift );
+   suite_add_tcase( s, tc_edit );
 
    return s;
 }

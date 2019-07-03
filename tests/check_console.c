@@ -4,19 +4,12 @@
 #include "../src/console.h"
 #include "../src/alpha.h"
 
-#define CHECK_DISPLAY_BUFFER_LEN 100
+#define CHECK_DISPLAY_BUFFER_LEN 200
 
 uint8_t g_system_state = 0;
 
 char g_display_buffer[CHECK_DISPLAY_BUFFER_LEN] = { 0 };
 int g_display_idx = 0;
-
-const struct astring g_str_intc_pattern = astring_l( "Test pattern: %d, %c\n" );
-const struct astring g_str_int_pattern = astring_l( "Test pattern: %d\n" );
-const struct astring g_str_int4_pattern = astring_l( "Test pattern: %4d\n" );
-const struct astring g_str_hexc_pattern = astring_l( "Test pattern: %x, %c\n" );
-const struct astring g_str_hex_pattern = astring_l( "Test pattern: %x\n" );
-const struct astring g_str_hex4_pattern = astring_l( "Test pattern: %4x\n" );
 
 void display_init() {
    memset( g_display_buffer, '\0', CHECK_DISPLAY_BUFFER_LEN );
@@ -32,7 +25,7 @@ int keyboard_hit() {
    return 0;
 }
 
-unsigned char keyboard_getc() {
+char keyboard_getc() {
    return '\0';
 }
 
@@ -51,17 +44,17 @@ START_TEST( test_console_printf_int ) {
 
    display_init();
 
-   tprintf( &g_str_intc_pattern, test_int, test_char );
+   tprintf( "Test pattern: %d, %c\n", test_int, test_char );
    ck_assert_str_eq( g_display_buffer, "Test pattern: 543, a\n" );
 
    display_init();
 
-   tprintf( &g_str_int_pattern, test_int );
+   tprintf( "Test pattern: %d\n", test_int );
    ck_assert_str_eq( g_display_buffer, "Test pattern: 543\n" );
 
    display_init();
 
-   tprintf( &g_str_int4_pattern, test_int );
+   tprintf( "Test pattern: %4d\n", test_int );
    ck_assert_str_eq( g_display_buffer, "Test pattern: 0543\n" );
 }
 END_TEST
@@ -72,17 +65,17 @@ START_TEST( test_console_printf_hex ) {
 
    display_init();
 
-   tprintf( &g_str_hexc_pattern, test_int, test_char );
+   tprintf( "Test pattern: %x, %c\n", test_int, test_char );
    ck_assert_str_eq( g_display_buffer, "Test pattern: 543, a\n" );
 
    display_init();
 
-   tprintf( &g_str_hex_pattern, test_int );
+   tprintf( "Test pattern: %x\n", test_int );
    ck_assert_str_eq( g_display_buffer, "Test pattern: 543\n" );
 
    display_init();
 
-   tprintf( &g_str_hex4_pattern, test_int );
+   tprintf( "Test pattern: %4x\n", test_int );
    ck_assert_str_eq( g_display_buffer, "Test pattern: 0543\n" );
 }
 END_TEST

@@ -15,17 +15,22 @@
 main_add_test_proto( ether )
 main_add_test_proto( net )
 main_add_test_proto( mem )
+main_add_test_proto( ring )
 main_add_test_proto( console )
 main_add_test_proto( alpha )
+
+#define SYSTEM_RUNNING 0
+uint8_t g_system_state = SYSTEM_RUNNING;
 
 int main( void ) {
    int number_failed = 0;
 
-   main_add_test( ether );
-   main_add_test( net );
+   /*main_add_test( ether );
+   main_add_test( net );*/
    main_add_test( mem );
-   main_add_test( console );
-   main_add_test( alpha );
+   main_add_test( ring );
+   /*main_add_test( console );
+   main_add_test( alpha );*/
 
    return( number_failed == 0 ) ? 0 : 1;
 }

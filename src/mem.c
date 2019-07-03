@@ -1,9 +1,12 @@
 
 #define MEM_C
 #include "mem.h"
+#include "adhd.h"
+
+#ifdef MPRINT
 #include "console.h"
 #include "strings.h"
-#include "adhd.h"
+#endif /* MPRINT */
 
 #include <stddef.h>
 
@@ -13,9 +16,11 @@
 #endif /* MEM_PRINTF_TRACE */
 #endif /* DEBUG */
 
-#ifdef CHECK
+#ifdef DEBUG
 #include <assert.h>
-#endif /* CHECK */
+#else
+#define assert( x )
+#endif /* DEBUG */
 
 extern uint8_t* heap;
 
@@ -26,12 +31,16 @@ uint8_t g_mheap[MEM_HEAP_SIZE];
 #ifndef CHECK
 static
 #endif /* CHECK */
-int g_mheap_top = 0;
+MEMLEN_T g_mheap_top = 0;
 
 /* Setup the heap. */
 void minit() {
    mzero( g_mheap, MEM_HEAP_SIZE );
    g_mheap_top = 0;
+}
+
+MEMLEN_T get_mem_used() {
+   return g_mheap_top;
 }
 
 /* Zero a given block of memory. */
@@ -62,8 +71,7 @@ int mcompare( const void* c1, const void* c2, int sz ) {
    return 0;
 }
 
-#if defined( MPRINT ) || defined( CHECK )
-#include <stdio.h>
+#if defined( MPRINT )
 void mprint() {
    int i = 0;
 
@@ -81,7 +89,7 @@ void mprint() {
    }
    tputs( &g_str_newline );
 }
-#endif /* MPRINT || CHECK */
+#endif /* MPRINT */
 
 /* Get the heap position for a variable. Used in public functions below. */
 #ifndef CHECK
@@ -151,7 +159,11 @@ static struct mvar* mresize(
    if( 0 < size_diff ) {
       mshift( start, size_diff ); 
       var = (struct mvar*)&(g_mheap[start + size_diff]);
+      var->size = sz;
    }
+
+   assert( 0 != sz );
+   assert( sz == var->size );
 
    return var;
 }
@@ -170,6 +182,7 @@ static struct mvar* mcreate( MEMLEN_T sz ) {
 
    /* Move to the next free spot and reset convenience ptr. */
    out = (struct mvar*)&(g_mheap[g_mheap_top]);
+   out->size = sz;
    mzero( &(out->data), sz );
 
    /* Advance the heap top. */
@@ -178,21 +191,9 @@ static struct mvar* mcreate( MEMLEN_T sz ) {
    return out;
 }
 
-/**
- * \brief Get or set a dynamic variable.
- *
- * @param sz   The size (in bytes) of the variable to allocate.
- *             Set to MGET_NO_CREATE to not allocate the variable if it is not
- *             already allocated.
- *             Set to MGET_UNSET to unset it if it is.
- */
-void* mget( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
+static struct mvar* mfind( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
    MEMLEN_T mheap_addr_iter = 0;
    struct mvar* var = NULL;
-
-#ifdef CHECK
-   assert( 0 < mid );
-#endif /* CHECK */
 
    mheap_addr_iter = mget_pos( pid, mid );
    if( 0 > mheap_addr_iter ) {
@@ -200,14 +201,30 @@ void* mget( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
          return NULL;
       }
       var = mcreate( sz );
-   } else if( 0 < sz ) {
+   } else {
       var = (struct mvar*)&(g_mheap[mheap_addr_iter]);
       if( sz > var->size ) {
          var = mresize( var, mheap_addr_iter, sz );
       }
    }
-  
-   /* Make sure create/resize were successful. */
+
+   return var;
+}
+
+/**
+ * \brief Get a dynamic variable.
+ *
+ * @param sz   The size (in bytes) of the variable to allocate.
+ *             Set to MGET_NO_CREATE to not allocate the variable if it is not
+ *             already allocated.
+ *             Set to MGET_UNSET to unset it if it is.
+ */
+const void* mget( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
+   struct mvar* var = NULL;
+
+   assert( 0 < mid );
+
+   var = mfind( pid, mid, sz );
    if( NULL == var ) {
       return NULL;
    }
@@ -215,10 +232,75 @@ void* mget( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
    /* Fill out the header. */
    var->pid = pid;
    var->mid = mid;
-   if( 0 < sz ) {
+   /*if( 0 < sz && 0 == var->size ) {
       var->size = sz;
-   }
+   }*/
+   assert( 0 >= sz || sz == var->size );
 
    return &(var->data);
+}
+
+void mset( TASK_PID pid, MEM_ID mid, MEMLEN_T sz, const void* data ) {
+   struct mvar* var = NULL;
+   /* const uint8_t* data_bytes = (uint8_t*)data;
+   uint8_t* mem_bytes = NULL; */
+
+   var = mfind( pid, mid, sz );
+   if( NULL == var ) {
+      return;
+   }
+
+   if( NULL != data ) {
+      mcopy( var->data, data, sz );
+   }
+}
+
+void meditprop(
+   TASK_PID pid, MEM_ID mid, MEMLEN_T offset, MEMLEN_T sz, void* val
+) {
+   struct mvar* var = NULL;
+   uint8_t* bytes = NULL;
+   
+   var = mfind( pid, mid, MGET_NO_CREATE );
+   if( NULL == var ) {
+      return;
+   }
+
+   bytes = &(var->data[offset]);
+   mcopy( bytes, val, sz );
+   
+}
+
+void mgetprop(
+   TASK_PID pid, MEM_ID mid, MEMLEN_T offset, MEMLEN_T sz, void* dest
+) {
+   struct mvar* var = NULL;
+   
+   var = mfind( pid, mid, MGET_NO_CREATE );
+   if( NULL == var ) {
+      return;
+   }
+
+   mcopy( dest, &(var->data[offset]), sz );
+   
+}
+
+
+int mincr( TASK_PID pid, MEM_ID mid ) {
+   struct mvar* var = NULL;
+   int* iptr = NULL;
+
+   var = mfind( pid, mid, sizeof( int ) );
+   if( NULL == var ) {
+      return 0;
+   }
+
+   assert( var->size == sizeof( int ) );
+
+   iptr = (int*)(var->data);
+
+   (*iptr)++;
+
+   return *iptr;
 }
 
