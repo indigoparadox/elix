@@ -7,7 +7,7 @@
 
 int ether_new_frame(
    struct ether_frame* frame_out, int frame_out_sz,
-   uint8_t src_mac[6], uint8_t dest_mac[6],
+   const uint8_t src_mac[6], const uint8_t dest_mac[6],
    enum ether_type type, void* packet, int packet_len
 ) {
    struct ether_header* header_out = NULL;

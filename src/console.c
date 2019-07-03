@@ -10,38 +10,24 @@
 #include "alpha.h"
 #include "strings.h"
 #include "net/net.h"
+#include "commands.h"
 
 #include <chiipy.h>
 
-#ifdef CONSOLE_SERIAL
-#else
-#include "keyboard.h"
-#endif /* CONSOLE_SERIAL */
-
-int trepl_service( char* cli ) {
-   //const char* svc;
-
-   //svc = alpha_tok( cli, 1, ' ' );
-
-   return 0;
-}
-
-/* === Command Registration === */
-
-struct command {
-   struct astring command;
-   int (*callback)( char* cli );
+const char qd_logo[8][16] = {
+   "     _____     ",
+   "   .`_| |_`.   ",
+   "  / /_| |_\\ \\  ",
+   " |  __| |___|  ",
+   " | |  | |      ",
+   "  \\ \\_| |___   ",
+   "   `._|_____/  ",
+   "               "
 };
 
-#define cmd_def( cmd, callback ) \
-   { astring_l( cmd ), callback }
+uint8_t g_console_flags = 0;
 
-static const struct command g_commands[] = {
-   cmd_def( "service", trepl_service ),
-   cmd_def( "", NULL )
-};
-
-/* === Console Functions === */
+const struct astring g_str_ready = astring_l( "ready" CONSOLE_NEWLINE );
 
 /* Memory IDs for console tasks. */
 #define REPL_MID_LINE      1
@@ -50,29 +36,13 @@ static const struct command g_commands[] = {
 /* Empty */
 #define REPL_MID_ARG_MAX   20
 
-void tputs( const struct astring* str ) {
-#ifdef CONSOLE_SERIAL
-#else
-   STRLEN_T i = 0;
-   for( i = 0 ; str->len > i ; i++ ) {
-      display_putc( str->data[i] );
-   }
-#endif /* CONSOLE_SERIAL */
-}
-
 /* Try to save some stack. */
-union tprintf_spec {
-   int d;
-   char c;
-   uint8_t x;
-   struct astring* s;
-};
-
 void tprintf( const char* pattern, ... ) {
    va_list args;
-   int i = 0;
+   int i = 0, j = 0;
    char last = '\0';
-   union tprintf_spec spec;
+   union mvalue spec;
+   struct astring* astr_spec = NULL;
    uint8_t num_buffer[sizeof( struct astring ) + INT_DIGITS_MAX] = { 0 };
    struct astring* buffer_ptr = (struct astring*)&num_buffer;
    STRLEN_T padding = 0;
@@ -89,9 +59,20 @@ void tprintf( const char* pattern, ... ) {
       if( '%' == last ) {
          /* Conversion specifier encountered. */
          switch( pattern[i] ) {
+            case 'a':
+               astr_spec = va_arg( args, struct astring* );
+               j = 0;
+               while( '\0' != astr_spec->data[j] && astr_spec->len > j ) {
+                  tputc( astr_spec->data[j++] );
+               }
+               break;
+
             case 's':
-               spec.s = va_arg( args, struct astring* );
-               tputs( spec.s );
+               spec.s = va_arg( args, char* );
+               j = 0;
+               while( '\0' != spec.s[j] ) {
+                  tputc( spec.s[j++] );
+               }
                break;
 
             case 'd':
@@ -112,7 +93,7 @@ void tprintf( const char* pattern, ... ) {
 
             case 'c':
                spec.c = va_arg( args, int );
-               display_putc( spec.c );
+               tputc( spec.c );
                break;
 
             case '0':
@@ -132,48 +113,43 @@ void tprintf( const char* pattern, ... ) {
          }
       } else if( '%' != c ) {
          /* Print non-escape characters verbatim. */
-         display_putc( c );
+         tputc( c );
       }
 
       last = c;
    }
 }
 
-/* TODO: Move net command to net module. */
-/*
-void truncmd( char* line, int line_len ) {
-   if( 0 == mcompare( line, "netr", 4 ) ) {
-      g_net_con_request = NET_REQ_RCVD;
-   } else if( 0 == mcompare( line, "quit", 4 ) ) {
-      g_system_state = SYSTEM_SHUTDOWN;
-   }
-}
-*/
-
-#include <stdio.h>
 TASK_RETVAL trepl_task() {
    char c = '\0';
-   struct astring* line;
+   const struct astring* line;
    //struct CHIIPY_TOKEN* token;
    //struct astring* arg;
-   //uint8_t i = 0;
+   uint8_t i = 0;
+   uint8_t retval = 0;
 
    adhd_task_setup();
 
-#ifdef CONSOLE_SERIAL
-   //if( 0 ) {
-#else
-   if( !keyboard_hit() ) {
+   if( !(g_console_flags & CONSOLE_FLAG_INITIALIZED) ) {
+      for( i = 0 ; 8 > i ; i++ ) {
+         tprintf( qd_logo[i] );
+         tprintf( CONSOLE_NEWLINE );
+      }
+      tprintf( "QD console v" VERSION CONSOLE_NEWLINE );
+      tputs( &g_str_ready );
+      g_console_flags |= CONSOLE_FLAG_INITIALIZED;
+   }
+
+   if( !twaitc() ) {
       adhd_yield();
    }
 
-   c = keyboard_getc();
-#endif /* CONSOLE_SERIAL */
+   c = tgetc();
    /* Dynamically allocate the line buffer so we can clear it from memory
     * during other programs. Add +1 so there's always a NULL.
     */
    line = alpha_astring(
-      adhd_get_pid(), REPL_MID_LINE, REPL_LINE_SIZE_MAX + 1 );
+      adhd_get_pid(), REPL_MID_LINE, REPL_LINE_SIZE_MAX + 1, NULL );
    //token = mget( pid, REPL_MID_LINE, 30 );
 
    if(
@@ -181,9 +157,9 @@ TASK_RETVAL trepl_task() {
       (('\r' == c || '\n' == c) && 0 == line->len)
    ) {
       /* Line would be too long if we accepted this char. */
-      display_newline();
+      tprintf( CONSOLE_NEWLINE );
       tputs( &g_str_invalid );
-      astring_clear( line );
+      alpha_astring_clear( adhd_get_pid(), REPL_MID_LINE );
       adhd_yield();
       adhd_continue_loop();
    }
@@ -191,32 +167,22 @@ TASK_RETVAL trepl_task() {
    switch( c ) {
       case '\r':
       case '\n':
-         display_newline();
-         if( 0 == alpha_cmp_c( "exit", line, '\n' ) ) {
-            g_system_state = SYSTEM_SHUTDOWN;
-         } else if( 0 == alpha_cmp_c( "net", line, '\n' ) ) {
-            adhd_launch_task( net_respond_task );
-         } else {
+         tprintf( CONSOLE_NEWLINE );
+         retval = do_command( line );
+         if( RETVAL_NOT_FOUND == retval ) {
             tputs( &g_str_invalid );
+         } else if( RETVAL_BAD_ARGS == retval ) {
+            tprintf( "bad arguments" CONSOLE_NEWLINE );
+         } else {
+            tputs( &g_str_ready );
          }
-         astring_clear( line );
-         break;
-
-      case ' ':
-         /*i = REPL_MID_ARG_MIN;
-         do {
-            arg = mget( pid, i
-         cstack_push( */
+         alpha_astring_clear( adhd_get_pid(), REPL_MID_LINE );
          break;
 
       default:
          //chiipy_lex_tok( c, token );
-         astring_append( line, c );
-#ifdef CONSOLE_SERIAL
-#else
-         /* display_putc( c ); */
-         tprintf( "%c", c );
-#endif /* CONSOLE_SERIAL */
+         alpha_astring_append( adhd_get_pid(), REPL_MID_LINE, c );
+         tputc( c );
          break;
    }
 

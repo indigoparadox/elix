@@ -2,12 +2,18 @@
 #define ADHD_C
 #include "adhd.h"
 
+#include "alpha.h"
+
 #include <stddef.h>
 
 #ifdef SCHEDULE_COOP
 
 static struct adhd_task* g_head_env = NULL;
 static uint8_t g_next_pid = ADHD_PID_FIRST;
+
+TASK_PID adhd_get_pid_by_gid( char* gid ) {
+   /* TODO */
+}
 
 void adhd_step() {
    /* Setup the scheduler target and go back to main if successful. */
@@ -89,6 +95,22 @@ void adhd_kill_task( TASK_PID pid ) {
    }
    
    g_tasks[pid].callback = NULL;
+}
+
+TASK_PID adhd_get_pid_by_gid( struct astring* gid ) {
+   TASK_PID i = 0;
+   
+   for( i = 0 ; ADHD_TASKS_MAX > i ; i++ ) {
+      if(
+         NULL != g_tasks[i].callback &&
+         NULL != g_tasks[i].gid &&
+         0 == alpha_cmp( gid, g_tasks[i].gid, ' ' )
+      ) {
+         return i;
+      }
+   }
+
+   return TASK_PID_INVALID;
 }
 
 #endif /* SCHEDULE_COOP */

@@ -21,22 +21,19 @@ const struct astring g_str_stopping = astring_l( "stopping...\n" );
 
 #include <stdio.h>
 void kmain() {
+   uint8_t i = 0;
 #ifndef SCHEDULE_COOP
    TASK_PID active = 0;
    TASK_RETVAL retval = 0;
 #endif /* !SCHEDULE_COOP */
 
    minit();
-#ifndef CONSOLE_SERIAL
    keyboard_init();
    display_init();
-#endif /* CONSOLE_SERIAL */
+   for( i = 0 ; 4 > i ; i++ ) {
+      uart_init( i );
+   }
    net_init();
-
-   /* Create network task. */
-#ifdef USE_CONSOLE
-   tputs( &g_str_hello );
-#endif /* USE_CONSOLE */
 
    adhd_start();
    adhd_launch_task( trepl_task );

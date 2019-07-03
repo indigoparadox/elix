@@ -9,17 +9,12 @@
 #include "../adhd.h"
 
 typedef void* NET_SOCK;
-typedef char* SOCKET_ID;
+typedef const char* SOCKET_ID;
 
 #define RECV_BUFFER_LEN 65535
 
-#define NET_REQ_RCVD 1
-
-#ifdef NET_C
-uint8_t g_net_con_request = 0;
-#else
-extern uint8_t g_net_con_request;
-#endif /* NET_C */
+#define NET_MID_RECEIVED 2
+#define NET_MID_RESPONDED 3
 
 NET_SOCK net_open_socket( const SOCKET_ID if_name );
 void net_close_socket( NET_SOCK socket );

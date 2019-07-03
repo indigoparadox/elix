@@ -45,7 +45,7 @@ struct ether_frame {
 
 int ether_new_frame(
    struct ether_frame* frame_out, int frame_out_sz,
-   uint8_t src_mac[6], uint8_t dest_mac[6],
+   const uint8_t src_mac[6], const uint8_t dest_mac[6],
    enum ether_type type, void* packet, int packet_len );
 int ether_get_header_len( struct ether_frame* frame, int frame_len );
 uint16_t ether_ntohs( const uint16_t input );

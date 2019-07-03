@@ -1,7 +1,6 @@
 
 #include "../keyboard.h"
 #include "../kernel.h"
-#include "../io.h"
 
 #include <sys/time.h>
 #include <stdio.h>
@@ -48,8 +47,6 @@ void keyboard_init() {
    /* Handle CTRL-C. */
    signal( SIGINT, handle_ctrl_c );
 
-   io_regindev( keyboard_getc );
-
 #ifdef COLINUX_TERMIOS
    tcgetattr( STDIN, &term );
 
@@ -67,7 +64,7 @@ void keyboard_init() {
 void keyboard_shutdown() {
 }
 
-int keyboard_hit() {
+int keyboard_hit( uint8_t dev_index ) {
    int bytes = 0;
 #ifdef COLINUX_TERMIOS
 /*
@@ -88,7 +85,7 @@ int keyboard_hit() {
    return bytes;
 }
 
-char keyboard_getc() {
+char keyboard_getc( uint8_t dev_index ) {
    char buffer = 0;
    /* if( 1 != read( &buffer, 1 ) ) {
       return 0;
