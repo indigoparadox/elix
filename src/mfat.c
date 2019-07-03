@@ -96,7 +96,7 @@ uint16_t mfat_get_root_dir_offset( uint8_t dev_idx, uint8_t part_idx ) {
 }
 
 uint16_t mfat_get_dir_entry_offset(
-   char name[11], uint16_t dir_offset, uint8_t dev_idx, uint8_t part_idx
+   char name[13], uint16_t dir_offset, uint8_t dev_idx, uint8_t part_idx
 ) {
    uint16_t offset_out = dir_offset;
    int i = 0;
@@ -137,14 +137,33 @@ uint16_t mfat_get_dir_entry_next_offset(
 }
 
 void mfat_get_dir_entry_name(
-   char buffer[11], uint16_t offset, uint8_t dev_idx, uint8_t part_idx
+   char buffer[13], uint16_t offset, uint8_t dev_idx, uint8_t part_idx
 ) {
    int8_t i = 0;
 
    /* Copy the entry name into the provided buffer. */
-   for( i = 0 ; 11 > i ; i++ ) {
-      buffer[i] = disk_get_byte( dev_idx, part_idx, offset + i );
+   for( i = 0 ; 13 > i ; i++ ) {
+      if( 8 > i ) {
+         buffer[i] = disk_get_byte( dev_idx, part_idx, offset + i );
+      } else if( 8 == i ) {
+         buffer[i] = '.';
+      } else {
+         /* Add 1 to the idx for the '.'. */
+         buffer[i] = disk_get_byte( dev_idx, part_idx, offset + i - 1 );
+      }
    }
+}
+
+uint8_t mfat_get_dir_entry_cyear(
+   uint16_t offset, uint8_t dev_idx, uint8_t part_idx
+) {
+   uint16_t year_out = 0;
+
+   year_out = disk_get_byte( dev_idx, part_idx, offset + 17 );
+   year_out &= 0xfe;
+   year_out >>= 1;
+   
+   return (uint8_t)year_out;
 }
 
 uint8_t mfat_get_dir_entry_attrib(
