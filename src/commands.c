@@ -6,6 +6,7 @@
 #include "net/net.h"
 #include "console.h"
 #include "kernel.h"
+#include "mfat.h"
 
 /* = Command Callbacks */
 
@@ -97,7 +98,16 @@ static TASK_RETVAL trepl_sys( const struct astring* cli ) {
 #ifdef USE_DISK
 
 static TASK_RETVAL tdisk_dir( const struct astring* cli ) {
+   uint16_t offset = 0;
+   char filename[12] = { 0 };
 
+   offset = mfat_get_root_dir_offset( 0, 0 );
+   
+   do {
+      mfat_get_dir_entry_name( filename, offset, 0, 0 );
+      tprintf( "- %s\n", filename );
+      offset = mfat_get_dir_entry_next_offset( offset, 0, 0 );
+   } while( 0 < offset );
 
    return RETVAL_OK;
 }

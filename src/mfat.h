@@ -26,8 +26,9 @@ uint16_t mfat_get_entry( uint16_t idx, uint8_t dev_idx, uint8_t part_idx );
 uint16_t mfat_get_root_dir_offset(     uint8_t dev_idx, uint8_t part_idx );
 
 uint16_t mfat_get_dir_entry_offset(
-   char name[11], uint16_t parent_offset, uint8_t dev_idx, uint8_t part_idx
-);
+   char name[11], uint16_t parent_offset, uint8_t dev_idx, uint8_t part_idx );
+uint16_t mfat_get_dir_entry_next_offset(
+   uint16_t offset, uint8_t dev_idx, uint8_t part_idx );
 void mfat_get_dir_entry_name(
    char buffer[11], uint16_t offset, uint8_t dev_idx, uint8_t part_idx );
 uint8_t mfat_get_dir_entry_attrib(

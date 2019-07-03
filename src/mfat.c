@@ -13,6 +13,7 @@
 #include <stdbool.h>
 
 #define MFAT_OFFSET_FAT 512
+#define MFAT_DIR_ENTRY_SZ 32
 
 uint8_t  mfat_get_fat_count(           uint8_t dev_idx, uint8_t part_idx ) {
    return disk_get_byte( dev_idx, part_idx, 16 );
@@ -85,6 +86,7 @@ uint16_t mfat_get_entry( uint16_t idx,  uint8_t dev_idx, uint8_t part_idx ) {
 uint16_t mfat_get_root_dir_offset( uint8_t dev_idx, uint8_t part_idx ) {
    uint16_t dir_offset = 0;
 
+   /* The root starts directly after the EBP and FATs. */
    dir_offset += MFAT_OFFSET_FAT;
    dir_offset += (mfat_get_bytes_per_sector( dev_idx, part_idx ) *
       mfat_get_sectors_per_fat( dev_idx, part_idx ) *
@@ -112,11 +114,34 @@ uint16_t mfat_get_dir_entry_offset(
    return offset_out;
 }
 
+uint16_t mfat_get_dir_entry_next_offset(
+   uint16_t offset, uint8_t dev_idx, uint8_t part_idx
+) {
+   uint16_t offset_out = offset;
+   uint8_t entry_id = 0;
+
+   /* Loop through unused directory entries until we find a used one or just
+    * reach the end of the directory. */
+   do {
+      offset_out += MFAT_DIR_ENTRY_SZ;
+      entry_id = disk_get_byte( dev_idx, part_idx, offset_out );
+   } while( 0xe5 == entry_id && 0x00 != entry_id );
+
+   if( 0x00 == entry_id ) {
+      /* End of the directory. */
+      return 0;
+   } else {
+      /* Found a used entry. */
+      return offset_out;
+   }
+}
+
 void mfat_get_dir_entry_name(
    char buffer[11], uint16_t offset, uint8_t dev_idx, uint8_t part_idx
 ) {
    int8_t i = 0;
 
+   /* Copy the entry name into the provided buffer. */
    for( i = 0 ; 11 > i ; i++ ) {
       buffer[i] = disk_get_byte( dev_idx, part_idx, offset + i );
    }
@@ -131,6 +156,7 @@ uint8_t mfat_get_dir_entry_attrib(
 uint8_t mfat_get_dir_entry_cluster(
    uint16_t cluster_idx, uint16_t entry_offset, uint8_t dev_idx, uint8_t part_idx
 ) {
+   /* TODO */
    return 0;
 }
 
