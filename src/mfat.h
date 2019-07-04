@@ -12,6 +12,8 @@
 #define MFAT_ATTRIB_ARC    0x20
 #define MFAT_ATTRIB_LFN    0x0f
 
+#define MFAT_FILENAME_LEN  13
+
 uint8_t  mfat_get_fat_count(           uint8_t dev_idx, uint8_t part_idx );
 uint16_t mfat_get_bytes_per_sector(    uint8_t dev_idx, uint8_t part_idx );
 uint8_t  mfat_get_sectors_per_cluster( uint8_t dev_idx, uint8_t part_idx );
@@ -23,11 +25,16 @@ uint16_t mfat_get_entry( uint16_t idx, uint8_t dev_idx, uint8_t part_idx );
 uint16_t mfat_get_root_dir_offset(     uint8_t dev_idx, uint8_t part_idx );
 
 uint16_t mfat_get_dir_entry_offset(
-   char name[13], uint16_t parent_offset, uint8_t dev_idx, uint8_t part_idx );
+   const char search_name[MFAT_FILENAME_LEN], uint8_t search_name_len,
+   uint16_t parent_offset, uint8_t dev_idx, uint8_t part_idx );
+uint8_t mfat_filename_cmp(
+   const char filename1[MFAT_FILENAME_LEN],
+   const char filename2[MFAT_FILENAME_LEN] );
 uint16_t mfat_get_dir_entry_next_offset(
    uint16_t offset, uint8_t dev_idx, uint8_t part_idx );
 void mfat_get_dir_entry_name(
-   char buffer[13], uint16_t offset, uint8_t dev_idx, uint8_t part_idx );
+   char buffer[MFAT_FILENAME_LEN],
+   uint16_t offset, uint8_t dev_idx, uint8_t part_idx );
 uint8_t mfat_get_dir_entry_cyear(
    uint16_t offset, uint8_t dev_idx, uint8_t part_idx );
 uint32_t mfat_get_dir_entry_size(

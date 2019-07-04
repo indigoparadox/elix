@@ -98,6 +98,7 @@ static TASK_RETVAL trepl_sys( const struct astring* cli ) {
 #ifdef USE_DISK
 
 static TASK_RETVAL tdisk_dir( const struct astring* cli ) {
+   const char* tok;
    uint16_t offset = 0;
    char filename[13] = { 0 };
    uint8_t attrib = 0;
@@ -105,9 +106,19 @@ static TASK_RETVAL tdisk_dir( const struct astring* cli ) {
    uint32_t size = 0;
 
    offset = mfat_get_root_dir_offset( 0, 0 );
-   
+
+   tok = alpha_tok( cli, ' ', 2 );
+
    do {
       mfat_get_dir_entry_name( filename, offset, 0, 0 );
+
+      if( NULL != tok ) {
+         offset = mfat_get_dir_entry_offset( tok, 0, offset, 0, 0 );
+         if( 0 == offset ) {
+            break;
+         }
+         mfat_get_dir_entry_name( filename, offset, 0, 0 );
+      }
 
       /* Convert the attribs to a printable format. */
       attrib = mfat_get_dir_entry_attrib( offset, 0, 0 );
@@ -115,8 +126,7 @@ static TASK_RETVAL tdisk_dir( const struct astring* cli ) {
       attrib_str[1] = MFAT_ATTRIB_ARC == (MFAT_ATTRIB_ARC & attrib) ? 'A' : ' ';
       attrib_str[2] =
          MFAT_ATTRIB_SYSTEM == (MFAT_ATTRIB_SYSTEM & attrib) ? 'S' : ' ';
-      attrib_str[3] =
-         MFAT_ATTRIB_SYSTEM == (MFAT_ATTRIB_SYSTEM & attrib) ? 'D' : ' ';
+      attrib_str[3] = MFAT_ATTRIB_DIR == (MFAT_ATTRIB_DIR & attrib) ? 'D' : ' ';
 
       /* Get the file size. */
       size = mfat_get_dir_entry_size( offset, 0, 0 );

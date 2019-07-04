@@ -219,9 +219,9 @@ STRLEN_T alpha_cmp_cc(
    STRLEN_T i = 0;
    while(
       cstr1[i] != sep && 
-      clen1 > i &&
+      (0 == clen1 || clen1 > i) &&
       cstr2[i] != sep && 
-      clen2 > i &&
+      (0 == clen2 || clen2 > i) &&
       '\0' != cstr1[i] &&
       '\0' != cstr2[i]
    ) {

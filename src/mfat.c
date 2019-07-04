@@ -109,22 +109,56 @@ uint16_t mfat_get_root_dir_offset( uint8_t dev_idx, uint8_t part_idx ) {
    return dir_offset;
 }
 
-uint16_t mfat_get_dir_entry_offset(
-   char name[13], uint16_t dir_offset, uint8_t dev_idx, uint8_t part_idx
+#include "console.h"
+
+uint8_t mfat_filename_cmp(
+   const char filename1[MFAT_FILENAME_LEN],
+   const char filename2[MFAT_FILENAME_LEN]
 ) {
-   uint16_t offset_out = dir_offset;
    int i = 0;
-   bool found = false;
-   
-   while(
-      !found &&
-      0 != disk_get_byte( dev_idx, part_idx, offset_out )
-   ) {
-      for( i = 0 ; 8 > i ; i++ ) {
-         /* TODO: cmp entry name with target. */
+
+   for( i = 0 ; MFAT_FILENAME_LEN > i ; i++ ) {
+      /* TODO: cmp entry name with target. */
+      if(
+         filename1[i] != filename2[i] &&
+         ' ' != filename1[i] &&
+         '.' != filename1[i] &&
+         ' ' != filename2[i] &&
+         '.' != filename2[i]
+      ) {
+         tprintf( "broke at %c vs %c\n", filename1[i], filename2[i] );
+         return 1;
+      } else if( '\0' == filename1 || '\0' == filename2 ) {
+         return 0;
       }
+      tprintf( "matching %c and %c\n", filename1[i], filename2[i] );
    }
 
+   return 0;
+}
+
+uint16_t mfat_get_dir_entry_offset(
+   const char search_name[MFAT_FILENAME_LEN], uint8_t search_name_len,
+   uint16_t dir_offset, uint8_t dev_idx, uint8_t part_idx
+) {
+   uint16_t offset_out = dir_offset;
+   char entry_name[MFAT_FILENAME_LEN];
+   
+   tprintf( "looking for %13s\n", search_name );
+   while( 0 != disk_get_byte( dev_idx, part_idx, offset_out ) ) {
+      mfat_get_dir_entry_name( entry_name, offset_out, dev_idx, part_idx );
+      if( 0 == mfat_filename_cmp( entry_name, search_name ) ) {
+         /* Found it, so skip to the end. */
+         goto hit;
+      }
+      offset_out =
+         mfat_get_dir_entry_next_offset( offset_out, dev_idx, part_idx );
+   }
+   
+   /* Not found. */
+   offset_out = 0;
+
+hit:
    return offset_out;
 }
 
@@ -157,12 +191,13 @@ uint16_t mfat_get_dir_entry_next_offset(
 }
 
 void mfat_get_dir_entry_name(
-   char buffer[13], uint16_t offset, uint8_t dev_idx, uint8_t part_idx
+   char buffer[MFAT_FILENAME_LEN],
+   uint16_t offset, uint8_t dev_idx, uint8_t part_idx
 ) {
    int8_t i = 0;
 
    /* Copy the entry name into the provided buffer. */
-   for( i = 0 ; 13 > i ; i++ ) {
+   for( i = 0 ; MFAT_FILENAME_LEN > i ; i++ ) {
       if( 8 > i ) {
          buffer[i] = disk_get_byte( dev_idx, part_idx, offset + i );
       } else if( 8 == i ) {
