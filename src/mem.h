@@ -22,8 +22,9 @@ typedef uint8_t MEM_TYPE;
 #define MGET_UNSET      -1
 #define MGET_NO_CREATE  0
 
+#include "alpha.h"
 union mvalue {
-   int d;
+   UTOA_T d;
    char c;
    uint8_t x;
    void* p;

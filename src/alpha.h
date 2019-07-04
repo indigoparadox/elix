@@ -5,10 +5,14 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#include "mem.h"
-
 #define UINT8_DIGITS_MAX 8
+#define UINT32_DIGITS_MAX 10
 #define INT_DIGITS_MAX 10
+
+typedef uint32_t UTOA_T; /*!< Biggest type utoa can convert to string. */
+#define UTOA_DIGITS_MAX UINT32_DIGITS_MAX
+
+#include "mem.h" /* This uses UTOA_DIGITS_MAX for mvalue. */
 
 typedef MEMLEN_T STRLEN_T;
 
@@ -52,9 +56,9 @@ struct astring {
 
 uint16_t alpha_atou( const struct astring* src, uint8_t base );
 const char* alpha_tok( const struct astring* src, char sep, uint8_t idx );
-STRLEN_T alpha_udigits( uint16_t num, uint8_t base );
-int16_t alpha_utoa(
-   uint16_t num, struct astring* str, STRLEN_T idx,
+STRLEN_T alpha_udigits( UTOA_T num, uint8_t base );
+STRLEN_T alpha_utoa(
+   UTOA_T num, struct astring* str, STRLEN_T idx,
    STRLEN_T zero_pad_spaces, uint8_t base );
 int16_t alpha_charinstr( char c, const struct astring* string );
 void alpha_astring_append( TASK_PID pid, MEM_ID mid, char c );
