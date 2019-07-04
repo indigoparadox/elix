@@ -7,10 +7,11 @@
 
 #define UINT8_DIGITS_MAX 8
 #define UINT32_DIGITS_MAX 10
+#define INT64_DIGITS_MAX 11
 #define INT_DIGITS_MAX 10
 
-typedef uint32_t UTOA_T; /*!< Biggest type utoa can convert to string. */
-#define UTOA_DIGITS_MAX UINT32_DIGITS_MAX
+typedef int64_t UTOA_T; /*!< Biggest type utoa can convert to string. */
+#define UTOA_DIGITS_MAX INT64_DIGITS_MAX
 
 #include "mem.h" /* This uses UTOA_DIGITS_MAX for mvalue. */
 

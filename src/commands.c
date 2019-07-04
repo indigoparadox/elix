@@ -118,6 +118,7 @@ static TASK_RETVAL tdisk_dir( const struct astring* cli ) {
       attrib_str[3] =
          MFAT_ATTRIB_SYSTEM == (MFAT_ATTRIB_SYSTEM & attrib) ? 'D' : ' ';
 
+      /* Get the file size. */
       size = mfat_get_dir_entry_size( offset, 0, 0 );
 
       /* Print the entry. */

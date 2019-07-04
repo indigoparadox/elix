@@ -140,7 +140,8 @@ TASK_RETVAL trepl_task() {
          tprintf( qd_logo[i] );
          tprintf( CONSOLE_NEWLINE );
       }
-      tprintf( "QD console v" VERSION CONSOLE_NEWLINE );
+      tprintf( "EL console v" VERSION CONSOLE_NEWLINE );
+      tprintf( "ptr %d bytes" CONSOLE_NEWLINE, sizeof( void* ) );
       tputs( &g_str_ready );
       g_console_flags |= CONSOLE_FLAG_INITIALIZED;
    }
