@@ -41,8 +41,8 @@ struct astring {
 	alpha_islower( c ) || \
 	alpha_isupper( c ))
 
-#define stolower( c ) \
-	(alpha_isupper( c ) ? c + ('A' - 'a') : c)
+#define alpha_tolower( c ) \
+	(alpha_isupper( c ) ? c + ('a' - 'A') : c)
 
 #define alpha_strlen( string, len ) alpha_charinstr( '\0', string, len )
 
