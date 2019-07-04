@@ -142,9 +142,50 @@ static TASK_RETVAL tdisk_dir( const struct astring* cli ) {
    return RETVAL_OK;
 }
 
-#define DISK_COMMANDS_COUNT 1
+static TASK_RETVAL tdisk_fat( const struct astring* cli ) {
+   uint16_t i = 0;
+   uint16_t entries_count = 0;
+   uint16_t fat_entry = 0;
+
+   entries_count = mfat_get_entries_count( 0, 0 );
+
+   for( i = 0 ; entries_count > i ; i++ ) {
+      fat_entry = mfat_get_entry( i, 0, 0 );
+
+      tprintf( "%4x ", fat_entry );
+
+      if( 0 == (i % 10) ) {
+         tprintf( "\n%5i\t", i );
+      }
+   }
+
+   return RETVAL_OK;
+}
+
+static TASK_RETVAL tdisk_cat( const struct astring* cli ) {
+   const char* tok;
+   uint16_t offset = 0;
+   char buffer[11] = { 0 };
+
+   tok = alpha_tok( cli, ' ', 1 );
+   if( NULL == tok ) {
+      return RETVAL_BAD_ARGS;
+   }
+
+   offset = mfat_get_root_dir_offset( 0, 0 );
+   offset = mfat_get_dir_entry_offset( tok, MFAT_FILENAME_LEN, offset, 0, 0 );
+
+   mfat_get_dir_entry_data( offset, 0, buffer, 10, 0, 0 );
+   tprintf( "%s\n", buffer );
+
+   return RETVAL_OK;
+}
+
+#define DISK_COMMANDS_COUNT 3
 const struct command g_disk_commands[DISK_COMMANDS_COUNT] = {
-   { "dir", tdisk_dir }
+   { "dir", tdisk_dir },
+   { "fat", tdisk_fat },
+   { "cat", tdisk_cat }
 };
 
 static TASK_RETVAL trepl_disk( const struct astring* cli ) {

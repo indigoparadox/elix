@@ -20,6 +20,8 @@ uint8_t  mfat_get_sectors_per_cluster( uint8_t dev_idx, uint8_t part_idx );
 uint16_t mfat_get_sectors_per_fat(     uint8_t dev_idx, uint8_t part_idx );
 uint16_t mfat_get_sectors_per_track(   uint8_t dev_idx, uint8_t part_idx );
 uint32_t mfat_get_sectors_total(       uint8_t dev_idx, uint8_t part_idx );
+uint16_t mfat_get_cluster_data_offset(
+   uint16_t fat_entry, uint8_t dev_idx, uint8_t part_idx );
 uint16_t mfat_get_entries_count(       uint8_t dev_idx, uint8_t part_idx );
 uint16_t mfat_get_entry( uint16_t idx, uint8_t dev_idx, uint8_t part_idx );
 uint16_t mfat_get_root_dir_offset(     uint8_t dev_idx, uint8_t part_idx );
@@ -32,6 +34,11 @@ uint8_t mfat_filename_cmp(
    const char filename2[MFAT_FILENAME_LEN] );
 uint16_t mfat_get_dir_entry_next_offset(
    uint16_t offset, uint8_t dev_idx, uint8_t part_idx );
+uint8_t mfat_get_dir_entry_data(
+   uint16_t entry_offset, uint16_t file_offset, char* buffer, uint16_t blen,
+   uint8_t dev_idx, uint8_t part_idx );
+uint16_t mfat_get_dir_entry_first_cluster_offset(
+   uint16_t entry_offset, uint8_t dev_idx, uint8_t part_idx );
 void mfat_get_dir_entry_name(
    char buffer[MFAT_FILENAME_LEN],
    uint16_t offset, uint8_t dev_idx, uint8_t part_idx );
