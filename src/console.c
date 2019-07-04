@@ -36,7 +36,9 @@ const struct astring g_str_ready = astring_l( "ready" CONSOLE_NEWLINE );
 /* Empty */
 #define REPL_MID_ARG_MAX   20
 
-/* Try to save some stack. */
+#define TPRINT_PAD_ZERO 0
+#define TPRINT_PAD_SPACE 1
+
 void tprintf( const char* pattern, ... ) {
    va_list args;
    int i = 0, j = 0;
@@ -47,6 +49,7 @@ void tprintf( const char* pattern, ... ) {
    struct astring* buffer_ptr = (struct astring*)&num_buffer;
    STRLEN_T padding = 0;
    char c;
+   uint8_t pad_type = TPRINT_PAD_ZERO;
 
    /* Make sure the num_buffer knows how much space is available. */
    buffer_ptr->sz = UINT32_DIGITS_MAX;
@@ -76,6 +79,12 @@ void tprintf( const char* pattern, ... ) {
                ) {
                   tputc( spec.s[j++] );
                }
+               if( TPRINT_PAD_SPACE == pad_type ) {
+                  while( 0 == padding || j < padding ) {
+                     tputc( ' ' );
+                     j++;
+                  }
+               }
                break;
 
             case 'd':
@@ -99,6 +108,11 @@ void tprintf( const char* pattern, ... ) {
                tputc( spec.c );
                break;
 
+            case ' ':
+               pad_type = TPRINT_PAD_SPACE;
+               c = '%';
+               break;
+
             case '0':
             case '1':
             case '2':
@@ -116,6 +130,7 @@ void tprintf( const char* pattern, ... ) {
                break;
          }
       } else if( '%' != c ) {
+         pad_type = TPRINT_PAD_ZERO; /* Reset padding. */
          padding = 0; /* Reset padding. */
          /* Print non-escape characters verbatim. */
          tputc( c );
