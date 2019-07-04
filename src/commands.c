@@ -132,8 +132,10 @@ static TASK_RETVAL tdisk_dir( const struct astring* cli ) {
       size = mfat_get_dir_entry_size( offset, 0, 0 );
 
       /* Print the entry. */
-      tprintf( "- %s\t%12s\t%d\t%d\n", attrib_str, filename,
+      tprintf( "- %s\t%12 s\t%d\t%d\n", attrib_str, filename,
          mfat_get_dir_entry_cyear( offset, 0, 0 ) + 1980, size );
+
+      /* Get the next entry. */
       offset = mfat_get_dir_entry_next_offset( offset, 0, 0 );
    } while( 0 < offset );
 

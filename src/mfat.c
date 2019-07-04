@@ -109,8 +109,6 @@ uint16_t mfat_get_root_dir_offset( uint8_t dev_idx, uint8_t part_idx ) {
    return dir_offset;
 }
 
-#include "console.h"
-
 uint8_t mfat_filename_cmp(
    const char filename1[MFAT_FILENAME_LEN],
    const char filename2[MFAT_FILENAME_LEN]
@@ -118,20 +116,19 @@ uint8_t mfat_filename_cmp(
    int i = 0;
 
    for( i = 0 ; MFAT_FILENAME_LEN > i ; i++ ) {
-      /* TODO: cmp entry name with target. */
+      /* Compare entry name with target. */
       if(
          filename1[i] != filename2[i] &&
+         /* Skip spaces and .s. */
          ' ' != filename1[i] &&
          '.' != filename1[i] &&
          ' ' != filename2[i] &&
          '.' != filename2[i]
       ) {
-         tprintf( "broke at %c vs %c\n", filename1[i], filename2[i] );
          return 1;
-      } else if( '\0' == filename1 || '\0' == filename2 ) {
+      } else if( '\0' == filename1[i] || '\0' == filename2[i] ) {
          return 0;
       }
-      tprintf( "matching %c and %c\n", filename1[i], filename2[i] );
    }
 
    return 0;
@@ -144,7 +141,6 @@ uint16_t mfat_get_dir_entry_offset(
    uint16_t offset_out = dir_offset;
    char entry_name[MFAT_FILENAME_LEN];
    
-   tprintf( "looking for %13s\n", search_name );
    while( 0 != disk_get_byte( dev_idx, part_idx, offset_out ) ) {
       mfat_get_dir_entry_name( entry_name, offset_out, dev_idx, part_idx );
       if( 0 == mfat_filename_cmp( entry_name, search_name ) ) {
@@ -153,6 +149,9 @@ uint16_t mfat_get_dir_entry_offset(
       }
       offset_out =
          mfat_get_dir_entry_next_offset( offset_out, dev_idx, part_idx );
+      if( 0 == offset_out ) {
+         break;
+      }
    }
    
    /* Not found. */
@@ -194,18 +193,27 @@ void mfat_get_dir_entry_name(
    char buffer[MFAT_FILENAME_LEN],
    uint16_t offset, uint8_t dev_idx, uint8_t part_idx
 ) {
-   int8_t i = 0;
+   int8_t src_i = 0, dest_i = 0;
+   char c;
 
    /* Copy the entry name into the provided buffer. */
-   for( i = 0 ; MFAT_FILENAME_LEN > i ; i++ ) {
-      if( 8 > i ) {
-         buffer[i] = disk_get_byte( dev_idx, part_idx, offset + i );
-      } else if( 8 == i ) {
-         buffer[i] = '.';
-      } else {
-         /* Add 1 to the idx for the '.'. */
-         buffer[i] = disk_get_byte( dev_idx, part_idx, offset + i - 1 );
+   for( src_i = 0 ; MFAT_FILENAME_LEN - 2 > src_i ; src_i++ ) {
+      c = disk_get_byte( dev_idx, part_idx, offset + src_i );
+
+      /* Just skip blanks. */
+      if( ' ' != c ) {
+         /* Only add the . if there's something after it. */
+         if( 8 == src_i ) {
+            buffer[dest_i++] = '.';
+         }
+
+         buffer[dest_i++] = c;
       }
+   }
+
+   /* Zero out the rest of the buffer. */
+   while( dest_i < MFAT_FILENAME_LEN ) {
+      buffer[dest_i++] = '\0';
    }
 }
 

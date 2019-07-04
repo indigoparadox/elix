@@ -144,6 +144,14 @@ void alpha_astring_append( TASK_PID pid, MEM_ID mid, char c ) {
       meditprop(
          pid, mid, offsetof( struct astring, data  ) + str->len,
          sizeof( char ), &c );
+
+      /* Add a terminating NULL. */
+      c = '\0';
+      meditprop(
+         pid, mid, offsetof( struct astring, data  ) + str->len + 1,
+         sizeof( char ), &c );
+
+      /* Bookkeeping. */
       new_strlen = str->len + 1;
       meditprop(
          pid, mid, offsetof( struct astring, len  ),
