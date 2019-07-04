@@ -59,6 +59,22 @@ uint32_t mfat_get_sectors_total(       uint8_t dev_idx, uint8_t part_idx ) {
    return out;
 }
 
+uint16_t mfat_get_cluster_data_offset(
+   uint16_t fat_entry, uint8_t dev_idx, uint8_t part_idx
+) {
+   uint16_t cluster_size = 0;
+
+   if( 0xffff == fat_entry ) {
+      /* End of chain. */
+      return 0;
+   }
+
+   cluster_size = mfat_get_sectors_per_cluster( dev_idx, part_idx ) *
+      mfat_get_bytes_per_sector( dev_idx, part_idx );
+
+   return fat_entry * cluster_size;
+}
+
 uint16_t mfat_get_entries_count(       uint8_t dev_idx, uint8_t part_idx ) {
    return
       (mfat_get_sectors_per_fat( dev_idx, part_idx ) *
@@ -187,6 +203,60 @@ uint16_t mfat_get_dir_entry_next_offset(
       /* Found a used entry. */
       return offset_out;
    }
+}
+
+uint16_t mfat_get_dir_entry_first_cluster_offset(
+   uint16_t entry_offset, uint8_t dev_idx, uint8_t part_idx
+) {
+   uint16_t out = 0;
+   out |= disk_get_byte( dev_idx, part_idx, entry_offset + 27 );
+   out <<= 8;
+   out |= disk_get_byte( dev_idx, part_idx, entry_offset + 26 );
+   return out;
+}
+
+uint8_t mfat_get_dir_entry_data(
+   uint16_t entry_offset, uint16_t file_offset, char* buffer, uint16_t blen,
+   uint8_t dev_idx, uint8_t part_idx
+) {
+   uint16_t cluster_offset = 0;
+   uint16_t iter_file_offset = 0;
+   uint16_t written = 0;
+   uint16_t i = 0;
+
+   if(
+      file_offset >= mfat_get_dir_entry_size( entry_offset, dev_idx, part_idx )
+   ) {
+      /* Seek past end of file. */
+      buffer[0] = '\0';
+      return 0;
+   }
+
+   cluster_offset = mfat_get_dir_entry_first_cluster_offset(
+      entry_offset, dev_idx, part_idx );
+   while( file_offset < iter_file_offset ) {
+      /* Get disk offset containing the data at the requested file offset. */
+      cluster_offset = mfat_get_cluster_data_offset(
+         cluster_offset, dev_idx, part_idx );
+      if( 0 == cluster_offset ) {
+         /* Invalid cluster. */
+         goto cleanup;
+      }
+      /* We've read sector * bps bytes from the file so far. */
+      iter_file_offset += (mfat_get_bytes_per_sector( dev_idx, part_idx ) *
+         mfat_get_sectors_per_cluster( dev_idx, part_idx ));
+   }
+
+   /* Determine the data offset within this cluster. */
+   file_offset -= iter_file_offset;
+   for( i = 0 ; blen > i ; i++ ) {
+      buffer[i] =
+         disk_get_byte( dev_idx, part_idx, cluster_offset + file_offset );
+      written++;
+   }
+
+cleanup:
+   return written;
 }
 
 void mfat_get_dir_entry_name(
