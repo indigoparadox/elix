@@ -102,6 +102,7 @@ static TASK_RETVAL tdisk_dir( const struct astring* cli ) {
    char filename[13] = { 0 };
    uint8_t attrib = 0;
    char attrib_str[5] = { 0 };
+   uint32_t size = 0;
 
    offset = mfat_get_root_dir_offset( 0, 0 );
    
@@ -117,9 +118,11 @@ static TASK_RETVAL tdisk_dir( const struct astring* cli ) {
       attrib_str[3] =
          MFAT_ATTRIB_SYSTEM == (MFAT_ATTRIB_SYSTEM & attrib) ? 'D' : ' ';
 
+      size = mfat_get_dir_entry_size( offset, 0, 0 );
+
       /* Print the entry. */
-      tprintf( "- %s\t%12s\t%d\n", attrib_str, filename,
-         mfat_get_dir_entry_cyear( offset, 0, 0 ) + 1980 );
+      tprintf( "- %s\t%12s\t%d\t%d\n", attrib_str, filename,
+         mfat_get_dir_entry_cyear( offset, 0, 0 ) + 1980, size );
       offset = mfat_get_dir_entry_next_offset( offset, 0, 0 );
    } while( 0 < offset );
 

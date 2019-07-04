@@ -43,13 +43,13 @@ void tprintf( const char* pattern, ... ) {
    char last = '\0';
    union mvalue spec;
    struct astring* astr_spec = NULL;
-   uint8_t num_buffer[sizeof( struct astring ) + INT_DIGITS_MAX] = { 0 };
+   uint8_t num_buffer[sizeof( struct astring ) + UINT32_DIGITS_MAX] = { 0 };
    struct astring* buffer_ptr = (struct astring*)&num_buffer;
    STRLEN_T padding = 0;
    char c;
 
    /* Make sure the num_buffer knows how much space is available. */
-   buffer_ptr->sz = INT_DIGITS_MAX;
+   buffer_ptr->sz = UINT32_DIGITS_MAX;
 
    va_start( args, pattern );
 
@@ -79,7 +79,7 @@ void tprintf( const char* pattern, ... ) {
                break;
 
             case 'd':
-               spec.d = va_arg( args, int );
+               spec.d = va_arg( args, UTOA_T );
                alpha_utoa(
                   spec.d, (struct astring*)&num_buffer, 0, padding, 10 );
                tputs( (struct astring*)&num_buffer );

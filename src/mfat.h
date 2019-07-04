@@ -30,6 +30,8 @@ void mfat_get_dir_entry_name(
    char buffer[13], uint16_t offset, uint8_t dev_idx, uint8_t part_idx );
 uint8_t mfat_get_dir_entry_cyear(
    uint16_t offset, uint8_t dev_idx, uint8_t part_idx );
+uint32_t mfat_get_dir_entry_size(
+   uint16_t offset, uint8_t dev_idx, uint8_t part_idx );
 uint8_t mfat_get_dir_entry_attrib(
    uint16_t offset, uint8_t dev_idx, uint8_t part_idx );
 uint8_t mfat_get_dir_entry_cluster(

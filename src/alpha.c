@@ -51,7 +51,7 @@ const char* alpha_tok( const struct astring* src, char sep, uint8_t idx ) {
 }
 
 /* Return the number of digits in a number. */
-STRLEN_T alpha_udigits( uint16_t num, uint8_t base ) {
+STRLEN_T alpha_udigits( UTOA_T num, uint8_t base ) {
    STRLEN_T digits = 0;
    while( 0 < num ) {
       num /= base;
@@ -63,8 +63,8 @@ STRLEN_T alpha_udigits( uint16_t num, uint8_t base ) {
    return digits;
 }
 
-int16_t alpha_utoa(
-   uint16_t num, struct astring* dest, STRLEN_T dest_idx,
+STRLEN_T alpha_utoa(
+   UTOA_T num, struct astring* dest, STRLEN_T dest_idx,
    STRLEN_T zero_pad_spaces, uint8_t base
 ) {
    uint8_t rem;

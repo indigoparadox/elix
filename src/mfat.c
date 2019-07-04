@@ -186,6 +186,20 @@ uint8_t mfat_get_dir_entry_cyear(
    return (uint8_t)year_out;
 }
 
+uint32_t mfat_get_dir_entry_size(
+   uint16_t offset, uint8_t dev_idx, uint8_t part_idx
+) {
+   uint32_t out = 0;
+   out |= disk_get_byte( dev_idx, part_idx, offset + 31 );
+   out <<= 8;
+   out |= disk_get_byte( dev_idx, part_idx, offset + 30 );
+   out <<= 8;
+   out |= disk_get_byte( dev_idx, part_idx, offset + 29 );
+   out <<= 8;
+   out |= disk_get_byte( dev_idx, part_idx, offset + 28 );
+   return out;
+}
+
 uint8_t mfat_get_dir_entry_attrib(
    uint16_t offset, uint8_t dev_idx, uint8_t part_idx
 ) {
