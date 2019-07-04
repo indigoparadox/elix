@@ -167,7 +167,7 @@ static TASK_RETVAL tdisk_cat( const struct astring* cli ) {
    uint16_t offset = 0;
    char buffer[11] = { 0 };
 
-   tok = alpha_tok( cli, ' ', 1 );
+   tok = alpha_tok( cli, ' ', 2 );
    if( NULL == tok ) {
       return RETVAL_BAD_ARGS;
    }

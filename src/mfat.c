@@ -3,6 +3,7 @@
 
 #include "mfat.h"
 #include "disk.h"
+#include "alpha.h"
 
 #ifdef DEBUG
 #include <assert.h>
@@ -15,11 +16,11 @@
 #define MFAT_OFFSET_FAT 512
 #define MFAT_DIR_ENTRY_SZ 32
 
-uint8_t  mfat_get_fat_count(           uint8_t dev_idx, uint8_t part_idx ) {
+static uint8_t  mfat_get_fat_count(           uint8_t dev_idx, uint8_t part_idx ) {
    return disk_get_byte( dev_idx, part_idx, 16 );
 }
 
-uint16_t mfat_get_bytes_per_sector(    uint8_t dev_idx, uint8_t part_idx ) {
+static uint16_t mfat_get_bytes_per_sector(    uint8_t dev_idx, uint8_t part_idx ) {
    uint16_t out = 0;
    out |= disk_get_byte( dev_idx, part_idx, 12 );
    out <<= 8;
@@ -27,11 +28,11 @@ uint16_t mfat_get_bytes_per_sector(    uint8_t dev_idx, uint8_t part_idx ) {
    return out;
 }
 
-uint8_t  mfat_get_sectors_per_cluster( uint8_t dev_idx, uint8_t part_idx ) {
+static uint8_t  mfat_get_sectors_per_cluster( uint8_t dev_idx, uint8_t part_idx ) {
    return disk_get_byte( dev_idx, part_idx, 13 );
 }
 
-uint16_t mfat_get_sectors_per_fat(     uint8_t dev_idx, uint8_t part_idx ) {
+static uint16_t mfat_get_sectors_per_fat(     uint8_t dev_idx, uint8_t part_idx ) {
    uint16_t out = 0;
    out |= disk_get_byte( dev_idx, part_idx, 23 );
    out <<= 8;
@@ -39,7 +40,8 @@ uint16_t mfat_get_sectors_per_fat(     uint8_t dev_idx, uint8_t part_idx ) {
    return out;
 }
 
-uint16_t mfat_get_sectors_per_track(   uint8_t dev_idx, uint8_t part_idx ) {
+#if 0
+static uint16_t mfat_get_sectors_per_track(   uint8_t dev_idx, uint8_t part_idx ) {
    uint16_t out = 0;
    out |= disk_get_byte( dev_idx, part_idx, 25 );
    out <<= 8;
@@ -47,7 +49,7 @@ uint16_t mfat_get_sectors_per_track(   uint8_t dev_idx, uint8_t part_idx ) {
    return out;
 }
 
-uint32_t mfat_get_sectors_total(       uint8_t dev_idx, uint8_t part_idx ) {
+static uint32_t mfat_get_sectors_total(       uint8_t dev_idx, uint8_t part_idx ) {
    uint32_t out = 0;
    out |= disk_get_byte( dev_idx, part_idx, 35 );
    out <<= 8;
@@ -58,6 +60,7 @@ uint32_t mfat_get_sectors_total(       uint8_t dev_idx, uint8_t part_idx ) {
    out |= disk_get_byte( dev_idx, part_idx, 32 );
    return out;
 }
+#endif
 
 uint16_t mfat_get_cluster_data_offset(
    uint16_t fat_entry, uint8_t dev_idx, uint8_t part_idx
@@ -125,16 +128,22 @@ uint16_t mfat_get_root_dir_offset( uint8_t dev_idx, uint8_t part_idx ) {
    return dir_offset;
 }
 
+#include "console.h"
+
 uint8_t mfat_filename_cmp(
    const char filename1[MFAT_FILENAME_LEN],
    const char filename2[MFAT_FILENAME_LEN]
 ) {
    int i = 0;
+   char c1, c2;
 
    for( i = 0 ; MFAT_FILENAME_LEN > i ; i++ ) {
+      c1 = alpha_tolower( filename1[i] );
+      c2 = alpha_tolower( filename2[i] );
+      tprintf( "%c vs %c\n", c1, c2 );
       /* Compare entry name with target. */
       if(
-         filename1[i] != filename2[i] &&
+         c1 != c2 &&
          /* Skip spaces and .s. */
          ' ' != filename1[i] &&
          '.' != filename1[i] &&
