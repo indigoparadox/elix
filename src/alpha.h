@@ -55,6 +55,7 @@ struct astring {
 #define alpha_16_lobyte( i ) ((i) & 0xFF)
 #define alpha_16_hibyte( i ) ((i) >> 8)
 
+uint16_t alpha_atou_c( const char* src, int len, uint8_t base );
 uint16_t alpha_atou( const struct astring* src, uint8_t base );
 const char* alpha_tok( const struct astring* src, char sep, uint8_t idx );
 STRLEN_T alpha_udigits( UTOA_T num, uint8_t base );

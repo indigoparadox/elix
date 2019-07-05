@@ -1,6 +1,8 @@
 
 #include "../disk.h"
 
+#ifndef CHECK
+
 uint8_t* g_disk_map = NULL;
 
 void disk_set_ptr( uint8_t dev_idx, uint8_t* disk_map ) {
@@ -23,4 +25,6 @@ uint16_t read_int16_msb_first( uint16_t* num ) {
 
    return out;
 }
+
+#endif /* CHECK */
 
