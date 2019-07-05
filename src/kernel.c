@@ -23,7 +23,11 @@
 const struct astring g_str_hello = astring_l( "hello\n" );
 const struct astring g_str_stopping = astring_l( "stopping...\n" );
 
+#ifdef USE_EXT_CLI
 int kmain( int argc, char** argv ) {
+#else
+int kmain() {
+#endif /* USE_EXT_CLI */
    uint8_t i = 0;
 #ifndef SCHEDULE_COOP
    TASK_PID active = 0;
