@@ -37,9 +37,49 @@ int kmain() {
    const struct astring* cli;
    char c = 0;
    int j = 0;
+   bool switch_found = false;
+   bool do_init = true;
 #endif /* USE_EXT_CLI */
 
    minit();
+
+#ifdef USE_EXT_CLI
+   if( 1 < argc ) {
+      cli = alpha_astring(
+         ADHD_PID_MAIN, KERNEL_MID_CLI, REPL_LINE_SIZE_MAX + 1, NULL );
+
+      for( i = 1 ; argc > i ; i++ ) {
+         j = 0;
+         while( '\0' != (c = argv[i][j++]) ) {
+            if( '-' == c ) {
+               switch_found = true;
+            } else if( switch_found ) {
+               switch( c ) {
+               case 'n':
+                  do_init = false;
+                  break;
+               }
+            } else {
+               alpha_astring_append( ADHD_PID_MAIN, KERNEL_MID_CLI, c );
+            }
+         }
+         if( i + 1 < argc ) {
+            if( switch_found ) {
+               switch_found = false;
+            } else {
+               alpha_astring_append( ADHD_PID_MAIN, KERNEL_MID_CLI, ' ' );
+            }
+         }
+      }
+      
+      retval = do_command( cli );
+
+      goto cleanup;
+   }
+
+   if( do_init ) {
+#endif /* USE_EXT_CLI */
+
    keyboard_init();
    display_init();
    for( i = 0 ; 4 > i ; i++ ) {
@@ -50,23 +90,6 @@ int kmain() {
    adhd_start();
 
 #ifdef USE_EXT_CLI
-   if( 1 < argc ) {
-      cli = alpha_astring(
-         ADHD_PID_MAIN, KERNEL_MID_CLI, REPL_LINE_SIZE_MAX + 1, NULL );
-
-      for( i = 1 ; argc > i ; i++ ) {
-         j = 0;
-         while( '\0' != (c = argv[i][j++]) ) {
-            alpha_astring_append( ADHD_PID_MAIN, KERNEL_MID_CLI, c );
-         }
-         if( i + 1 < argc ) {
-            alpha_astring_append( ADHD_PID_MAIN, KERNEL_MID_CLI, ' ' );
-         }
-      }
-      
-      retval = do_command( cli );
-
-      goto cleanup;
    }
 #endif /* USE_EXT_CLI */
 
@@ -90,12 +113,17 @@ int kmain() {
 
 #ifdef USE_EXT_CLI
 cleanup:
+   if( do_init ) {
 #endif /* USE_EXT_CLI */
 
 #ifndef CONSOLE_SERIAL
    keyboard_shutdown();
    display_shutdown();
 #endif /* CONSOLE_SERIAL */
+
+#ifdef USE_EXT_CLI
+   }
+#endif /* USE_EXT_CLI */
 
 #if 0
    /* Create an ARP request. */
