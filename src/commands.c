@@ -104,9 +104,9 @@ static TASK_RETVAL tdisk_dir( const struct astring* cli ) {
    uint8_t attrib = 0;
    char attrib_str[5] = { 0 };
    uint32_t size = 0;
-   uint16_t data_offset = 0;
+   //uint16_t data_offset = 0;
 
-   offset = mfat_get_root_dir_offset( 0, 0 );
+   offset = mfat_get_root_dir_first_entry_offset( 0, 0 );
 
    tok = alpha_tok( cli, ' ', 2 );
 
@@ -132,11 +132,11 @@ static TASK_RETVAL tdisk_dir( const struct astring* cli ) {
       /* Get the file size. */
       size = mfat_get_dir_entry_size( offset, 0, 0 );
 
-      data_offset = mfat_get_dir_entry_first_cluster_offset( offset, 0, 0 );
+      //data_offset = mfat_get_dir_entry_first_cluster_offset( offset, 0, 0 );
 
       /* Print the entry. */
-      tprintf( "- %s\t%12 s\t%d\t%d\t%x\n", attrib_str, filename,
-         mfat_get_dir_entry_cyear( offset, 0, 0 ) + 1980, size, data_offset );
+      tprintf( "- %s\t%12 s\t%d\t%d\n", attrib_str, filename,
+         mfat_get_dir_entry_cyear( offset, 0, 0 ) + 1980, size );
 
       /* Get the next entry. */
       offset = mfat_get_dir_entry_next_offset( offset, 0, 0 );
@@ -168,22 +168,29 @@ static TASK_RETVAL tdisk_fat( const struct astring* cli ) {
 }
 
 static TASK_RETVAL tdisk_cat( const struct astring* cli ) {
-#if 0
    const char* tok;
    uint16_t offset = 0;
    char buffer[11] = { 0 };
+   uint8_t written = 0;
+   uint16_t file_size = 0;
 
    tok = alpha_tok( cli, ' ', 2 );
    if( NULL == tok ) {
       return RETVAL_BAD_ARGS;
    }
 
-   offset = mfat_get_root_dir_offset( 0, 0 );
+   offset = mfat_get_root_dir_first_entry_offset( 0, 0 );
    offset = mfat_get_dir_entry_offset( tok, MFAT_FILENAME_LEN, offset, 0, 0 );
+   file_size = mfat_get_dir_entry_size( offset, 0, 0 );
 
-   mfat_get_dir_entry_data( offset, 0, buffer, 10, 0, 0 );
-   tprintf( "%x: %s\n", offset, buffer );
-#endif
+   tprintf( "\"" );
+   do {
+      mzero( buffer, 11 );
+      written += mfat_get_dir_entry_data( offset, written, buffer, 10, 0, 0 );
+      tprintf( "%s", buffer );
+   } while( file_size > written );
+   tprintf( "\"\n" );
+
    return RETVAL_OK;
 }
 
