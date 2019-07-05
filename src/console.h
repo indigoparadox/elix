@@ -11,6 +11,13 @@
 #include "alpha.h"
 #include "uart.h"
 
+/* Memory IDs for console tasks. */
+#define REPL_MID_LINE      1
+#define REPL_MID_CUR_POS   2
+#define REPL_MID_ARG_MIN   10
+/* Empty */
+#define REPL_MID_ARG_MAX   20
+
 #define REPL_LINE_SIZE_MAX 20
 
 #define CONSOLE_OP_NOOP 0x0

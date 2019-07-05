@@ -9,7 +9,9 @@
 #define SYSTEM_RUNNING 0
 #define SYSTEM_SHUTDOWN 1
 
-void kmain();
+#define KERNEL_MID_CLI 5
+
+int kmain( int argc, char** argv );
 
 #ifdef KERNEL_C
 uint8_t g_system_state = SYSTEM_RUNNING;

@@ -66,8 +66,6 @@ void meditprop(
    TASK_PID pid, MEM_ID mid, MEMLEN_T offset, MEMLEN_T sz, void* val
 );
 
-//struct mstring* mfromcstr( char* str );
-
 #ifdef MEM_C
 const long meta_null = 0;
 #else
