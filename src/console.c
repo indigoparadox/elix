@@ -29,13 +29,6 @@ uint8_t g_console_flags = 0;
 
 const struct astring g_str_ready = astring_l( "ready" CONSOLE_NEWLINE );
 
-/* Memory IDs for console tasks. */
-#define REPL_MID_LINE      1
-#define REPL_MID_CUR_POS   2
-#define REPL_MID_ARG_MIN   10
-/* Empty */
-#define REPL_MID_ARG_MAX   20
-
 #define TPRINT_PAD_ZERO 0
 #define TPRINT_PAD_SPACE 1
 
@@ -171,7 +164,6 @@ TASK_RETVAL trepl_task() {
     */
    line = alpha_astring(
       adhd_get_pid(), REPL_MID_LINE, REPL_LINE_SIZE_MAX + 1, NULL );
-   //token = mget( pid, REPL_MID_LINE, 30 );
 
    if(
       line->len + 1 >= line->sz ||

@@ -14,18 +14,26 @@
 #include "keyboard.h"
 #endif /* CONSOLE_SERIAL */
 
+#ifdef USE_EXT_CLI
+#include "commands.h"
+#endif /* USE_EXT_CLI */
+
 #define TASKS_MAX 5
 
 const struct astring g_str_hello = astring_l( "hello\n" );
 const struct astring g_str_stopping = astring_l( "stopping...\n" );
 
-#include <stdio.h>
-void kmain() {
+int kmain( int argc, char** argv ) {
    uint8_t i = 0;
 #ifndef SCHEDULE_COOP
    TASK_PID active = 0;
    TASK_RETVAL retval = 0;
 #endif /* !SCHEDULE_COOP */
+#ifdef USE_EXT_CLI
+   const struct astring* cli;
+   char c = 0;
+   int j = 0;
+#endif /* USE_EXT_CLI */
 
    minit();
    keyboard_init();
@@ -36,6 +44,28 @@ void kmain() {
    net_init();
 
    adhd_start();
+
+#ifdef USE_EXT_CLI
+   if( 1 < argc ) {
+      cli = alpha_astring(
+         ADHD_PID_MAIN, KERNEL_MID_CLI, REPL_LINE_SIZE_MAX + 1, NULL );
+
+      for( i = 1 ; argc > i ; i++ ) {
+         j = 0;
+         while( '\0' != (c = argv[i][j++]) ) {
+            alpha_astring_append( ADHD_PID_MAIN, KERNEL_MID_CLI, c );
+         }
+         if( i + 1 < argc ) {
+            alpha_astring_append( ADHD_PID_MAIN, KERNEL_MID_CLI, ' ' );
+         }
+      }
+      
+      retval = do_command( cli );
+
+      goto cleanup;
+   }
+#endif /* USE_EXT_CLI */
+
    adhd_launch_task( trepl_task );
 
    /* TODO: Kill task on request in COOP mode. */
@@ -53,6 +83,10 @@ void kmain() {
 #endif /* !SCHEDULE_COOP */
 
    tputs( &g_str_stopping );
+
+#ifdef USE_EXT_CLI
+cleanup:
+#endif /* USE_EXT_CLI */
 
 #ifndef CONSOLE_SERIAL
    keyboard_shutdown();
@@ -81,8 +115,8 @@ void kmain() {
    net_send_frame( socket, &frame, frame_len );
 #endif
    /* Listen for and handle incoming packets. */
-
-//cleanup:
    // TODO: net_close_socket( socket );
+
+   return 0;
 }
 

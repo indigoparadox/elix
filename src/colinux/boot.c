@@ -8,11 +8,12 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
-int main( void ) {
+int main( int argc, char** argv ) {
    int img_handle = 0;
    uint8_t* img_map = NULL;
    struct stat img_stat;
    size_t img_size = 0;
+   int retval = 0;
 
    stat( "testimg.img", &img_stat );
    img_size = img_stat.st_size;
@@ -26,10 +27,10 @@ int main( void ) {
    close( img_handle );
    disk_set_ptr( 0, img_map );
 
-   kmain();
+   retval = kmain( argc, argv );
 
    munmap( img_map, img_size );
 
-   return 0;
+   return retval;
 }
 
