@@ -14,35 +14,31 @@
 
 #define MFAT_FILENAME_LEN  13
 
-uint16_t mfat_get_entries_count(       uint8_t dev_idx, uint8_t part_idx );
+uint16_t mfat_get_entries_count( uint8_t dev_idx, uint8_t part_idx );
 uint16_t mfat_get_fat_entry( uint16_t idx, uint8_t dev_idx, uint8_t part_idx );
-uint16_t mfat_get_root_dir_first_entry_offset(
+uint32_t mfat_get_root_dir_first_entry_offset(
    uint8_t dev_idx, uint8_t part_idx );
 
-uint16_t mfat_get_dir_entry_offset(
+uint32_t mfat_get_dir_entry_offset(
    const char search_name[MFAT_FILENAME_LEN], uint8_t search_name_len,
-   uint16_t parent_offset, uint8_t dev_idx, uint8_t part_idx );
+   uint32_t parent_offset, uint8_t dev_idx, uint8_t part_idx );
 uint8_t mfat_filename_cmp(
    const char filename1[MFAT_FILENAME_LEN],
    const char filename2[MFAT_FILENAME_LEN] );
-uint16_t mfat_get_dir_entry_next_offset(
-   uint16_t offset, uint8_t dev_idx, uint8_t part_idx );
+uint32_t mfat_get_dir_entry_next_offset(
+   uint32_t offset, uint8_t dev_idx, uint8_t part_idx );
 uint8_t mfat_get_dir_entry_data(
-   uint16_t entry_offset, uint16_t file_offset, char* buffer, uint16_t blen,
+   uint32_t entry_offset, uint32_t file_offset, char* buffer, uint16_t blen,
    uint8_t dev_idx, uint8_t part_idx );
-uint16_t mfat_get_dir_entry_first_cluster_offset(
-   uint16_t entry_offset, uint8_t dev_idx, uint8_t part_idx );
 void mfat_get_dir_entry_name(
    char buffer[MFAT_FILENAME_LEN],
-   uint16_t offset, uint8_t dev_idx, uint8_t part_idx );
+   uint32_t offset, uint8_t dev_idx, uint8_t part_idx );
 uint8_t mfat_get_dir_entry_cyear(
-   uint16_t offset, uint8_t dev_idx, uint8_t part_idx );
+   uint32_t offset, uint8_t dev_idx, uint8_t part_idx );
 uint32_t mfat_get_dir_entry_size(
-   uint16_t offset, uint8_t dev_idx, uint8_t part_idx );
+   uint32_t offset, uint8_t dev_idx, uint8_t part_idx );
 uint8_t mfat_get_dir_entry_attrib(
-   uint16_t offset, uint8_t dev_idx, uint8_t part_idx );
-uint8_t mfat_get_dir_entry_cluster(
-   uint16_t cluster_idx, uint16_t entry_offset, uint8_t dev_idx, uint8_t part_idx );
+   uint32_t offset, uint8_t dev_idx, uint8_t part_idx );
 
 #endif /* MFAT_H */
 

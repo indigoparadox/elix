@@ -182,10 +182,10 @@ static TASK_RETVAL tdisk_fat( const struct astring* cli ) {
 
 static TASK_RETVAL tdisk_cat( const struct astring* cli ) {
    const char* tok;
-   uint16_t offset = 0;
-   char buffer[11] = { 0 };
-   uint8_t written = 0;
-   uint16_t file_size = 0;
+   uint32_t offset = 0;
+   char buffer[MFAT_FILENAME_LEN + 1] = { 0 };
+   uint32_t written = 0;
+   uint32_t file_size = 0;
 
    tok = alpha_tok( cli, ' ', 2 );
    if( NULL == tok ) {
@@ -194,6 +194,8 @@ static TASK_RETVAL tdisk_cat( const struct astring* cli ) {
 
    offset = mfat_get_root_dir_first_entry_offset( 0, 0 );
    offset = mfat_get_dir_entry_offset( tok, MFAT_FILENAME_LEN, offset, 0, 0 );
+   mfat_get_dir_entry_name( buffer, offset, 0, 0 );
+   tprintf( "%s:\n\n", buffer );
    file_size = mfat_get_dir_entry_size( offset, 0, 0 );
 
    tprintf( "\"" );

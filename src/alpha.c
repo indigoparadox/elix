@@ -311,3 +311,13 @@ STRLEN_T alpha_insertstr(
 }
 #endif
 
+uint16_t alpha_divide_evenly( uint16_t dividend, uint16_t divisor ) {
+   if( 0 == divisor ) {
+      return 0; /* TODO: Crash or something? */
+   }
+   while( 0 != divisor % divisor ) {
+      divisor--;
+   }
+   return dividend / divisor;
+}
+
