@@ -89,5 +89,7 @@ int8_t alpha_cmp_cl(
 	char* dest, STRLEN_T dest_len, const char* src, int8_t* cursor
 ); */
 
+uint16_t alpha_divide_evenly( uint16_t dividend, uint16_t divisor );
+
 #endif /* ALPHA_H */
 

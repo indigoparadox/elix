@@ -56,14 +56,6 @@ static uint16_t mfat_get_root_dir_entries_count(
 }
 
 #if 0
-static uint16_t mfat_get_sectors_per_track(   uint8_t dev_idx, uint8_t part_idx ) {
-   uint16_t out = 0;
-   out |= disk_get_byte( dev_idx, part_idx, 25 );
-   out <<= 8;
-   out |= disk_get_byte( dev_idx, part_idx, 24 );
-   return out;
-}
-
 static uint32_t mfat_get_sectors_total(       uint8_t dev_idx, uint8_t part_idx ) {
    uint32_t out = 0;
    out |= disk_get_byte( dev_idx, part_idx, 35 );
@@ -77,8 +69,8 @@ static uint32_t mfat_get_sectors_total(       uint8_t dev_idx, uint8_t part_idx 
 }
 #endif
 
-static uint16_t mfat_get_root_dir_offset( uint8_t dev_idx, uint8_t part_idx ) {
-   uint16_t dir_offset = 0;
+static uint32_t mfat_get_root_dir_offset( uint8_t dev_idx, uint8_t part_idx ) {
+   uint32_t dir_offset = 0;
 
    /* The root starts directly after the EBP and FATs. */
    dir_offset += MFAT_OFFSET_FAT;
@@ -89,8 +81,8 @@ static uint16_t mfat_get_root_dir_offset( uint8_t dev_idx, uint8_t part_idx ) {
    return dir_offset;
 }
 
-static uint16_t mfat_get_data_area_offset( uint8_t dev_idx, uint8_t part_idx ) {
-   uint16_t dir_offset = 0;
+static uint32_t mfat_get_data_area_offset( uint8_t dev_idx, uint8_t part_idx ) {
+   uint32_t dir_offset = 0;
 
    dir_offset = mfat_get_root_dir_offset( dev_idx, part_idx );
    dir_offset += (mfat_get_root_dir_entries_count( dev_idx, part_idx ) *
@@ -99,11 +91,16 @@ static uint16_t mfat_get_data_area_offset( uint8_t dev_idx, uint8_t part_idx ) {
    return dir_offset;
 }
 
-uint16_t mfat_get_cluster_data_offset(
+static uint16_t mfat_get_cluster_size( uint8_t dev_idx, uint8_t part_idx ) {
+   return mfat_get_sectors_per_cluster( dev_idx, part_idx ) *
+      mfat_get_bytes_per_sector( dev_idx, part_idx );
+}
+
+static uint32_t mfat_get_cluster_data_offset(
    uint16_t fat_idx, uint8_t dev_idx, uint8_t part_idx
 ) {
    uint16_t cluster_size = 0;
-   uint16_t data_offset = 0;
+   uint32_t data_offset = 0;
 
    #if 0
    if( 0xffff == fat_entry ) {
@@ -114,8 +111,7 @@ uint16_t mfat_get_cluster_data_offset(
 
    fat_idx -= 2; /* FAT quirk; cluster IDs start at 2 while clusters don't. */
 
-   cluster_size = mfat_get_sectors_per_cluster( dev_idx, part_idx ) *
-      mfat_get_bytes_per_sector( dev_idx, part_idx );
+   cluster_size = mfat_get_cluster_size( dev_idx, part_idx );
 
    data_offset = mfat_get_data_area_offset( dev_idx, part_idx );
    data_offset += fat_idx * cluster_size;
@@ -147,8 +143,10 @@ uint16_t mfat_get_fat_entry( uint16_t idx, uint8_t dev_idx, uint8_t part_idx ) {
    return out;
 }
 
-uint16_t mfat_get_root_dir_first_entry_offset( uint8_t dev_idx, uint8_t part_idx ) {
-   uint16_t dir_offset = 0;
+uint32_t mfat_get_root_dir_first_entry_offset(
+   uint8_t dev_idx, uint8_t part_idx
+) {
+   uint32_t dir_offset = 0;
    uint8_t entry_id = 0;
    uint8_t entry_attrib = 0;
 
@@ -203,11 +201,11 @@ uint8_t mfat_filename_cmp(
    return 0;
 }
 
-uint16_t mfat_get_dir_entry_offset(
+uint32_t mfat_get_dir_entry_offset(
    const char search_name[MFAT_FILENAME_LEN], uint8_t search_name_len,
-   uint16_t dir_offset, uint8_t dev_idx, uint8_t part_idx
+   uint32_t dir_offset, uint8_t dev_idx, uint8_t part_idx
 ) {
-   uint16_t offset_out = dir_offset;
+   uint32_t offset_out = dir_offset;
    char entry_name[MFAT_FILENAME_LEN];
    
    while( 0 != disk_get_byte( dev_idx, part_idx, offset_out ) ) {
@@ -230,10 +228,10 @@ hit:
    return offset_out;
 }
 
-uint16_t mfat_get_dir_entry_next_offset(
-   uint16_t offset, uint8_t dev_idx, uint8_t part_idx
+uint32_t mfat_get_dir_entry_next_offset(
+   uint32_t offset, uint8_t dev_idx, uint8_t part_idx
 ) {
-   uint16_t offset_out = offset;
+   uint32_t offset_out = offset;
    uint8_t entry_id = 0;
    uint8_t entry_attrib = 0;
 
@@ -259,7 +257,7 @@ uint16_t mfat_get_dir_entry_next_offset(
 }
 
 static uint16_t mfat_get_dir_entry_first_cluster_idx(
-   uint16_t entry_offset, uint8_t dev_idx, uint8_t part_idx
+   uint32_t entry_offset, uint8_t dev_idx, uint8_t part_idx
 ) {
    uint16_t out = 0;
    out |= disk_get_byte( dev_idx, part_idx, entry_offset + 27 );
@@ -273,15 +271,39 @@ static uint16_t mfat_get_dir_entry_first_cluster_idx(
    return out;
 }
 
+#include "console.h"
+
+static uint16_t mfat_get_dir_entry_n_cluster_idx(
+   uint32_t entry_offset, uint16_t iter_offset,
+   uint8_t dev_idx, uint8_t part_idx
+) {
+   uint16_t cluster_idx_out = 0;
+   uint16_t cluster_size = 0;
+
+   cluster_size = mfat_get_cluster_size( dev_idx, part_idx );
+
+   cluster_idx_out = mfat_get_dir_entry_first_cluster_idx(
+      entry_offset, dev_idx, part_idx );
+
+   while( iter_offset >= cluster_size ) {
+      cluster_idx_out =
+         mfat_get_fat_entry( cluster_idx_out, dev_idx, part_idx );
+      iter_offset -= cluster_size;
+   }
+   //tprintf( "\ncluster: %d\n", cluster_idx_out );
+
+   return cluster_idx_out;
+}
+
 uint8_t mfat_get_dir_entry_data(
-   uint16_t entry_offset, uint16_t iter_offset, char* buffer, uint16_t blen,
+   uint32_t entry_offset, uint32_t iter_offset, char* buffer, uint16_t blen,
    uint8_t dev_idx, uint8_t part_idx
 ) {
    uint16_t cluster_idx = 0;
-   //uint16_t iter_offset = 0;
-   //uint16_t iter_file_offset = 0;
-   uint16_t read = 0;
-   uint16_t file_size = 0;
+   uint32_t file_on_disk_offset = 0;
+   uint32_t read = 0;
+   uint32_t file_size = 0;
+   uint32_t cluster_end = 0;
 
    file_size = mfat_get_dir_entry_size( entry_offset, dev_idx, part_idx );
    if( file_size <= iter_offset ) {
@@ -290,38 +312,45 @@ uint8_t mfat_get_dir_entry_data(
       return 0;
    }
 
-   cluster_idx = mfat_get_dir_entry_first_cluster_idx(
-      entry_offset, dev_idx, part_idx );
+new_cluster:
 
-   iter_offset += mfat_get_cluster_data_offset(
-      cluster_idx, dev_idx, part_idx );
-   file_size += mfat_get_cluster_data_offset(
-      cluster_idx, dev_idx, part_idx );
-#if 0
-   do {
-      /* Get disk offset containing the data at the requested file offset. */
-      data_offset = mfat_get_cluster_data_offset(
-         cluster_idx, dev_idx, part_idx );
-      if( 0 == data_offset ) {
-         /* Invalid cluster. */
-         goto cleanup;
-      }
-      /* We've read sector * bps bytes from the file so far. */
-      iter_file_offset += (mfat_get_bytes_per_sector( dev_idx, part_idx ) *
-         mfat_get_sectors_per_cluster( dev_idx, part_idx ));
-   while( file_offset > iter_file_offset );
+   cluster_idx = mfat_get_dir_entry_n_cluster_idx(
+      entry_offset, iter_offset + read, dev_idx, part_idx );
 
-   /* Determine the data offset within this cluster. */
-   file_offset -= iter_file_offset;
-#endif
+   file_on_disk_offset = mfat_get_cluster_data_offset(
+      cluster_idx, dev_idx, part_idx );
+
+   //tprintf( "\nidx: %d, offset: %x\n", cluster_idx, file_on_disk_offset );
+
+   assert( mfat_get_cluster_size( dev_idx, part_idx ) <
+      mfat_get_cluster_size( dev_idx, part_idx ) + file_on_disk_offset );
+
+   cluster_end = file_on_disk_offset +
+      mfat_get_cluster_size( dev_idx, part_idx );
+
    for(
-      read = 0;
+      ;
       blen > read && file_size > iter_offset + read;
       read++
    ) {
       buffer[read] =
-         disk_get_byte( dev_idx, part_idx, iter_offset + read );
+         disk_get_byte( dev_idx, part_idx,
+            file_on_disk_offset + iter_offset + read );
+      //tprintf( "\nread: %d\n", read );
+      if( file_on_disk_offset + iter_offset + read == cluster_end ) {
+         tprintf( "\nEND HERE\n" );
+      } else if( file_on_disk_offset + iter_offset + read >= cluster_end ) {
+         /* tprintf( "\n%d of %d\n",
+            file_on_disk_offset + iter_offset + read,
+            cluster_end
+         );*/
+         read++;
+         goto new_cluster;
+      }
    }
+
+   /* tprintf( "\ncl: %d, r: %d, fs: %d, iter: %d\n", 
+      cluster_idx, read, file_size, iter_offset ); */
 
 //cleanup:
    return read;
@@ -329,7 +358,7 @@ uint8_t mfat_get_dir_entry_data(
 
 void mfat_get_dir_entry_name(
    char buffer[MFAT_FILENAME_LEN],
-   uint16_t offset, uint8_t dev_idx, uint8_t part_idx
+   uint32_t offset, uint8_t dev_idx, uint8_t part_idx
 ) {
    int8_t src_i = 0, dest_i = 0;
    char c;
@@ -356,7 +385,7 @@ void mfat_get_dir_entry_name(
 }
 
 uint8_t mfat_get_dir_entry_cyear(
-   uint16_t offset, uint8_t dev_idx, uint8_t part_idx
+   uint32_t offset, uint8_t dev_idx, uint8_t part_idx
 ) {
    uint16_t year_out = 0;
 
@@ -368,7 +397,7 @@ uint8_t mfat_get_dir_entry_cyear(
 }
 
 uint32_t mfat_get_dir_entry_size(
-   uint16_t offset, uint8_t dev_idx, uint8_t part_idx
+   uint32_t offset, uint8_t dev_idx, uint8_t part_idx
 ) {
    uint32_t out = 0;
    out |= disk_get_byte( dev_idx, part_idx, offset + 31 );
@@ -382,16 +411,9 @@ uint32_t mfat_get_dir_entry_size(
 }
 
 uint8_t mfat_get_dir_entry_attrib(
-   uint16_t offset, uint8_t dev_idx, uint8_t part_idx
+   uint32_t offset, uint8_t dev_idx, uint8_t part_idx
 ) {
    return disk_get_byte( dev_idx, part_idx, offset + 11 );
-}
-
-uint8_t mfat_get_dir_entry_cluster(
-   uint16_t cluster_idx, uint16_t entry_offset, uint8_t dev_idx, uint8_t part_idx
-) {
-   /* TODO */
-   return 0;
 }
 
 #endif /* USE_DISK */
