@@ -62,20 +62,37 @@ static uint32_t mfat_get_sectors_total(       uint8_t dev_idx, uint8_t part_idx 
 }
 #endif
 
+static uint16_t mfat_get_data_area_offset( uint8_t dev_idx, uint8_t part_idx ) {
+   uint16_t dir_offset = 0;
+
+   /* The root starts directly after the EBP and FATs. */
+   dir_offset += MFAT_OFFSET_FAT;
+   dir_offset += (mfat_get_bytes_per_sector( dev_idx, part_idx ) *
+      mfat_get_sectors_per_fat( dev_idx, part_idx ) *
+      mfat_get_fat_count( dev_idx, part_idx ));
+
+   return dir_offset;
+}
+
 uint16_t mfat_get_cluster_data_offset(
    uint16_t fat_entry, uint8_t dev_idx, uint8_t part_idx
 ) {
    uint16_t cluster_size = 0;
+   uint16_t data_offset = 0;
 
    if( 0xffff == fat_entry ) {
       /* End of chain. */
       return 0;
    }
 
+   /* TODO: Does this work? */
    cluster_size = mfat_get_sectors_per_cluster( dev_idx, part_idx ) *
       mfat_get_bytes_per_sector( dev_idx, part_idx );
 
-   return fat_entry * cluster_size;
+   data_offset = mfat_get_data_area_offset( dev_idx, part_idx );
+   data_offset += fat_entry * cluster_size;
+
+   return data_offset;
 }
 
 uint16_t mfat_get_entries_count(       uint8_t dev_idx, uint8_t part_idx ) {
@@ -84,7 +101,7 @@ uint16_t mfat_get_entries_count(       uint8_t dev_idx, uint8_t part_idx ) {
       mfat_get_bytes_per_sector( dev_idx, part_idx )) / 2;
 }
 
-uint16_t mfat_get_entry( uint16_t idx,  uint8_t dev_idx, uint8_t part_idx ) {
+uint16_t mfat_get_fat_entry( uint16_t idx, uint8_t dev_idx, uint8_t part_idx ) {
    uint16_t out = 0;
    uint16_t entry_offset = 0;
 
@@ -108,10 +125,7 @@ uint16_t mfat_get_root_dir_offset( uint8_t dev_idx, uint8_t part_idx ) {
    uint8_t entry_attrib = 0;
 
    /* The root starts directly after the EBP and FATs. */
-   dir_offset += MFAT_OFFSET_FAT;
-   dir_offset += (mfat_get_bytes_per_sector( dev_idx, part_idx ) *
-      mfat_get_sectors_per_fat( dev_idx, part_idx ) *
-      mfat_get_fat_count( dev_idx, part_idx ));
+   dir_offset  = mfat_get_data_area_offset( dev_idx, part_idx );
 
    /* Hunt for the first actual entry (i.e. skip LFNs, etc). */
    entry_attrib = mfat_get_dir_entry_attrib( dir_offset, dev_idx, part_idx );
@@ -128,8 +142,6 @@ uint16_t mfat_get_root_dir_offset( uint8_t dev_idx, uint8_t part_idx ) {
    return dir_offset;
 }
 
-#include "console.h"
-
 uint8_t mfat_filename_cmp(
    const char filename1[MFAT_FILENAME_LEN],
    const char filename2[MFAT_FILENAME_LEN]
@@ -140,7 +152,6 @@ uint8_t mfat_filename_cmp(
    for( i = 0 ; MFAT_FILENAME_LEN > i ; i++ ) {
       c1 = alpha_tolower( filename1[i] );
       c2 = alpha_tolower( filename2[i] );
-      tprintf( "%c vs %c\n", c1, c2 );
       /* Compare entry name with target. */
       if(
          c1 != c2 &&
@@ -221,9 +232,17 @@ uint16_t mfat_get_dir_entry_first_cluster_offset(
    out |= disk_get_byte( dev_idx, part_idx, entry_offset + 27 );
    out <<= 8;
    out |= disk_get_byte( dev_idx, part_idx, entry_offset + 26 );
+
+   /* TODO: Does this work? */
+   //out += mfat_get_data_area_offset( dev_idx, part_idx );
+   out = mfat_get_cluster_data_offset( out, dev_idx, part_idx );
+
    return out;
 }
 
+#include "console.h"
+
+#if 0
 uint8_t mfat_get_dir_entry_data(
    uint16_t entry_offset, uint16_t file_offset, char* buffer, uint16_t blen,
    uint8_t dev_idx, uint8_t part_idx
@@ -243,6 +262,9 @@ uint8_t mfat_get_dir_entry_data(
 
    cluster_offset = mfat_get_dir_entry_first_cluster_offset(
       entry_offset, dev_idx, part_idx );
+
+   tprintf( "%x\n", cluster_offset );
+
    while( file_offset < iter_file_offset ) {
       /* Get disk offset containing the data at the requested file offset. */
       cluster_offset = mfat_get_cluster_data_offset(
@@ -267,6 +289,7 @@ uint8_t mfat_get_dir_entry_data(
 cleanup:
    return written;
 }
+#endif
 
 void mfat_get_dir_entry_name(
    char buffer[MFAT_FILENAME_LEN],

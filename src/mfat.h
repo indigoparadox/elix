@@ -25,7 +25,7 @@ uint16_t mfat_get_cluster_data_offset(
    uint16_t fat_entry, uint8_t dev_idx, uint8_t part_idx );
 */
 uint16_t mfat_get_entries_count(       uint8_t dev_idx, uint8_t part_idx );
-uint16_t mfat_get_entry( uint16_t idx, uint8_t dev_idx, uint8_t part_idx );
+uint16_t mfat_get_fat_entry( uint16_t idx, uint8_t dev_idx, uint8_t part_idx );
 uint16_t mfat_get_root_dir_offset(     uint8_t dev_idx, uint8_t part_idx );
 
 uint16_t mfat_get_dir_entry_offset(

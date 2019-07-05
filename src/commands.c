@@ -104,6 +104,7 @@ static TASK_RETVAL tdisk_dir( const struct astring* cli ) {
    uint8_t attrib = 0;
    char attrib_str[5] = { 0 };
    uint32_t size = 0;
+   uint16_t data_offset = 0;
 
    offset = mfat_get_root_dir_offset( 0, 0 );
 
@@ -131,9 +132,11 @@ static TASK_RETVAL tdisk_dir( const struct astring* cli ) {
       /* Get the file size. */
       size = mfat_get_dir_entry_size( offset, 0, 0 );
 
+      data_offset = mfat_get_dir_entry_first_cluster_offset( offset, 0, 0 );
+
       /* Print the entry. */
-      tprintf( "- %s\t%12 s\t%d\t%d\n", attrib_str, filename,
-         mfat_get_dir_entry_cyear( offset, 0, 0 ) + 1980, size );
+      tprintf( "- %s\t%12 s\t%d\t%d\t%x\n", attrib_str, filename,
+         mfat_get_dir_entry_cyear( offset, 0, 0 ) + 1980, size, data_offset );
 
       /* Get the next entry. */
       offset = mfat_get_dir_entry_next_offset( offset, 0, 0 );
@@ -143,6 +146,7 @@ static TASK_RETVAL tdisk_dir( const struct astring* cli ) {
 }
 
 static TASK_RETVAL tdisk_fat( const struct astring* cli ) {
+#if 0
    uint16_t i = 0;
    uint16_t entries_count = 0;
    uint16_t fat_entry = 0;
@@ -158,11 +162,13 @@ static TASK_RETVAL tdisk_fat( const struct astring* cli ) {
          tprintf( "\n%5i\t", i );
       }
    }
+#endif
 
    return RETVAL_OK;
 }
 
 static TASK_RETVAL tdisk_cat( const struct astring* cli ) {
+#if 0
    const char* tok;
    uint16_t offset = 0;
    char buffer[11] = { 0 };
@@ -176,8 +182,8 @@ static TASK_RETVAL tdisk_cat( const struct astring* cli ) {
    offset = mfat_get_dir_entry_offset( tok, MFAT_FILENAME_LEN, offset, 0, 0 );
 
    mfat_get_dir_entry_data( offset, 0, buffer, 10, 0, 0 );
-   tprintf( "%s\n", buffer );
-
+   tprintf( "%x: %s\n", offset, buffer );
+#endif
    return RETVAL_OK;
 }
 
