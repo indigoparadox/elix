@@ -34,11 +34,12 @@ int kmain() {
    TASK_RETVAL retval = 0;
 #endif /* !SCHEDULE_COOP */
 #ifdef USE_EXT_CLI
-   const struct astring* cli;
+   const struct astring* cli = NULL;
    char c = 0;
    int j = 0;
    bool switch_found = false;
    bool do_init = true;
+   bool cmd_found = false;
 #endif /* USE_EXT_CLI */
 
    minit();
@@ -60,6 +61,7 @@ int kmain() {
                   break;
                }
             } else {
+               cmd_found = true;
                alpha_astring_append( ADHD_PID_MAIN, KERNEL_MID_CLI, c );
             }
          }
@@ -71,10 +73,6 @@ int kmain() {
             }
          }
       }
-      
-      retval = do_command( cli );
-
-      goto cleanup;
    }
 
    if( do_init ) {
@@ -90,6 +88,11 @@ int kmain() {
    adhd_start();
 
 #ifdef USE_EXT_CLI
+   }
+
+   if( cmd_found ) {
+      retval = do_command( cli );
+      goto cleanup;
    }
 #endif /* USE_EXT_CLI */
 
