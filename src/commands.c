@@ -146,23 +146,36 @@ static TASK_RETVAL tdisk_dir( const struct astring* cli ) {
 }
 
 static TASK_RETVAL tdisk_fat( const struct astring* cli ) {
-#if 0
    uint16_t i = 0;
    uint16_t entries_count = 0;
    uint16_t fat_entry = 0;
+   const char* tok;
+   uint8_t display_dec = 0;
+
+   tok = alpha_tok( cli, ' ', 2 );
+   if( NULL != tok ) {
+      if( !alpha_cmp_cc( "d", 1, tok, 1, ' ' ) ) {
+         display_dec = 1;
+      }
+   }
 
    entries_count = mfat_get_entries_count( 0, 0 );
 
    for( i = 0 ; entries_count > i ; i++ ) {
-      fat_entry = mfat_get_entry( i, 0, 0 );
+      fat_entry = mfat_get_fat_entry( i, 0, 0 );
 
-      tprintf( "%4x ", fat_entry );
+      if( display_dec ) {
+         tprintf( "%5d ", fat_entry );
+      } else {
+         tprintf( "%4x ", fat_entry );
+      }
 
       if( 0 == (i % 10) ) {
          tprintf( "\n%5i\t", i );
       }
    }
-#endif
+
+   tprintf( "\n" );
 
    return RETVAL_OK;
 }
