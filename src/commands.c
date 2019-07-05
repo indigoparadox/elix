@@ -152,15 +152,33 @@ static TASK_RETVAL tdisk_fat( const struct astring* cli ) {
    const char* tok;
    uint8_t display_dec = 0;
 
-   tok = alpha_tok( cli, ' ', 2 );
-   if( NULL != tok ) {
+   i = 2;
+   tok = alpha_tok( cli, ' ', i );
+   while( NULL != tok ) {
       if( !alpha_cmp_cc( "d", 1, tok, 1, ' ' ) ) {
          display_dec = 1;
+      } else if( 0 < alpha_atou_c( tok, 5 /* TODO */, 10 ) ) {
+         if( display_dec ) {
+            /* Interpret as decimal. */
+            entries_count = alpha_atou_c( tok, 5, 10 );
+            fat_entry = mfat_get_fat_entry( entries_count, 0, 0 );
+            tprintf( "fat entry %5d: %5d\n", entries_count, fat_entry );
+            return RETVAL_OK;
+         } else {
+            /* Interpret as hex. */
+            entries_count = alpha_atou_c( tok, 5, 16 );
+            fat_entry = mfat_get_fat_entry( entries_count, 0, 0 );
+            tprintf( "fat entry %4x: %4x\n", entries_count, fat_entry );
+            return RETVAL_OK;
+         }
       }
+      i++;
+      tok = alpha_tok( cli, ' ', i );
    }
 
    entries_count = mfat_get_entries_count( 0, 0 );
 
+   tprintf( "\n00000\t" );
    for( i = 0 ; entries_count > i ; i++ ) {
       fat_entry = mfat_get_fat_entry( i, 0, 0 );
 
@@ -170,11 +188,14 @@ static TASK_RETVAL tdisk_fat( const struct astring* cli ) {
          tprintf( "%4x ", fat_entry );
       }
 
-      if( 0 == (i % 10) ) {
-         tprintf( "\n%5i\t", i );
+      if( 0 == (i % 10) && 0 != i ) {
+         if( display_dec ) {
+            tprintf( "\n%5d\t", i );
+         } else {
+            tprintf( "\n%4x\t", i );
+         }
       }
    }
-
    tprintf( "\n" );
 
    return RETVAL_OK;

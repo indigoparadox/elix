@@ -10,12 +10,12 @@
 #define assert( x )
 #endif /* DEBUG */
 
-uint16_t alpha_atou( const struct astring* src, uint8_t base ) {
+
+uint16_t alpha_atou_c( const char* ch, int len, uint8_t base ) {
    uint16_t value = 0;
-   const char* ch = src->data;
    uint8_t i = 0;
 
-   while( alpha_isalnum( *ch ) && i < src->len ) {
+   while( alpha_isalnum( *ch ) && i < len ) {
       value *= base;
 
       if( '9' >= *ch ) {
@@ -30,6 +30,10 @@ uint16_t alpha_atou( const struct astring* src, uint8_t base ) {
    }
 
    return value;
+}
+
+uint16_t alpha_atou( const struct astring* src, uint8_t base ) {
+   return alpha_atou_c( src->data, src->len, base );
 }
 
 const char* alpha_tok( const struct astring* src, char sep, uint8_t idx ) {
