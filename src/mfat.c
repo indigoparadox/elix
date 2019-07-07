@@ -97,7 +97,10 @@ static uint32_t mfat_get_root_dir_offset( uint8_t dev_idx, uint8_t part_idx ) {
    return dir_offset;
 }
 
-static uint32_t mfat_get_data_area_offset( uint8_t dev_idx, uint8_t part_idx ) {
+#ifndef CHECK
+static
+#endif /* !CHECK */
+uint32_t mfat_get_data_area_offset( uint8_t dev_idx, uint8_t part_idx ) {
    uint32_t dir_offset = 0;
 
    dir_offset = mfat_get_root_dir_offset( dev_idx, part_idx );
@@ -107,12 +110,18 @@ static uint32_t mfat_get_data_area_offset( uint8_t dev_idx, uint8_t part_idx ) {
    return dir_offset;
 }
 
-static uint16_t mfat_get_cluster_size( uint8_t dev_idx, uint8_t part_idx ) {
+#ifndef CHECK
+static
+#endif /* !CHECK */
+uint16_t mfat_get_cluster_size( uint8_t dev_idx, uint8_t part_idx ) {
    return mfat_get_sectors_per_cluster( dev_idx, part_idx ) *
       mfat_get_bytes_per_sector( dev_idx, part_idx );
 }
 
-static uint32_t mfat_get_cluster_data_offset(
+#ifndef CHECK
+static
+#endif /* !CHECK */
+uint32_t mfat_get_cluster_data_offset(
    uint16_t fat_idx, uint8_t dev_idx, uint8_t part_idx
 ) {
    uint16_t cluster_size = 0;
