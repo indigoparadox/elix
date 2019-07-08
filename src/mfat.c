@@ -8,12 +8,12 @@
 #include "alpha.h"
 #endif /* ALPHA_PRESENT */
 
+#ifdef DEBUG
 #include <assert.h>
 #include <stdio.h>
 #include "console.h"
-#ifdef DEBUG
 #else
-//#define assert( x )
+#define assert( x )
 #endif /* DEBUG */
 
 #include <stdbool.h>
@@ -338,8 +338,12 @@ uint8_t mfat_get_dir_entry_data(
    uint32_t disk_cluster_offset = 0;
    uint8_t read = 0;
    uint32_t file_size = 0;
-   //uint32_t cluster_end = 0;
    uint16_t cluster_size = 0;
+
+   /* We get inconsistencies/cluster overlaps if the buffer len isn't divisible
+    * by 4.
+    */
+   assert( 0 == blen % 4 );
 
    file_size = mfat_get_dir_entry_size( entry_offset, dev_idx, part_idx );
    if( file_size <= iter_file_offset ) {
@@ -364,9 +368,6 @@ new_cluster:
    assert( mfat_get_cluster_size( dev_idx, part_idx ) <
       cluster_size + disk_cluster_offset );
 
-   /* Set an end-of-file limit. */
-   //cluster_end = disk_cluster_offset + cluster_size;
-
 #ifdef MFAT_DATA_DEBUG
    printf( "\ncluster start: %d\ncluster end: %d\n",
       disk_cluster_offset, cluster_end );
@@ -377,6 +378,7 @@ new_cluster:
     * of the requested data is in another cluster.
     */
    while( blen > read && file_size > iter_file_offset ) {
+      assert( iter_file_offset < cluster_size );
       buffer[read] = disk_get_byte( dev_idx, part_idx,
          disk_cluster_offset + iter_file_offset );
       read++;
@@ -393,7 +395,6 @@ new_cluster:
       }
    }
 
-//cleanup:
    return read;
 }
 

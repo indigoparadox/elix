@@ -225,7 +225,7 @@ static TASK_RETVAL tdisk_cat( const struct astring* cli ) {
    tprintf( "\"" );
    do {
       mzero( buffer, 11 );
-      written += mfat_get_dir_entry_data( offset, written, buffer, 10, 0, 0 );
+      written += mfat_get_dir_entry_data( offset, written, buffer, 8, 0, 0 );
       tprintf( "%s", buffer );
    } while( file_size > written );
    tprintf( "\"\n" );
