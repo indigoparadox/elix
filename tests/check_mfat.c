@@ -18,9 +18,20 @@ static char g_img_name[IMG_NAME_LEN] = "testimg.img";
 
 static char* g_data_filename = NULL;
 static uint8_t g_data_filename_len = 0;
+static void (*g_data_test)( uint32_t, uint32_t ) = NULL;
+static int g_test_sz = 1;
 
 uint8_t disk_get_byte( uint8_t dev_idx, uint8_t part_idx, size_t offset ) {
    return g_img_map[offset];
+}
+
+void test_data_short( uint32_t c, uint32_t idx ) {
+   const char* test_str = "The quick brown fox.";
+   ck_assert_int_eq( c, test_str[idx] );
+}
+
+void test_data_long( uint32_t c, uint32_t idx ) {
+   ck_assert_uint_eq( c, idx );
 }
 
 /* Convenient prototypes for normally static functions. */
@@ -39,15 +50,34 @@ uint32_t mfat_get_data_area_offset( uint8_t dev_idx, uint8_t part_idx );
 uint16_t mfat_get_cluster_size( uint8_t dev_idx, uint8_t part_idx );
 uint32_t mfat_get_cluster_data_offset(
    uint16_t fat_idx, uint8_t dev_idx, uint8_t part_idx );
+uint32_t mfat_get_root_dir_offset( uint8_t dev_idx, uint8_t part_idx );
 
 #define MFAT_OFFSET_FAT 512
 
 START_TEST( test_mfat_bpb ) {
+   uint32_t root_dir_start = 0;
+   uint32_t root_dir_entries_count = 0;
+   uint32_t data_offset = 0;
+   //uint32_t cluster_count = 0;
+
    ck_assert_uint_eq( 512, mfat_get_bytes_per_sector( 0, 0 ) );
    ck_assert_uint_eq( 4  , mfat_get_sectors_per_cluster( 0, 0 ) );
    ck_assert_uint_eq( 2  , mfat_get_fat_count( 0, 0 ) );
    ck_assert_uint_eq( 20 , mfat_get_sectors_per_fat( 0, 0 ) );
-   ck_assert_uint_eq( 512, mfat_get_root_dir_entries_count( 0, 0 ) );
+
+   root_dir_entries_count = mfat_get_root_dir_entries_count( 0, 0 );
+   ck_assert_uint_eq( 512, root_dir_entries_count );
+
+   root_dir_start = mfat_get_root_dir_offset( 0, 0 );
+   ck_assert_uint_eq( 512 * 2 * 20, root_dir_start );
+
+   data_offset = root_dir_start + (root_dir_entries_count * 32);
+   ck_assert_uint_eq( data_offset, mfat_get_data_area_offset( 0, 0 ) );
+
+   //cluster_count = mfat_get_sectors_total( 0, 0 ) - data_offset;
+   
+
+   //ck_assert_uint_eq( cluster_count,
 }
 END_TEST
 
@@ -84,17 +114,22 @@ START_TEST( test_mfat_cluster_data ) {
    uint32_t entry_offset = 0;
    uint32_t cluster_size = 0;
    uint32_t cluster_remainder = 0;
-   unsigned char test_byte = 0;
+   uint32_t test_num = 0;
+   uint8_t* bytes = 0;
+   int i = 0;
 
+   /* Grab the root directory and find the test file. */
    entry_offset = mfat_get_root_dir_first_entry_offset( 0, 0 );
    entry_offset = mfat_get_dir_entry_offset(
       g_data_filename, g_data_filename_len, entry_offset, 0, 0 );
    file_size = mfat_get_dir_entry_size( entry_offset, 0, 0 );
 
-   ck_assert_int_lt( _i, file_size );
+   ck_assert_int_lt( (g_test_sz * _i), file_size );
+
+   ck_assert_int_eq( 0, cluster_size % g_test_sz );
 
    cluster_size = mfat_get_cluster_size( 0, 0 );
-   iter_offset = _i % cluster_size;
+   iter_offset = (g_test_sz * _i) % cluster_size;
 
    /* Grab the index of the cluster containing the requested chunk of the file
     * on the FAT. Then grab the offset in the data area.
@@ -111,15 +146,19 @@ START_TEST( test_mfat_cluster_data ) {
    ck_assert_int_ne( file_on_disk_offset, 0 );
    ck_assert_int_lt(
       mfat_get_cluster_size( 0, 0 ), cluster_size + file_on_disk_offset );
-   ck_assert_int_eq( 0, cluster_remainder );
+   ck_assert_int_lt( 0, cluster_remainder );
 
    /* Set an end-of-file limit. */
    cluster_end_on_disk = file_on_disk_offset + cluster_size;
 
    ck_assert_int_lt( file_on_disk_offset + iter_offset, cluster_end_on_disk );
 
-   test_byte = disk_get_byte( 0, 0, file_on_disk_offset + iter_offset );
-   printf( "%c\n", test_byte );
+   bytes = (uint8_t*)&test_num;
+   for( i = 0 ; g_test_sz > i ; i++ ) {
+      bytes[i] = disk_get_byte( 0, 0, file_on_disk_offset + iter_offset + i );
+   }
+   //printf( "%c\n", test_byte );
+   g_data_test( test_num, _i );
 }
 END_TEST
 
@@ -147,9 +186,23 @@ static void setup_data_short() {
    setup_disk();
    g_data_filename = "fox.txt";
    g_data_filename_len = 7;
+   g_data_test = test_data_short;
 }
 
 static void teardown_data_short() {
+   teardown_disk();
+}
+
+static void setup_data_long() {
+   setup_disk();
+
+   g_data_filename = "bcount.bin";
+   g_data_filename_len = 10;
+   g_data_test = test_data_long;
+   g_test_sz = 4;
+}
+
+static void teardown_data_long() {
    teardown_disk();
 }
 
@@ -157,7 +210,7 @@ Suite* mfat_suite( void ) {
    Suite* s;
    TCase* tc_metadata;
    TCase* tc_data_short;
-   //TCase* tc_data_long;
+   TCase* tc_data_long;
 
    s = suite_create( "mfat" );
 
@@ -178,15 +231,14 @@ Suite* mfat_suite( void ) {
    tcase_add_loop_test( tc_data_short, test_mfat_cluster_data, 0, 20 );
 
    /* File > 1 cluster. */
-   /*
    tc_data_long = tcase_create( "DataLong" );
    tcase_add_checked_fixture(
       tc_data_long, setup_data_long, teardown_data_long );
-   tcase_add_loop_test( tc_data_long, test_mfat_cluster_data, 0, 20 );
-   */
+   tcase_add_loop_test( tc_data_long, test_mfat_cluster_data, 0, 1500 );
 
    suite_add_tcase( s, tc_metadata );
    suite_add_tcase( s, tc_data_short );
+   suite_add_tcase( s, tc_data_long );
 
    return s;
 }
