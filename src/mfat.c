@@ -304,26 +304,27 @@ uint16_t mfat_get_dir_entry_first_cluster_idx(
 static
 #endif /* CHECK */
 uint16_t mfat_get_dir_entry_n_cluster_idx(
-   uint32_t entry_offset, uint16_t iter_offset,
+   uint32_t entry_offset, uint32_t* iter_offset_p,
+   const uint16_t* cluster_size_p, uint32_t* file_size_p,
    uint8_t dev_idx, uint8_t part_idx
 ) {
    uint16_t cluster_idx_out = 0;
-   uint16_t cluster_size = 0;
-
-   cluster_size = mfat_get_cluster_size( dev_idx, part_idx );
 
    /* Starting at the first cluster, find the cluster that contains the data
-    * at the requested offset.
+    * at the requested offset. Shrink down the provided offset until we're
+    * within the bounds of the iterated cluster. That must be the cluster we
+    * want!
     */
    cluster_idx_out = mfat_get_dir_entry_first_cluster_idx(
       entry_offset, dev_idx, part_idx );
-   while( iter_offset >= cluster_size ) {
+   while( *iter_offset_p >= *cluster_size_p ) {
 #ifdef MFAT_DATA_DEBUG
-      printf( "\nseeking; %d >= %d\n", iter_offset, cluster_size );
+      printf( "\nseeking; %d >= %d\n", *iter_offset_p, cluster_size );
 #endif /* MFAT_DATA_DEBUG */
       cluster_idx_out =
          mfat_get_fat_entry( cluster_idx_out, dev_idx, part_idx );
-      iter_offset -= cluster_size;
+      *iter_offset_p -= *cluster_size_p;
+      *file_size_p -= *cluster_size_p;
    }
 
    return cluster_idx_out;
@@ -335,9 +336,10 @@ uint8_t mfat_get_dir_entry_data(
 ) {
    uint16_t cluster_idx = 0;
    uint32_t disk_cluster_offset = 0;
-   uint8_t iter_clus_offset = 0, read = 0;
+   uint8_t read = 0;
    uint32_t file_size = 0;
-   uint32_t cluster_end = 0;
+   //uint32_t cluster_end = 0;
+   uint16_t cluster_size = 0;
 
    file_size = mfat_get_dir_entry_size( entry_offset, dev_idx, part_idx );
    if( file_size <= iter_file_offset ) {
@@ -346,59 +348,47 @@ uint8_t mfat_get_dir_entry_data(
       return 0;
    }
 
+   cluster_size = mfat_get_cluster_size( dev_idx, part_idx );
+
 new_cluster:
 
    /* Grab the index of the cluster containing the requested chunk of the file
     * on the FAT. Then grab the offset in the data area.
     */
    cluster_idx = mfat_get_dir_entry_n_cluster_idx(
-      entry_offset, iter_file_offset, dev_idx, part_idx );
+      entry_offset, &iter_file_offset, &cluster_size, &file_size,
+      dev_idx, part_idx );
    disk_cluster_offset = mfat_get_cluster_data_offset(
       cluster_idx, dev_idx, part_idx );
 
    assert( mfat_get_cluster_size( dev_idx, part_idx ) <
-      mfat_get_cluster_size( dev_idx, part_idx ) + disk_cluster_offset );
+      cluster_size + disk_cluster_offset );
 
    /* Set an end-of-file limit. */
-   cluster_end = disk_cluster_offset +
-      mfat_get_cluster_size( dev_idx, part_idx );
-
-   while( iter_file_offset >= mfat_get_cluster_size( dev_idx, part_idx ) ) {
-      iter_file_offset -= mfat_get_cluster_size( dev_idx, part_idx );
-   }
+   //cluster_end = disk_cluster_offset + cluster_size;
 
 #ifdef MFAT_DATA_DEBUG
    printf( "\ncluster start: %d\ncluster end: %d\n",
       disk_cluster_offset, cluster_end );
 #endif /* MFAT_DATA_DEBUG */
 
-   assert( iter_file_offset + iter_clus_offset
-      < mfat_get_cluster_size( dev_idx, part_idx ) );
+   assert( iter_file_offset < cluster_size );
    /* Read from the disk into the buffer until we run out of file or the rest
     * of the requested data is in another cluster.
     */
-   for(
-      ;
-      blen > read && file_size > iter_file_offset + iter_clus_offset;
-   ) {
-      buffer[read] =
-         disk_get_byte( dev_idx, part_idx,
-            disk_cluster_offset + iter_file_offset + iter_clus_offset );
+   while( blen > read && file_size > iter_file_offset ) {
+      buffer[read] = disk_get_byte( dev_idx, part_idx,
+         disk_cluster_offset + iter_file_offset );
       read++;
-      iter_clus_offset++;
-      if(
-         disk_cluster_offset + iter_file_offset + iter_clus_offset
-         >= cluster_end
-      ) {
+      iter_file_offset++;
+      if( iter_file_offset >= cluster_size ) {
 #ifdef MFAT_DATA_DEBUG
-         printf( "\nbreaking: read '%c', %d + %d + %d (%d) >= %d\n",
+         printf( "\nbreaking: read '%c', %d + %d (%d) >= %d\n",
             buffer[read - 1],
-            disk_cluster_offset, iter_file_offset, iter_clus_offset,
-            (disk_cluster_offset + iter_file_offset + iter_clus_offset),
-            cluster_end );
+            disk_cluster_offset, iter_file_offset,
+            (disk_cluster_offset + iter_file_offset),
+            cluster_size );
 #endif /* MFAT_DATA_DEBUG */
-         iter_file_offset += iter_clus_offset;
-         iter_clus_offset = 0;
          goto new_cluster;
       }
    }
