@@ -75,9 +75,9 @@ uint8_t net_respond_arp(
 }
 
 static bool net_create_socket() {
-   NET_SOCK sock_tmp;
+   NET_SOCK sock_tmp = NULL;
 
-   sock_tmp = (NET_SOCK*)net_open_socket( g_ifname );
+   sock_tmp = net_open_socket( g_ifname );
    if( NULL == sock_tmp ) {
       return true;
    }

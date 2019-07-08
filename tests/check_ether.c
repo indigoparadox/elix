@@ -25,6 +25,10 @@ int net_poll_frame(
    return 0;
 }
 
+void net_close_socket( NET_SOCK socket ) {
+
+}
+
 START_TEST( test_ether_htons ) {
    uint16_t test_val = 0x1234;
    
