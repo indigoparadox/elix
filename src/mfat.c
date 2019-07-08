@@ -71,8 +71,7 @@ uint16_t mfat_get_root_dir_entries_count(
    return out;
 }
 
-#if 0
-static uint32_t mfat_get_sectors_total(       uint8_t dev_idx, uint8_t part_idx ) {
+uint32_t mfat_get_sectors_total( uint8_t dev_idx, uint8_t part_idx ) {
    uint32_t out = 0;
    out |= disk_get_byte( dev_idx, part_idx, 35 );
    out <<= 8;
@@ -83,9 +82,11 @@ static uint32_t mfat_get_sectors_total(       uint8_t dev_idx, uint8_t part_idx 
    out |= disk_get_byte( dev_idx, part_idx, 32 );
    return out;
 }
-#endif
 
-static uint32_t mfat_get_root_dir_offset( uint8_t dev_idx, uint8_t part_idx ) {
+#ifndef CHECK
+static
+#endif /* CHECK */
+uint32_t mfat_get_root_dir_offset( uint8_t dev_idx, uint8_t part_idx ) {
    uint32_t dir_offset = 0;
 
    /* The root starts directly after the EBP and FATs. */

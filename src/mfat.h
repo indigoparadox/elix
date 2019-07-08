@@ -14,6 +14,7 @@
 
 #define MFAT_FILENAME_LEN  13
 
+uint32_t mfat_get_sectors_total( uint8_t dev_idx, uint8_t part_idx );
 uint16_t mfat_get_entries_count( uint8_t dev_idx, uint8_t part_idx );
 uint16_t mfat_get_fat_entry( uint16_t idx, uint8_t dev_idx, uint8_t part_idx );
 uint32_t mfat_get_root_dir_first_entry_offset(

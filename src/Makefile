@@ -131,7 +131,7 @@ $(BIN_MSP430): OBJDIR := ../obj/msp430
 #$(BIN_MSP430): LDFLAGS += -L../../chiipy/src/ -lchiipy
 
 tests: LDFLAGS += -lpcap $(shell pkg-config --libs check)
-tests: CFLAGS += -DCHECK -g -DQD_PLATFORM=QD_PLATFORM_COLINUX
+tests: CFLAGS += -DCHECK -g -DQD_PLATFORM=QD_PLATFORM_COLINUX -pg
 tests: OBJDIR := ../obj/tests
 
 all:
