@@ -26,8 +26,8 @@ uint8_t g_system_state = SYSTEM_RUNNING;
 int main( void ) {
    int number_failed = 0;
 
-   /*main_add_test( ether );
-   main_add_test( net );*/
+   main_add_test( ether );
+   main_add_test( net );
    main_add_test( mem );
    main_add_test( ring );
    /*main_add_test( console );

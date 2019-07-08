@@ -23,13 +23,12 @@ SYSLINUX=syslinux
 MCOPY=mcopy
 
 CFLAGS=-Wall -Werror -DUSE_CONSOLE -DUSE_NET -DUSE_DISK -I../../chiipy/src -DALPHA_PRESENT
-SOURCES=\
+SOURCES_TESTED= \
 	net/tcp.c \
 	net/ether.c \
 	net/arp.c \
 	mem.c \
 	console.c \
-	net/net.c \
 	adhd.c \
 	strings.c \
 	alpha.c \
@@ -37,19 +36,28 @@ SOURCES=\
 	ring.c \
 	io.c \
 	mfat.c
+SOURCES=$(SOURCES_TESTED) \
+	net/net.c
 
 CHECKOBJ=\
 	check.o \
 	check_mem.o \
 	check_ring.o \
-	check_mfat.o
-#	check_ether.o \
+	check_mfat.o \
+	check_ether.o \
+	check_net.o
 #	check_console.o \
 #	check_alpha.o \
-#	check_net.o
 
 OBJECTS=$(subst .c,.o,$(SOURCES))
+OBJECTS_TESTED=$(subst .c,.o,$(SOURCES_TESTED))
 LDFLAGS=
+
+DRIVERS_TESTS= \
+	colinux/display.o \
+	colinux/keyboard.o \
+	colinux/uart.o \
+	colinux/disk.o
 
 DRIVERS_COLINUX= \
 	colinux/net.o \
@@ -76,7 +84,8 @@ $(BIN_LIN): CFLAGS += \
 	-DUSE_EXT_CLI \
 	-DMPRINT \
 	-DQD_PLATFORM=QD_PLATFORM_COLINUX \
-	-DCOLINUX_TERMIOS
+	-DCOLINUX_TERMIOS \
+	-DCOMMANDS_NET
 $(BIN_LIN): LDFLAGS += -lpcap -lncurses -L../../chiipy/src/ -lchiipy
 $(BIN_LIN): OBJDIR := ../obj/linux
 
@@ -84,7 +93,8 @@ $(BIN_WIN): CC := i686-w64-mingw32-g
 $(BIN_WIN): CFLAGS += \
 	-DNET_CON_ECHO \
 	-g \
-	-DQD_PLATFORM=QD_PLATFORM_COLINUX
+	-DQD_PLATFORM=QD_PLATFORM_COLINUX \
+	-DCOMMANDS_NET
 $(BIN_WIN): LDFLAGS += -lwpcap
 $(BIN_WIN): OBJDIR := ../obj/windows
 
@@ -93,6 +103,7 @@ $(BIN_X86): CFLAGS += \
 	-nostdlib \
 	-nostartfiles \
 	-nodefaultlibs \
+	-DCOMMANDS_NET \
 	-DQD_PLATFORM=QD_PLATFORM_X86
 $(BIN_X86): OBJDIR := ../obj/os
 $(BIN_X86): LDFLAGS := 
@@ -108,6 +119,7 @@ $(BIN_MSP430): CFLAGS += \
 	-DQD_CONSOLE_OUT=uart \
 	-DQD_CONSOLE_IN_IDX=1 \
 	-DQD_CONSOLE_OUT_IDX=1 \
+	-DCOMMANDS_NET \
 	-DQD_UART_HW \
 	-DQD_CPU_MHZ=1 \
 	-DQD_SPI \
@@ -153,7 +165,7 @@ $(BIN_X86): $(OBJECTS) x86/display.o x86/net.o x86/keyboard.o kernel.o
 $(BIN_MSP430): $(OBJECTS) $(DRIVERS_MSP430) kernel.o
 	$(CC) -o $@ $(addprefix $(OBJDIR)/,$^) $(CFLAGS) $(LDFLAGS)
 
-tests: $(OBJECTS) $(DRIVERS_COLINUX) $(addprefix $(CHECKSDIR)/,$(CHECKOBJ))
+tests: $(OBJECTS_TESTED) $(DRIVERS_TESTS) $(addprefix $(CHECKSDIR)/,$(CHECKOBJ))
 	$(CC) -o $@ $(addprefix $(OBJDIR)/,$(subst $(CHECKSDIR),,$^)) $(LDFLAGS)
 
 %.o: %.c

@@ -10,8 +10,9 @@
 
 /* = Command Callbacks */
 
+#ifdef COMMANDS_NET
+
 extern struct astring g_str_netp;
-extern MEMLEN_T g_mheap_top;
 
 static TASK_RETVAL tnet_start( const struct astring* cli ) {
    tprintf( "start?\n" );
@@ -55,6 +56,8 @@ static TASK_RETVAL trepl_net( const struct astring* cli ) {
 
    return RETVAL_BAD_ARGS;
 }
+
+#endif /* COMMANDS_NET */
 
 static TASK_RETVAL tsys_exit( const struct astring* cli ) {
    g_system_state = SYSTEM_SHUTDOWN;
@@ -265,7 +268,9 @@ static TASK_RETVAL trepl_disk( const struct astring* cli ) {
 #define COMMANDS_COUNT 3
 static const struct command g_commands[COMMANDS_COUNT] = {
    { "sys", trepl_sys },
+#ifdef COMMANDS_NET
    { "net", trepl_net },
+#endif /* COMMANDS_NET */
    { "dsk", trepl_disk }
 };
 
