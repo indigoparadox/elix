@@ -137,27 +137,27 @@ START_TEST( test_mfat_cluster_data ) {
    cluster_idx = mfat_get_dir_entry_n_cluster_idx(
       entry_offset, iter_offset, 0, 0 );
 
-   ck_assert_int_ne( cluster_idx, 0 );
+   ck_assert_uint_ne( cluster_idx, 0 );
 
    /* Cluster index is valid, so translate it to a usable offset. */
    file_on_disk_offset = mfat_get_cluster_data_offset( cluster_idx, 0, 0 );
    cluster_remainder = file_on_disk_offset % cluster_size;
 
-   ck_assert_int_ne( file_on_disk_offset, 0 );
-   ck_assert_int_lt(
+   ck_assert_uint_ne( file_on_disk_offset, 0 );
+   ck_assert_uint_lt(
       mfat_get_cluster_size( 0, 0 ), cluster_size + file_on_disk_offset );
-   ck_assert_int_lt( 0, cluster_remainder );
+   ck_assert_uint_lt( 0, cluster_remainder );
 
    /* Set an end-of-file limit. */
    cluster_end_on_disk = file_on_disk_offset + cluster_size;
 
-   ck_assert_int_lt( file_on_disk_offset + iter_offset, cluster_end_on_disk );
+   ck_assert_uint_lt( file_on_disk_offset + iter_offset, cluster_end_on_disk );
 
+   /* Grab the number as a multi-byte integer. */
    bytes = (uint8_t*)&test_num;
    for( i = 0 ; g_test_sz > i ; i++ ) {
       bytes[i] = disk_get_byte( 0, 0, file_on_disk_offset + iter_offset + i );
    }
-   //printf( "%c\n", test_byte );
    g_data_test( test_num, _i );
 }
 END_TEST
