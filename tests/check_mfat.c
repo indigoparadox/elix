@@ -167,7 +167,7 @@ Suite* mfat_suite( void ) {
    //tcase_add_loop_test( tc_metadata, test_mfat_, 0, 4 );
    tcase_add_checked_fixture( tc_metadata, setup_disk, teardown_disk );
    tcase_add_test( tc_metadata, test_mfat_bpb );
-   tcase_add_loop_test( tc_metadata, test_mfat_entry, 0, 50 );
+   tcase_add_loop_test( tc_metadata, test_mfat_entry, 2, 50 );
    tcase_add_test( tc_metadata, test_mfat_fat_sz );
    tcase_add_loop_test( tc_metadata, test_mfat_consistency, 2, 50 );
 
