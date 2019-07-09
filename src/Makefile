@@ -8,7 +8,7 @@ BIN_X86=qd86.bin
 ISO_X86=qd86.iso
 IMG_X86=qd86.img
 
-define SYSLINUXCFG
+define SYSLINUXCFG =
 DEFAULT $(BIN_X86)
 LABEL $(BIN_X86)
    SAY Booting $(BIN_X86)
@@ -78,6 +78,13 @@ DRIVERS_MSP430=\
 	msp430/keyboard.o \
 	msp430/wdt.o \
 	msp430/disk.o
+
+DRIVERS_X86=\
+	x86/display.o \
+	x86/net.o \
+	x86/keyboard.o \
+	x86/disk.o \
+	x86/uart.o
 
 ISODIRX86=../isodir/x86
 CHECKSDIR=../tests
@@ -155,7 +162,7 @@ $(IMG_X86): $(BIN_X86) syslinux.cfg
 	$(DD) if=/dev/urandom of=$@ bs=512 count=2880
 	$(MKVFAT) $@
 	$(SYSLINUX) -i $@
-	$(MCOPY) -i $@ $< ::
+	$(MCOPY) -i $@ $^ ::
 
 syslinux.cfg:
 	echo "$$SYSLINUXCFG" >> $@
@@ -164,7 +171,7 @@ $(ISODIRX86)/$(BIN_X86): $(BIN_X86)
 	$(MD) $(ISODIRX86)/boot
 	cp -v $(BIN_X86) $(ISODIRX86)/boot/$(BIN_X86)
 
-$(BIN_X86): $(OBJECTS) $(OBJECTS_NET) x86/display.o x86/net.o x86/keyboard.o kernel.o
+$(BIN_X86): $(OBJECTS) $(OBJECTS_NET) $(DRIVERS_X86) kernel.o
 	$(AS) x86/boot.s -o $(OBJDIR)/boot.o
 	$(CC) -T x86/linker.ld -o $@ $(addprefix $(OBJDIR)/,$^) $(LDFLAGS) $(CFLAGS)
 

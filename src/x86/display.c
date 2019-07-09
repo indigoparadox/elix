@@ -34,7 +34,7 @@ void display_putc_at( char c, int x, int y ) {
    display_buffer[index] = c | (display_color << 8);
 }
 
-void display_putc( char c ) {
+void display_putc( uint8_t dev_index, char c ) {
    display_putc_at( c, display_cursor_col, display_cursor_row );
    if( DISPLAY_WIDTH == ++display_cursor_col ) {
       /* Overflow to the left and move to next row. */
@@ -43,5 +43,8 @@ void display_putc( char c ) {
          display_cursor_row = 0;
       }
    }
+}
+
+void display_shutdown() {
 }
 
