@@ -18,6 +18,8 @@
 
 uint8_t g_console_flags = 0;
 
+const struct astring g_str_repl = astring_l( "repl" );
+
 const char qd_logo[8][16] = {
    "     _____     ",
    "   .`_| |_`.   ",
@@ -87,6 +89,20 @@ static TASK_RETVAL trepl_net( const struct astring* cli ) {
 
 #endif /* USE_NET */
 
+static TASK_RETVAL tsys_proc( const struct astring* cli ) {
+   const struct astring* task_gid = NULL;
+   TASK_PID i = 0;
+
+   for( i = 0 ; ADHD_TASKS_MAX > i ; i++ ) {
+      task_gid = adhd_get_gid_by_pid( i );
+      if( NULL != task_gid ) {
+         tprintf( "%d\t%a" CONSOLE_NEWLINE, i, task_gid );
+      }
+   }
+   
+   return RETVAL_OK;
+}
+
 static TASK_RETVAL tsys_exit( const struct astring* cli ) {
    g_system_state = SYSTEM_SHUTDOWN;
    return RETVAL_OK;
@@ -100,10 +116,11 @@ static TASK_RETVAL tsys_mem( const struct astring* cli ) {
    return RETVAL_OK;
 }
 
-#define SYS_COMMANDS_COUNT 2
+#define SYS_COMMANDS_COUNT 3
 const struct api_command g_sys_commands[SYS_COMMANDS_COUNT] = {
    { "exit", tsys_exit },
-   { "mem", tsys_mem }
+   { "mem", tsys_mem },
+   { "proc", tsys_proc }
 };
 
 static TASK_RETVAL trepl_sys( const struct astring* cli ) {
@@ -345,6 +362,8 @@ TASK_RETVAL trepl_task() {
    uint8_t retval = 0;
 
    adhd_task_setup();
+
+   adhd_set_gid( &g_str_repl );
 
    if( !(g_console_flags & CONSOLE_FLAG_INITIALIZED) ) {
       for( i = 0 ; 8 > i ; i++ ) {
