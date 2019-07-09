@@ -29,6 +29,8 @@ const char qd_logo[8][16] = {
    "               "
 };
 
+TASK_RETVAL trepl_task();
+
 __attribute__( (constructor) )
 void repl_constructor() {
    adhd_launch_task( trepl_task );
