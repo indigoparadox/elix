@@ -7,6 +7,7 @@
 #include "console.h"
 #include "kernel.h"
 #include "mfat.h"
+#include "mbmp.h"
 
 /* = Command Callbacks */
 
@@ -225,7 +226,8 @@ static TASK_RETVAL tdisk_cat( const struct astring* cli ) {
    tprintf( "\"" );
    do {
       mzero( buffer, 11 );
-      written += mfat_get_dir_entry_data( offset, written, buffer, 8, 0, 0 );
+      written += mfat_get_dir_entry_data( offset, written,
+         (unsigned char*)buffer, 8, 0, 0 );
       tprintf( "%s", buffer );
    } while( file_size > written );
    tprintf( "\"\n" );
@@ -233,11 +235,32 @@ static TASK_RETVAL tdisk_cat( const struct astring* cli ) {
    return RETVAL_OK;
 }
 
-#define DISK_COMMANDS_COUNT 3
+static TASK_RETVAL tdisk_bmp( const struct astring* cli ) {
+   const char* tok;
+   FILEPTR_T offset = 0;
+
+   tok = alpha_tok( cli, ' ', 2 );
+   if( NULL == tok ) {
+      return RETVAL_BAD_ARGS;
+   }
+
+   if( 0 != (offset = mbmp_validate( tok, MFAT_FILENAME_LEN, 0, 0 )) ) {
+      tprintf( "bitmap\nwidth: %d\nheight: %d\nbpp: %d\n",
+         mbmp_get_width( offset, 0, 0 ),
+         mbmp_get_height( offset, 0, 0 ),
+         mbmp_get_bpp( offset, 0, 0 )
+         );
+   }
+
+   return RETVAL_OK;
+}
+
+#define DISK_COMMANDS_COUNT 4
 const struct command g_disk_commands[DISK_COMMANDS_COUNT] = {
    { "dir", tdisk_dir },
    { "fat", tdisk_fat },
-   { "cat", tdisk_cat }
+   { "cat", tdisk_cat },
+   { "bmp", tdisk_bmp }
 };
 
 static TASK_RETVAL trepl_disk( const struct astring* cli ) {

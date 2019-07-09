@@ -35,7 +35,8 @@ SOURCES_TESTED= \
 	commands.c \
 	ring.c \
 	io.c \
-	mfat.c
+	mfat.c \
+	mbmp.c
 SOURCES=$(SOURCES_TESTED) \
 	net/net.c
 

@@ -4,6 +4,8 @@
 
 #include <stdint.h>
 
+typedef uint32_t FILEPTR_T;
+
 #define MFAT_ATTRIB_RO     0x01
 #define MFAT_ATTRIB_HIDDEN 0x02
 #define MFAT_ATTRIB_SYSTEM 0x04
@@ -29,7 +31,7 @@ uint8_t mfat_filename_cmp(
 uint32_t mfat_get_dir_entry_next_offset(
    uint32_t offset, uint8_t dev_idx, uint8_t part_idx );
 uint8_t mfat_get_dir_entry_data(
-   uint32_t entry_offset, uint32_t file_offset, char* buffer, uint16_t blen,
+   uint32_t entry_offset, uint32_t file_offset, uint8_t* buffer, uint16_t blen,
    uint8_t dev_idx, uint8_t part_idx );
 void mfat_get_dir_entry_name(
    char buffer[MFAT_FILENAME_LEN],
