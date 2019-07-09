@@ -47,7 +47,7 @@ int kmain() {
 #ifdef USE_EXT_CLI
    if( 1 < argc ) {
       cli = alpha_astring(
-         ADHD_PID_MAIN, KERNEL_MID_CLI, REPL_LINE_SIZE_MAX + 1, NULL );
+         ADHD_PID_MAIN, KERNEL_MID_CLI, 30, NULL );
 
       for( i = 1 ; argc > i ; i++ ) {
          j = 0;
@@ -95,8 +95,6 @@ int kmain() {
       goto cleanup;
    }
 #endif /* USE_EXT_CLI */
-
-   adhd_launch_task( trepl_task );
 
    /* TODO: Kill task on request in COOP mode. */
 

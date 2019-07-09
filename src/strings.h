@@ -4,7 +4,6 @@
 
 #include "console.h"
 
-console_const( g_str_invalid, "invalid\n" );
 console_const( g_str_newline, "\n" );
 console_const( g_str_xx, "** " );
 console_const( g_str_service, "service" );

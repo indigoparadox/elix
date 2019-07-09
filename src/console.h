@@ -11,15 +11,6 @@
 #include "alpha.h"
 #include "uart.h"
 
-/* Memory IDs for console tasks. */
-#define REPL_MID_LINE      1
-#define REPL_MID_CUR_POS   2
-#define REPL_MID_ARG_MIN   10
-/* Empty */
-#define REPL_MID_ARG_MAX   20
-
-#define REPL_LINE_SIZE_MAX 20
-
 #define CONSOLE_OP_NOOP 0x0
 #define CONSOLE_OP_PUSH 0x1
 #define CONSOLE_OP_POP  0x2
@@ -28,10 +19,6 @@
 #define CONSOLE_OP_MUL  0x5
 #define CONSOLE_OP_DIV  0x6
 #define CONSOLE_OP_MOD  0x7
-
-#define CONSOLE_FLAG_INITIALIZED    0x01
-
-#define VERSION "2019.21"
 
 #include "keyboard.h"
 #include "display.h"
