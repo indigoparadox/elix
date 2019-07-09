@@ -90,7 +90,7 @@ FILEPTR_T mbmp_validate(
 ) {
    FILEPTR_T offset = 0;
 
-   offset = mfat_get_root_dir_first_entry_offset( 0, 0 );
+   offset = mfat_get_root_dir_offset( dev_idx, part_idx );
 
    offset = mfat_get_dir_entry_offset(
 #ifdef USE_ASTRING

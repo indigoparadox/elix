@@ -88,6 +88,7 @@ $(BIN_LIN): CFLAGS += \
 	-DUSE_EXT_CLI \
 	-DMPRINT \
 	-DUSE_NET \
+	-UUSE_DISK_RW \
 	-DQD_PLATFORM=QD_PLATFORM_COLINUX \
 	-DCOLINUX_TERMIOS
 $(BIN_LIN): LDFLAGS += -lpcap -lncurses -L../../chiipy/src/ -lchiipy
