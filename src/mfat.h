@@ -19,29 +19,33 @@ typedef uint32_t FILEPTR_T;
 uint32_t mfat_get_sectors_total( uint8_t dev_idx, uint8_t part_idx );
 uint16_t mfat_get_entries_count( uint8_t dev_idx, uint8_t part_idx );
 uint16_t mfat_get_fat_entry( uint16_t idx, uint8_t dev_idx, uint8_t part_idx );
-uint32_t mfat_get_root_dir_first_entry_offset(
-   uint8_t dev_idx, uint8_t part_idx );
 
-uint32_t mfat_get_dir_entry_offset(
+FILEPTR_T mfat_get_dir_entry_first_offset(
+   FILEPTR_T dir_offset, uint8_t dev_idx, uint8_t part_idx );
+FILEPTR_T mfat_get_dir_entry_offset(
    const char search_name[MFAT_FILENAME_LEN], uint8_t search_name_len,
-   uint32_t parent_offset, uint8_t dev_idx, uint8_t part_idx );
-uint8_t mfat_filename_cmp(
-   const char filename1[MFAT_FILENAME_LEN],
-   const char filename2[MFAT_FILENAME_LEN] );
-uint32_t mfat_get_dir_entry_next_offset(
-   uint32_t offset, uint8_t dev_idx, uint8_t part_idx );
+   FILEPTR_T parent_offset, uint8_t dev_idx, uint8_t part_idx );
+FILEPTR_T mfat_get_dir_entry_next_offset(
+   FILEPTR_T offset, uint8_t dev_idx, uint8_t part_idx );
+FILEPTR_T mfat_get_root_dir_offset( uint8_t dev_idx, uint8_t part_idx );
+
 uint8_t mfat_get_dir_entry_data(
-   uint32_t entry_offset, uint32_t file_offset, uint8_t* buffer, uint16_t blen,
+   FILEPTR_T entry_offset, FILEPTR_T file_offset,
+   uint8_t* buffer, uint16_t blen,
    uint8_t dev_idx, uint8_t part_idx );
 void mfat_get_dir_entry_name(
    char buffer[MFAT_FILENAME_LEN],
-   uint32_t offset, uint8_t dev_idx, uint8_t part_idx );
+   FILEPTR_T offset, uint8_t dev_idx, uint8_t part_idx );
 uint8_t mfat_get_dir_entry_cyear(
-   uint32_t offset, uint8_t dev_idx, uint8_t part_idx );
+   FILEPTR_T offset, uint8_t dev_idx, uint8_t part_idx );
 uint32_t mfat_get_dir_entry_size(
-   uint32_t offset, uint8_t dev_idx, uint8_t part_idx );
+   FILEPTR_T offset, uint8_t dev_idx, uint8_t part_idx );
 uint8_t mfat_get_dir_entry_attrib(
-   uint32_t offset, uint8_t dev_idx, uint8_t part_idx );
+   FILEPTR_T offset, uint8_t dev_idx, uint8_t part_idx );
+
+FILEPTR_T mfat_get_dir_free_entry_offset(
+   FILEPTR_T dir_offset, uint8_t dev_idx, uint8_t part_idx
+);
 
 #endif /* MFAT_H */
 

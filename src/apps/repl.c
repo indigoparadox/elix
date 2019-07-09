@@ -152,9 +152,9 @@ static TASK_RETVAL tdisk_dir( const struct astring* cli ) {
    uint8_t attrib = 0;
    char attrib_str[5] = { 0 };
    uint32_t size = 0;
-   //uint16_t data_offset = 0;
 
-   offset = mfat_get_root_dir_first_entry_offset( 0, 0 );
+   offset = mfat_get_root_dir_offset( 0, 0 );
+   offset = mfat_get_dir_entry_first_offset( offset, 0, 0 );
 
    tok = alpha_tok( cli, ' ', 2 );
 
@@ -179,8 +179,6 @@ static TASK_RETVAL tdisk_dir( const struct astring* cli ) {
 
       /* Get the file size. */
       size = mfat_get_dir_entry_size( offset, 0, 0 );
-
-      //data_offset = mfat_get_dir_entry_first_cluster_offset( offset, 0, 0 );
 
       /* Print the entry. */
       tprintf( "- %s\t%12 s\t%d\t%d\n", attrib_str, filename,
@@ -261,7 +259,7 @@ static TASK_RETVAL tdisk_cat( const struct astring* cli ) {
       return RETVAL_BAD_ARGS;
    }
 
-   offset = mfat_get_root_dir_first_entry_offset( 0, 0 );
+   offset = mfat_get_root_dir_offset( 0, 0 );
    offset = mfat_get_dir_entry_offset( tok, MFAT_FILENAME_LEN, offset, 0, 0 );
    mfat_get_dir_entry_name( buffer, offset, 0, 0 );
    tprintf( "%s:\n\n", buffer );
@@ -356,8 +354,6 @@ TASK_RETVAL repl_command( const struct astring* cli ) {
 TASK_RETVAL trepl_task() {
    char c = '\0';
    const struct astring* line;
-   //struct CHIIPY_TOKEN* token;
-   //struct astring* arg;
    uint8_t i = 0;
    uint8_t retval = 0;
 
@@ -416,7 +412,6 @@ TASK_RETVAL trepl_task() {
          break;
 
       default:
-         //chiipy_lex_tok( c, token );
          alpha_astring_append( adhd_get_pid(), REPL_MID_LINE, c );
          tputc( c );
          break;

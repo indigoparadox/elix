@@ -84,11 +84,8 @@ uint32_t mfat_get_sectors_total( uint8_t dev_idx, uint8_t part_idx ) {
    return out;
 }
 
-#ifndef CHECK
-static
-#endif /* CHECK */
-uint32_t mfat_get_root_dir_offset( uint8_t dev_idx, uint8_t part_idx ) {
-   uint32_t dir_offset = 0;
+FILEPTR_T mfat_get_root_dir_offset( uint8_t dev_idx, uint8_t part_idx ) {
+   FILEPTR_T dir_offset = 0;
 
    /* The root starts directly after the EBP and FATs. */
    dir_offset += MFAT_OFFSET_FAT;
@@ -102,8 +99,8 @@ uint32_t mfat_get_root_dir_offset( uint8_t dev_idx, uint8_t part_idx ) {
 #ifndef CHECK
 static
 #endif /* !CHECK */
-uint32_t mfat_get_data_area_offset( uint8_t dev_idx, uint8_t part_idx ) {
-   uint32_t dir_offset = 0;
+FILEPTR_T mfat_get_data_area_offset( uint8_t dev_idx, uint8_t part_idx ) {
+   FILEPTR_T dir_offset = 0;
 
    dir_offset = mfat_get_root_dir_offset( dev_idx, part_idx );
    dir_offset += (mfat_get_root_dir_entries_count( dev_idx, part_idx ) *
@@ -125,11 +122,11 @@ uint16_t mfat_get_cluster_size( uint8_t dev_idx, uint8_t part_idx ) {
 #ifndef CHECK
 static
 #endif /* !CHECK */
-uint32_t mfat_get_cluster_data_offset(
+FILEPTR_T mfat_get_cluster_data_offset(
    uint16_t fat_idx, uint8_t dev_idx, uint8_t part_idx
 ) {
    uint16_t cluster_size = 0;
-   uint32_t data_offset = 0;
+   FILEPTR_T data_offset = 0;
 
    #if 0
    if( 0xffff == fat_entry ) {
@@ -174,15 +171,11 @@ uint16_t mfat_get_fat_entry( uint16_t idx, uint8_t dev_idx, uint8_t part_idx ) {
    return out;
 }
 
-uint32_t mfat_get_root_dir_first_entry_offset(
-   uint8_t dev_idx, uint8_t part_idx
+FILEPTR_T mfat_get_dir_entry_first_offset(
+   FILEPTR_T dir_offset, uint8_t dev_idx, uint8_t part_idx
 ) {
-   uint32_t dir_offset = 0;
    uint8_t entry_id = 0;
    uint8_t entry_attrib = 0;
-
-   /* The root starts directly after the EBP and FATs. */
-   dir_offset  = mfat_get_root_dir_offset( dev_idx, part_idx );
 
    /* Hunt for the first actual entry (i.e. skip LFNs, etc). */
    entry_attrib = mfat_get_dir_entry_attrib( dir_offset, dev_idx, part_idx );
@@ -199,7 +192,7 @@ uint32_t mfat_get_root_dir_first_entry_offset(
    return dir_offset;
 }
 
-uint8_t mfat_filename_cmp(
+static uint8_t mfat_filename_cmp(
    const char filename1[MFAT_FILENAME_LEN],
    const char filename2[MFAT_FILENAME_LEN]
 ) {
@@ -232,11 +225,11 @@ uint8_t mfat_filename_cmp(
    return 0;
 }
 
-uint32_t mfat_get_dir_entry_offset(
+FILEPTR_T mfat_get_dir_entry_offset(
    const char search_name[MFAT_FILENAME_LEN], uint8_t search_name_len,
-   uint32_t dir_offset, uint8_t dev_idx, uint8_t part_idx
+   FILEPTR_T dir_offset, uint8_t dev_idx, uint8_t part_idx
 ) {
-   uint32_t offset_out = dir_offset;
+   FILEPTR_T offset_out = dir_offset;
    char entry_name[MFAT_FILENAME_LEN];
    
    while( 0 != disk_get_byte( dev_idx, part_idx, offset_out ) ) {
@@ -259,10 +252,10 @@ hit:
    return offset_out;
 }
 
-uint32_t mfat_get_dir_entry_next_offset(
-   uint32_t offset, uint8_t dev_idx, uint8_t part_idx
+FILEPTR_T mfat_get_dir_entry_next_offset(
+   FILEPTR_T offset, uint8_t dev_idx, uint8_t part_idx
 ) {
-   uint32_t offset_out = offset;
+   FILEPTR_T offset_out = offset;
    uint8_t entry_id = 0;
    uint8_t entry_attrib = 0;
 
@@ -291,7 +284,7 @@ uint32_t mfat_get_dir_entry_next_offset(
 static
 #endif /* CHECK */
 uint16_t mfat_get_dir_entry_first_cluster_idx(
-   uint32_t entry_offset, uint8_t dev_idx, uint8_t part_idx
+   FILEPTR_T entry_offset, uint8_t dev_idx, uint8_t part_idx
 ) {
    uint16_t out = 0;
    out |= disk_get_byte( dev_idx, part_idx, entry_offset + 27 );
@@ -304,7 +297,7 @@ uint16_t mfat_get_dir_entry_first_cluster_idx(
 static
 #endif /* CHECK */
 uint16_t mfat_get_dir_entry_n_cluster_idx(
-   uint32_t entry_offset, uint32_t* iter_offset_p,
+   FILEPTR_T entry_offset, uint32_t* iter_offset_p,
    const uint16_t* cluster_size_p, uint32_t* file_size_p,
    uint8_t dev_idx, uint8_t part_idx
 ) {
@@ -331,11 +324,11 @@ uint16_t mfat_get_dir_entry_n_cluster_idx(
 }
 
 uint8_t mfat_get_dir_entry_data(
-   uint32_t entry_offset, uint32_t iter_file_offset, uint8_t* buffer,
+   FILEPTR_T entry_offset, uint32_t iter_file_offset, uint8_t* buffer,
    uint16_t blen, uint8_t dev_idx, uint8_t part_idx
 ) {
    uint16_t cluster_idx = 0;
-   uint32_t disk_cluster_offset = 0;
+   FILEPTR_T disk_cluster_offset = 0;
    uint8_t read = 0;
    uint32_t file_size = 0;
    uint16_t cluster_size = 0;
@@ -400,7 +393,7 @@ new_cluster:
 
 void mfat_get_dir_entry_name(
    char buffer[MFAT_FILENAME_LEN],
-   uint32_t offset, uint8_t dev_idx, uint8_t part_idx
+   FILEPTR_T offset, uint8_t dev_idx, uint8_t part_idx
 ) {
    int8_t src_i = 0, dest_i = 0;
    char c;
@@ -427,7 +420,7 @@ void mfat_get_dir_entry_name(
 }
 
 uint8_t mfat_get_dir_entry_cyear(
-   uint32_t offset, uint8_t dev_idx, uint8_t part_idx
+   FILEPTR_T offset, uint8_t dev_idx, uint8_t part_idx
 ) {
    uint16_t year_out = 0;
 
@@ -439,7 +432,7 @@ uint8_t mfat_get_dir_entry_cyear(
 }
 
 uint32_t mfat_get_dir_entry_size(
-   uint32_t offset, uint8_t dev_idx, uint8_t part_idx
+   FILEPTR_T offset, uint8_t dev_idx, uint8_t part_idx
 ) {
    uint32_t out = 0;
    out |= disk_get_byte( dev_idx, part_idx, offset + 31 );
@@ -453,10 +446,34 @@ uint32_t mfat_get_dir_entry_size(
 }
 
 uint8_t mfat_get_dir_entry_attrib(
-   uint32_t offset, uint8_t dev_idx, uint8_t part_idx
+   FILEPTR_T offset, uint8_t dev_idx, uint8_t part_idx
 ) {
    return disk_get_byte( dev_idx, part_idx, offset + 11 );
 }
+
+#ifdef USE_DISK_RW
+
+FILEPTR_T mfat_get_dir_free_entry_offset(
+   FILEPTR_T dir_offset, uint8_t dev_idx, uint8_t part_idx
+) {
+   FILEPTR_T dir_offset = 0;
+   uint8_t entry_id = 0;
+   uint8_t entry_attrib = 0;
+
+   /* Hunt for the first free entry. */
+   entry_id = disk_get_byte( dev_idx, part_idx, dir_offset );
+   while( 0x00 != entry_id ) {
+      if( 0xe5 == entry_id ) {
+         return dir_offset;
+      }
+      dir_offset += MFAT_DIR_ENTRY_SZ;
+      entry_id = disk_get_byte( dev_idx, part_idx, dir_offset );
+   }
+   
+   return 0; /* Could not find a free entry. */
+}
+
+#endif /* USE_DISK_RW */
 
 #endif /* USE_DISK */
 
