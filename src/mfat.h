@@ -16,6 +16,7 @@ typedef uint32_t FILEPTR_T;
 
 #define MFAT_FILENAME_LEN  13
 
+uint16_t mfat_get_root_dir_entries_count( uint8_t dev_idx, uint8_t part_idx );
 uint32_t mfat_get_sectors_total( uint8_t dev_idx, uint8_t part_idx );
 uint16_t mfat_get_entries_count( uint8_t dev_idx, uint8_t part_idx );
 uint16_t mfat_get_fat_entry( uint16_t idx, uint8_t dev_idx, uint8_t part_idx );
@@ -43,9 +44,21 @@ uint32_t mfat_get_dir_entry_size(
 uint8_t mfat_get_dir_entry_attrib(
    FILEPTR_T offset, uint8_t dev_idx, uint8_t part_idx );
 
-FILEPTR_T mfat_get_dir_free_entry_offset(
-   FILEPTR_T dir_offset, uint8_t dev_idx, uint8_t part_idx
-);
+#ifdef USE_DISK_RW
+
+FILEPTR_T mfat_get_dir_entry_free_offset(
+   FILEPTR_T dir_offset, uint32_t dir_sz, uint8_t dev_idx, uint8_t part_idx );
+void mfat_set_dir_entry_name(
+   const char name[MFAT_FILENAME_LEN],
+   FILEPTR_T offset, uint8_t dev_idx, uint8_t part_idx );
+void mfat_set_dir_entry_cyear(
+   uint8_t cyear, FILEPTR_T offset, uint8_t dev_idx, uint8_t part_idx );
+void mfat_set_dir_entry_size(
+   uint32_t size, FILEPTR_T offset, uint8_t dev_idx, uint8_t part_idx );
+void mfat_set_dir_entry_attrib(
+   uint8_t attrib, FILEPTR_T offset, uint8_t dev_idx, uint8_t part_idx );
+
+#endif /* USE_DISK_RW */
 
 #endif /* MFAT_H */
 

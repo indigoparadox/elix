@@ -59,9 +59,6 @@ uint16_t mfat_get_sectors_per_fat( uint8_t dev_idx, uint8_t part_idx ) {
    return out;
 }
 
-#ifndef CHECK
-static
-#endif /* CHECK */
 uint16_t mfat_get_root_dir_entries_count(
    uint8_t dev_idx, uint8_t part_idx
 ) {
@@ -453,17 +450,17 @@ uint8_t mfat_get_dir_entry_attrib(
 
 #ifdef USE_DISK_RW
 
-FILEPTR_T mfat_get_dir_free_entry_offset(
-   FILEPTR_T dir_offset, uint8_t dev_idx, uint8_t part_idx
+FILEPTR_T mfat_get_dir_entry_free_offset(
+   FILEPTR_T dir_offset, uint32_t dir_sz, uint8_t dev_idx, uint8_t part_idx
 ) {
-   FILEPTR_T dir_offset = 0;
    uint8_t entry_id = 0;
-   uint8_t entry_attrib = 0;
+   uint32_t dir_end = dir_offset + dir_sz;
 
    /* Hunt for the first free entry. */
    entry_id = disk_get_byte( dev_idx, part_idx, dir_offset );
-   while( 0x00 != entry_id ) {
-      if( 0xe5 == entry_id ) {
+   while( dir_offset < dir_end ) {
+      tprintf( "offset: %4x eid: %2x\n", dir_offset, entry_id );
+      if( 0xe5 == entry_id || 0x00 == entry_id ) {
          return dir_offset;
       }
       dir_offset += MFAT_DIR_ENTRY_SZ;
@@ -471,6 +468,71 @@ FILEPTR_T mfat_get_dir_free_entry_offset(
    }
    
    return 0; /* Could not find a free entry. */
+}
+
+void mfat_set_dir_entry_name(
+   const char name[MFAT_FILENAME_LEN],
+   FILEPTR_T offset, uint8_t dev_idx, uint8_t part_idx
+) {
+   uint8_t src_i = 0;
+   uint8_t dest_i = 0;
+
+   /* Copy the entry name from the provided buffer. */
+   while( MFAT_FILENAME_LEN - 2 > dest_i && ' ' != name[src_i] ) {
+      if( '.' == name[src_i] ) {
+         while( 8 > dest_i ) {
+            /* Pad out the filename with spaces. */
+            disk_set_byte( ' ', dev_idx, part_idx, offset + dest_i );
+            dest_i++;
+         }
+         src_i++;
+         continue;
+      }
+
+      disk_set_byte( name[src_i], dev_idx, part_idx, offset + dest_i );
+      src_i++;
+      dest_i++;
+   }
+}
+
+void mfat_set_dir_entry_cyear(
+   uint8_t cyear, FILEPTR_T offset, uint8_t dev_idx, uint8_t part_idx
+) {
+   uint16_t year_buffer = 0;
+
+   /* Get the current cdate. */
+   year_buffer = disk_get_byte( dev_idx, part_idx, offset + 17 );
+   cyear <<= 1;
+   year_buffer &= cyear;
+
+   /* Bitwise and the year into the date and write it back. */
+   disk_set_byte(
+      (uint8_t)(year_buffer & 0xff), dev_idx, part_idx, offset + 16 );
+   year_buffer >>= 8;
+   disk_set_byte(
+      (uint8_t)(year_buffer & 0xff), dev_idx, part_idx, offset + 17 );
+}
+
+void mfat_set_dir_entry_size(
+   uint32_t size, FILEPTR_T offset, uint8_t dev_idx, uint8_t part_idx
+) {
+   disk_set_byte(
+      (uint8_t)(size & 0xff), dev_idx, part_idx, offset + 28 );
+   size >>= 8;
+   disk_set_byte(
+      (uint8_t)(size & 0xff), dev_idx, part_idx, offset + 29 );
+   size >>= 8;
+   disk_set_byte(
+      (uint8_t)(size & 0xff), dev_idx, part_idx, offset + 30 );
+   size >>= 8;
+   disk_set_byte(
+      (uint8_t)(size & 0xff), dev_idx, part_idx, offset + 31 );
+}
+
+void mfat_set_dir_entry_attrib(
+   uint8_t attrib, FILEPTR_T offset, uint8_t dev_idx, uint8_t part_idx
+) {
+   disk_set_byte( attrib, dev_idx, part_idx, offset + 11 );
 }
 
 #endif /* USE_DISK_RW */

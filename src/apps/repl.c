@@ -247,6 +247,44 @@ static TASK_RETVAL tdisk_fat( const struct astring* cli ) {
    return RETVAL_OK;
 }
 
+#ifdef USE_DISK_RW
+
+static TASK_RETVAL tdisk_touch( const struct astring* cli ) {
+   const char* tok;
+   uint32_t offset = 0;
+
+   tok = alpha_tok( cli, ' ', 2 );
+   if( NULL == tok ) {
+      return RETVAL_BAD_ARGS;
+   }
+
+   /* See if the file exists already. */
+   offset = mfat_get_root_dir_offset( 0, 0 );
+   offset = mfat_get_dir_entry_offset( tok, MFAT_FILENAME_LEN, offset, 0, 0 );
+   if( 0 < offset ) {
+      /* TODO: Update file date. */
+      tprintf( "file exists\n" );
+      return RETVAL_BAD_ARGS;
+   }
+
+   /* Create the file. */
+   offset = mfat_get_root_dir_offset( 0, 0 );
+   offset = mfat_get_dir_entry_free_offset(
+      offset, mfat_get_root_dir_entries_count( 0, 0 ) * 32, 0, 0 );
+   if( 0 >= offset ) {
+      tprintf( "directory full\n" );
+      return RETVAL_BAD_ARGS;
+   }
+
+   mfat_set_dir_entry_name( tok, offset, 0, 0 );
+   mfat_set_dir_entry_size( 0, offset, 0, 0 );
+   tprintf( "create\n" );
+
+   return RETVAL_OK;
+}
+
+#endif /* USE_DISK_RW */
+
 static TASK_RETVAL tdisk_cat( const struct astring* cli ) {
    const char* tok;
    uint32_t offset = 0;
@@ -297,9 +335,12 @@ static TASK_RETVAL tdisk_bmp( const struct astring* cli ) {
    return RETVAL_OK;
 }
 
-#define DISK_COMMANDS_COUNT 4
+#define DISK_COMMANDS_COUNT 5
 const struct api_command g_disk_commands[DISK_COMMANDS_COUNT] = {
    { "dir", tdisk_dir },
+#ifdef USE_DISK_RW
+   { "touch", tdisk_touch },
+#endif /* USE_DISK_RW */
    { "fat", tdisk_fat },
    { "cat", tdisk_cat },
    { "bmp", tdisk_bmp }
