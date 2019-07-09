@@ -15,6 +15,8 @@ LABEL $(BIN_X86)
    KERNEL /$(BIN_X86)
 endef
 
+SYSLINUX_MODS=/usr/lib/syslinux/modules/bios
+
 MD=mkdir -v -p
 MKRESCUE=grub-mkrescue
 DD=dd
@@ -22,7 +24,9 @@ MKVFAT=/sbin/mkfs.vfat
 SYSLINUX=syslinux
 MCOPY=mcopy
 
-CFLAGS=-Wall -Werror -DUSE_CONSOLE -DUSE_DISK -I../../chiipy/src -DALPHA_PRESENT
+DEBUG_FLAGS=-Wall -Werror -g -pg
+
+CFLAGS=-DUSE_CONSOLE -DUSE_DISK -I../../chiipy/src -DALPHA_PRESENT
 SOURCES_TESTED= \
 	mem.c \
 	console.c \
@@ -90,10 +94,7 @@ ISODIRX86=../isodir/x86
 CHECKSDIR=../tests
 
 $(BIN_LIN): CFLAGS += \
-	-g \
-	-DDEBUG \
 	-DUSE_EXT_CLI \
-	-DMPRINT \
 	-DUSE_NET \
 	-DUSE_DISK_RW \
 	-DQD_PLATFORM=QD_PLATFORM_COLINUX \
@@ -104,14 +105,16 @@ $(BIN_LIN): OBJDIR := ../obj/linux
 $(BIN_WIN): CC := i686-w64-mingw32-g
 $(BIN_WIN): CFLAGS += \
 	-DNET_CON_ECHO \
-	-g \
 	-DUSE_NET \
 	-DQD_PLATFORM=QD_PLATFORM_COLINUX \
 	-DCOMMANDS_NET
 $(BIN_WIN): LDFLAGS += -lwpcap
 $(BIN_WIN): OBJDIR := ../obj/windows
 
+$(BIN_X86): CC := i586-elf-gcc
+$(BIN_X86): AS := i586-elf-as
 $(BIN_X86): CFLAGS += \
+	-Os \
 	-ffreestanding \
 	-nostdlib \
 	-nostartfiles \
@@ -144,7 +147,7 @@ $(BIN_MSP430): OBJDIR := ../obj/msp430
 #$(BIN_MSP430): LDFLAGS += -L../../chiipy/src/ -lchiipy
 
 tests: LDFLAGS += -lpcap $(shell pkg-config --libs check)
-tests: CFLAGS += -DCHECK -g -DQD_PLATFORM=QD_PLATFORM_COLINUX -pg -DUSE_NET
+tests: CFLAGS += -DCHECK -DQD_PLATFORM=QD_PLATFORM_COLINUX -DUSE_NET
 tests: OBJDIR := ../obj/tests
 
 all:
@@ -162,10 +165,10 @@ $(IMG_X86): $(BIN_X86) syslinux.cfg
 	$(DD) if=/dev/urandom of=$@ bs=512 count=2880
 	$(MKVFAT) $@
 	$(SYSLINUX) -i $@
-	$(MCOPY) -i $@ $^ ::
+	$(MCOPY) -i $@ $^ $(SYSLINUX_MODS)/mboot.c32 $(SYSLINUX_MODS)/libcom32.c32 ::
 
-syslinux.cfg:
-	echo "$$SYSLINUXCFG" >> $@
+#syslinux.cfg:
+#	echo "$$SYSLINUXCFG" >> $@
 
 $(ISODIRX86)/$(BIN_X86): $(BIN_X86)
 	$(MD) $(ISODIRX86)/boot
@@ -173,7 +176,7 @@ $(ISODIRX86)/$(BIN_X86): $(BIN_X86)
 
 $(BIN_X86): $(OBJECTS) $(OBJECTS_NET) $(DRIVERS_X86) kernel.o
 	$(AS) x86/boot.s -o $(OBJDIR)/boot.o
-	$(CC) -T x86/linker.ld -o $@ $(addprefix $(OBJDIR)/,$^) $(LDFLAGS) $(CFLAGS)
+	$(CC) -T x86/linker.ld -o $@ $(addprefix $(OBJDIR)/,$^) $(OBJDIR)/boot.o $(LDFLAGS) $(CFLAGS)
 
 $(BIN_MSP430): $(OBJECTS) $(DRIVERS_MSP430) kernel.o
 	$(CC) -o $@ $(addprefix $(OBJDIR)/,$^) $(CFLAGS) $(LDFLAGS)
@@ -192,6 +195,8 @@ clean:
 	rm tests; \
 	rm $(BIN_LIN); \
 	rm $(BIN_WIN); \
+	rm $(IMG_X86); \
+	rm $(ISO_X86); \
 	rm *.bin; \
 	rm $(ISODIRX86)/boot/*.bin
 
