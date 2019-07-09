@@ -44,7 +44,7 @@ uint8_t net_respond_arp_request(
    mincr( pid, NET_MID_RESPONDED );
 
 #ifdef NET_CON_ECHO
-   tputs( g_str_responding );
+   tprintf( "responding\n" );
    arp_print_packet( arp, arp_len );
 #endif /* NET_CON_ECHO */
 
