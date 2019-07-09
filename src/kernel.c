@@ -107,7 +107,7 @@ int kmain() {
    }
 #endif /* !SCHEDULE_COOP */
 
-   tprintf( "stopping..." );
+   tprintf( "stopping..." CONSOLE_NEWLINE );
 
 #ifdef USE_EXT_CLI
 cleanup:

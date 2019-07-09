@@ -33,7 +33,6 @@
 #define tputs( str ) tprintf( "%a", str )
 
 void tprintf( const char* pattern, ... );
-TASK_RETVAL trepl_task();
 
 #ifdef CONSOLE_C
 uint8_t g_console_dev_index = 0;
