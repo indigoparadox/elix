@@ -22,23 +22,25 @@ MKVFAT=/sbin/mkfs.vfat
 SYSLINUX=syslinux
 MCOPY=mcopy
 
-CFLAGS=-Wall -Werror -DUSE_CONSOLE -DUSE_NET -DUSE_DISK -I../../chiipy/src -DALPHA_PRESENT
+CFLAGS=-Wall -Werror -DUSE_CONSOLE -DUSE_DISK -I../../chiipy/src -DALPHA_PRESENT
 SOURCES_TESTED= \
-	net/tcp.c \
-	net/ether.c \
-	net/arp.c \
 	mem.c \
 	console.c \
 	adhd.c \
-	strings.c \
 	alpha.c \
 	ring.c \
 	io.c \
 	mfat.c \
 	mbmp.c
 SOURCES=$(SOURCES_TESTED) \
-	net/net.c \
 	apps/repl.c
+
+SOURCES_TESTED_NET= \
+	net/tcp.c \
+	net/ether.c \
+	net/arp.c
+SOURCES_NET=$(SOURCES_TESTED_NET) \
+	net/net.c
 
 CHECKOBJ=\
 	check.o \
@@ -52,6 +54,8 @@ CHECKOBJ=\
 
 OBJECTS=$(subst .c,.o,$(SOURCES))
 OBJECTS_TESTED=$(subst .c,.o,$(SOURCES_TESTED))
+OBJECTS_NET=$(subst .c,.o,$(SOURCES_NET))
+OBJECTS_TESTED_NET=$(subst .c,.o,$(SOURCES_TESTED_NET))
 LDFLAGS=
 
 DRIVERS_TESTS= \
@@ -70,7 +74,6 @@ DRIVERS_COLINUX= \
 DRIVERS_MSP430=\
 	msp430/display.o \
 	msp430/boot.o \
-	msp430/net.o \
 	msp430/uart.o \
 	msp430/keyboard.o \
 	msp430/wdt.o \
@@ -84,9 +87,9 @@ $(BIN_LIN): CFLAGS += \
 	-DDEBUG \
 	-DUSE_EXT_CLI \
 	-DMPRINT \
+	-DUSE_NET \
 	-DQD_PLATFORM=QD_PLATFORM_COLINUX \
-	-DCOLINUX_TERMIOS \
-	-DCOMMANDS_NET
+	-DCOLINUX_TERMIOS
 $(BIN_LIN): LDFLAGS += -lpcap -lncurses -L../../chiipy/src/ -lchiipy
 $(BIN_LIN): OBJDIR := ../obj/linux
 
@@ -94,6 +97,7 @@ $(BIN_WIN): CC := i686-w64-mingw32-g
 $(BIN_WIN): CFLAGS += \
 	-DNET_CON_ECHO \
 	-g \
+	-DUSE_NET \
 	-DQD_PLATFORM=QD_PLATFORM_COLINUX \
 	-DCOMMANDS_NET
 $(BIN_WIN): LDFLAGS += -lwpcap
@@ -104,7 +108,7 @@ $(BIN_X86): CFLAGS += \
 	-nostdlib \
 	-nostartfiles \
 	-nodefaultlibs \
-	-DCOMMANDS_NET \
+	-DUSE_NET \
 	-DQD_PLATFORM=QD_PLATFORM_X86
 $(BIN_X86): OBJDIR := ../obj/os
 $(BIN_X86): LDFLAGS := 
@@ -132,15 +136,15 @@ $(BIN_MSP430): OBJDIR := ../obj/msp430
 #$(BIN_MSP430): LDFLAGS += -L../../chiipy/src/ -lchiipy
 
 tests: LDFLAGS += -lpcap $(shell pkg-config --libs check)
-tests: CFLAGS += -DCHECK -g -DQD_PLATFORM=QD_PLATFORM_COLINUX -pg
+tests: CFLAGS += -DCHECK -g -DQD_PLATFORM=QD_PLATFORM_COLINUX -pg -DUSE_NET
 tests: OBJDIR := ../obj/tests
 
 all:
 
-$(BIN_LIN): $(OBJECTS) $(DRIVERS_COLINUX) colinux/boot.o kernel.o
+$(BIN_LIN): $(OBJECTS) $(OBJECTS_NET) $(DRIVERS_COLINUX) colinux/boot.o kernel.o
 	$(CC) -o $@ $(addprefix $(OBJDIR)/,$^) $(LDFLAGS)
 
-$(BIN_WIN): $(OBJECTS) $(DRIVERS_COLINUX) kernel.o
+$(BIN_WIN): $(OBJECTS) $(OBJECTS_NET) $(DRIVERS_COLINUX) kernel.o
 	$(CC) -o $@ $(addprefix $(OBJDIR)/,$^) $(LDFLAGS)
 
 $(ISO_X86): $(ISODIRX86)/$(BIN_X86)
@@ -159,14 +163,14 @@ $(ISODIRX86)/$(BIN_X86): $(BIN_X86)
 	$(MD) $(ISODIRX86)/boot
 	cp -v $(BIN_X86) $(ISODIRX86)/boot/$(BIN_X86)
 
-$(BIN_X86): $(OBJECTS) x86/display.o x86/net.o x86/keyboard.o kernel.o
+$(BIN_X86): $(OBJECTS) $(OBJECTS_NET) x86/display.o x86/net.o x86/keyboard.o kernel.o
 	$(AS) x86/boot.s -o $(OBJDIR)/boot.o
 	$(CC) -T x86/linker.ld -o $@ $(addprefix $(OBJDIR)/,$^) $(LDFLAGS) $(CFLAGS)
 
 $(BIN_MSP430): $(OBJECTS) $(DRIVERS_MSP430) kernel.o
 	$(CC) -o $@ $(addprefix $(OBJDIR)/,$^) $(CFLAGS) $(LDFLAGS)
 
-tests: $(OBJECTS_TESTED) $(DRIVERS_TESTS) $(addprefix $(CHECKSDIR)/,$(CHECKOBJ))
+tests: $(OBJECTS_TESTED) $(OBJECTS_TESTED_NET) $(DRIVERS_TESTS) $(addprefix $(CHECKSDIR)/,$(CHECKOBJ))
 	$(CC) -o $@ $(addprefix $(OBJDIR)/,$(subst $(CHECKSDIR),,$^)) $(LDFLAGS)
 
 %.o: %.c

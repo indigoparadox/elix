@@ -36,7 +36,7 @@ void repl_constructor() {
 
 /* = Command Callbacks */
 
-#ifdef COMMANDS_NET
+#ifdef USE_NET
 
 extern struct astring g_str_netp;
 
@@ -83,7 +83,7 @@ static TASK_RETVAL trepl_net( const struct astring* cli ) {
    return RETVAL_BAD_ARGS;
 }
 
-#endif /* COMMANDS_NET */
+#endif /* USE_NET */
 
 static TASK_RETVAL tsys_exit( const struct astring* cli ) {
    g_system_state = SYSTEM_SHUTDOWN;
@@ -316,9 +316,9 @@ static TASK_RETVAL trepl_disk( const struct astring* cli ) {
 #define COMMANDS_COUNT 3
 static const struct api_command g_commands[COMMANDS_COUNT] = {
    { "sys", trepl_sys },
-#ifdef COMMANDS_NET
+#ifdef USE_NET
    { "net", trepl_net },
-#endif /* COMMANDS_NET */
+#endif /* USE_NET */
    { "dsk", trepl_disk }
 };
 
