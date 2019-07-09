@@ -97,6 +97,22 @@ void adhd_kill_task( TASK_PID pid ) {
    g_tasks[pid].callback = NULL;
 }
 
+const struct astring* adhd_get_gid_by_pid( TASK_PID pid ) {
+   TASK_PID i = 0;
+   
+   for( i = 0 ; ADHD_TASKS_MAX > i ; i++ ) {
+      if(
+         NULL != g_tasks[i].callback &&
+         NULL != g_tasks[i].gid &&
+         g_tasks[i].pid == pid
+      ) {
+         return g_tasks[i].gid;
+      }
+   }
+
+   return NULL;
+}
+
 TASK_PID adhd_get_pid_by_gid( struct astring* gid ) {
    TASK_PID i = 0;
    
