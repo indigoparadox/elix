@@ -81,7 +81,9 @@ int kmain() {
    for( i = 0 ; 4 > i ; i++ ) {
       uart_init( i );
    }
+#ifdef USE_NET
    net_init();
+#endif /* USE_NET */
 
    adhd_start();
 
