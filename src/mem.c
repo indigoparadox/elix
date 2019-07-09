@@ -77,17 +77,16 @@ void mprint() {
 
    for( i = 0 ; MEM_HEAP_SIZE > i ; i++ ) {
       if( 0 == i % 20 ) {
-         //printf( "\n" );
-         tputs( &g_str_newline );
+         tprintf( CONSOLE_NEWLINE );
       }
       if( i == g_mheap_top ) {
-         tputs( &g_str_xx );
+         tprintf( "** " );
       } else {
          /* TODO: Implement hex tprintf. */
          tprintf( "%2X ", g_mheap[i] );
       }
    }
-   tputs( &g_str_newline );
+   tprintf( CONSOLE_NEWLINE );
 }
 #endif /* MPRINT */
 

@@ -18,9 +18,6 @@ TASK_RETVAL repl_command( const struct astring* cli );
 
 #define TASKS_MAX 5
 
-const struct astring g_str_hello = astring_l( "hello\n" );
-const struct astring g_str_stopping = astring_l( "stopping...\n" );
-
 #ifdef USE_EXT_CLI
 int kmain( int argc, char** argv ) {
 #else
@@ -110,7 +107,7 @@ int kmain() {
    }
 #endif /* !SCHEDULE_COOP */
 
-   tputs( &g_str_stopping );
+   tprintf( "stopping..." );
 
 #ifdef USE_EXT_CLI
 cleanup:

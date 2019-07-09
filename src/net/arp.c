@@ -147,7 +147,7 @@ int arp_respond(
    mcopy( arp_packet_data, incoming_ip, header->protosize );
 
 #ifdef NET_CON_ECHO
-   tputs( &g_str_self_match );
+   tprintf( "self match" );
 #endif /* NET_CON_ECHO */
 
 cleanup:
