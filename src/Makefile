@@ -38,7 +38,8 @@ SOURCES_TESTED= \
 	mfat.c \
 	mbmp.c
 SOURCES=$(SOURCES_TESTED) \
-	net/net.c
+	net/net.c \
+	apps/repl.c
 
 CHECKOBJ=\
 	check.o \
