@@ -2,7 +2,6 @@
 #define ALPHA_C
 #include "alpha.h"
 #include "console.h"
-#include "strings.h"
 
 #ifdef DEBUG
 #include <assert.h>
