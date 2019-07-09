@@ -6,6 +6,8 @@
 
 #include <stddef.h>
 
+const struct astring g_str_none = astring_l( "none" );
+
 #ifdef SCHEDULE_COOP
 
 static struct adhd_task* g_head_env = NULL;
@@ -103,10 +105,13 @@ const struct astring* adhd_get_gid_by_pid( TASK_PID pid ) {
    for( i = 0 ; ADHD_TASKS_MAX > i ; i++ ) {
       if(
          NULL != g_tasks[i].callback &&
-         NULL != g_tasks[i].gid &&
          g_tasks[i].pid == pid
       ) {
-         return g_tasks[i].gid;
+         if( NULL == g_tasks[i].gid ) {
+            return &g_str_none;
+         } else {
+            return g_tasks[i].gid;
+         }
       }
    }
 
