@@ -14,9 +14,7 @@
 #include "keyboard.h"
 #endif /* CONSOLE_SERIAL */
 
-#ifdef USE_EXT_CLI
-#include "commands.h"
-#endif /* USE_EXT_CLI */
+TASK_RETVAL repl_command( const struct astring* cli );
 
 #define TASKS_MAX 5
 
@@ -91,7 +89,7 @@ int kmain() {
    }
 
    if( cmd_found ) {
-      retval = do_command( cli );
+      retval = repl_command( cli );
       goto cleanup;
    }
 #endif /* USE_EXT_CLI */

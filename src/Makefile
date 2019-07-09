@@ -32,7 +32,6 @@ SOURCES_TESTED= \
 	adhd.c \
 	strings.c \
 	alpha.c \
-	commands.c \
 	ring.c \
 	io.c \
 	mfat.c \

@@ -1,18 +1,9 @@
 
-#ifdef USE_CONSOLE
-
 #define CONSOLE_C
 #include "console.h"
 #include "display.h"
 #include "mem.h"
-#include "kernel.h"
-#include "stdlib.h"
 #include "alpha.h"
-#include "strings.h"
-#include "net/net.h"
-#include "commands.h"
-
-#include <chiipy.h>
 
 #define TPRINT_PAD_ZERO 0
 #define TPRINT_PAD_SPACE 1
@@ -117,6 +108,4 @@ void tprintf( const char* pattern, ... ) {
       last = c;
    }
 }
-
-#endif /* USE_CONSOLE */
 
