@@ -331,7 +331,7 @@ uint16_t mfat_get_dir_entry_n_cluster_idx(
 }
 
 uint8_t mfat_get_dir_entry_data(
-   uint32_t entry_offset, uint32_t iter_file_offset, char* buffer,
+   uint32_t entry_offset, uint32_t iter_file_offset, uint8_t* buffer,
    uint16_t blen, uint8_t dev_idx, uint8_t part_idx
 ) {
    uint16_t cluster_idx = 0;
@@ -339,11 +339,6 @@ uint8_t mfat_get_dir_entry_data(
    uint8_t read = 0;
    uint32_t file_size = 0;
    uint16_t cluster_size = 0;
-
-   /* We get inconsistencies/cluster overlaps if the buffer len isn't divisible
-    * by 4.
-    */
-   assert( 0 == blen % 4 );
 
    file_size = mfat_get_dir_entry_size( entry_offset, dev_idx, part_idx );
    if( file_size <= iter_file_offset ) {
@@ -353,6 +348,11 @@ uint8_t mfat_get_dir_entry_data(
    }
 
    cluster_size = mfat_get_cluster_size( dev_idx, part_idx );
+
+   /* We get inconsistencies/cluster overlaps if the buffer len isn't divisible
+    * by 4.
+    */
+   assert( 0 == blen % 4 || iter_file_offset < cluster_size );
 
 new_cluster:
 
