@@ -37,7 +37,8 @@ SOURCES_TESTED= \
 	mfat.c \
 	mbmp.c
 SOURCES=$(SOURCES_TESTED) \
-	apps/repl.c
+	apps/repl.c \
+	apps/microd.c
 
 SOURCES_TESTED_NET= \
 	net/tcp.c \

@@ -5,12 +5,12 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+#define KERNEL_C
+#include "kernel.h"
 #include "console.h"
 #include "mem.h"
 #include "net/net.h"
 #include "adhd.h"
-#define KERNEL_C
-#include "kernel.h"
 #include "alpha.h"
 
 #ifndef CONSOLE_SERIAL
