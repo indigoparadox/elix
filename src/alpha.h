@@ -64,6 +64,7 @@ STRLEN_T alpha_utoa(
    STRLEN_T zero_pad_spaces, uint8_t base );
 int16_t alpha_charinstr( char c, const struct astring* string );
 void alpha_astring_append( TASK_PID pid, MEM_ID mid, char c );
+void alpha_astring_trunc( TASK_PID pid, MEM_ID mid );
 void alpha_astring_clear( TASK_PID pid, MEM_ID mid );
 const struct astring* alpha_astring(
    uint8_t pid, MEM_ID mid, STRLEN_T len, char* str );

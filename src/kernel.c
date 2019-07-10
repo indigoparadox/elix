@@ -114,11 +114,6 @@ cleanup:
    if( do_init ) {
 #endif /* USE_EXT_CLI */
 
-#ifndef CONSOLE_SERIAL
-   keyboard_shutdown();
-   display_shutdown();
-#endif /* CONSOLE_SERIAL */
-
 #ifdef USE_EXT_CLI
    }
 #endif /* USE_EXT_CLI */

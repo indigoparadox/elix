@@ -23,7 +23,7 @@ static uint8_t g_cur_pos = 0;
 void display_set_colors( uint8_t fg, uint8_t bg ) {
 }
 
-__attribute__( (constructor( CTOR_PRIO_DISPLAY ) ) )
+__attribute__( (constructor( CTOR_PRIO_DISPLAY )) )
 static void display_init() {
 #ifdef COLINUX_TERMIOS
    struct termios term;
@@ -35,6 +35,9 @@ static void display_init() {
    term.c_lflag &= ~ECHO;
    term.c_lflag &= ~ICANON;
    term.c_lflag &= ~IXON;
+   term.c_cc[VMIN] = 1;
+   term.c_cc[VTIME] = 0;
+   setvbuf( stdin, NULL, _IONBF, 0 );
    tcsetattr( STDIN_FILENO, TCSAFLUSH, &term );
    setbuf( stdin, NULL );
 #elif defined( COLINUX_CURSES )
@@ -48,7 +51,8 @@ static void display_init() {
    io_reg_output_cb( display_putc );
 }
 
-void display_shutdown() {
+__attribute__( (destructor( CTOR_PRIO_DISPLAY )) )
+static void display_shutdown() {
 #ifdef COLINUX_TERMIOS
    struct termios term;
 

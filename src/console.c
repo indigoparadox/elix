@@ -43,6 +43,7 @@ void tprintf( const char* pattern, ... ) {
  
       if( '%' == last ) {
          /* Conversion specifier encountered. */
+         mzero( &spec, sizeof( union mvalue ) );
          switch( pattern[i] ) {
             case 'a':
                astr_spec = va_arg( args, struct astring* );
