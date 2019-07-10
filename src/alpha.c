@@ -118,16 +118,20 @@ STRLEN_T alpha_utoa(
    return digits;
 }
 
-int16_t alpha_charinstr( char c, const struct astring* string ) {
+STRLEN_T alpha_charinstr( char c, const struct astring* string ) {
+   return alpha_charinstr_c( c, string->data, string->len );
+}
+
+STRLEN_T alpha_charinstr_c( char c, const char* string, STRLEN_T len ) {
    uint8_t i = 0;
-   while( string->len > i ) {
-      if( c == string->data[i] ) {
+   while( len > i ) {
+      if( c == string[i] ) {
          return i;
       }
       i++;
    }
    /* Didn't find it! */
-   return -1;
+   return ASTR_NOT_FOUND;
 }
 
 void alpha_astring_clear( TASK_PID pid, MEM_ID mid ) {
@@ -215,56 +219,74 @@ const struct astring* alpha_astring_list_next( const struct astring* str_in ) {
 }
 
 STRLEN_T alpha_cmp(
-   const struct astring* str1, const struct astring* str2, char sep
+   const struct astring* str1, const struct astring* str2, char sep,
+   bool case_match, bool len_match
 ) {
-   STRLEN_T i = 0;
-   while(
-      str1->data[i] != sep && str2->data[i] != sep &&
-      i < str1->len && i < str2->len
-   ) {
-      if( str1->data[i] != str2->data[i] ) {
-         return 1;
-      }
-      i++;
-   }
-   return 0;
+   return alpha_cmp_cc( str1->data, str1->len, str2->data, str2->len,
+      sep, case_match, len_match );
 }
 
 STRLEN_T alpha_cmp_c(
-   const char* cstr, STRLEN_T clen, const struct astring* astr, char sep
+   const char* cstr, STRLEN_T clen, const struct astring* astr, char sep,
+   bool case_match, bool len_match
 ) {
-   STRLEN_T i = 0;
-   while(
-      cstr[i] != sep && 
-      clen > i &&
-      astr->data[i] != sep && 
-      astr->len > i &&
-      '\0' != cstr[i]
-   ) {
-      if( astr->data[i] != cstr[i] ) {
-         return 1;
-      }
-      i++;
-   }
-   return 0;
+   return alpha_cmp_cc( cstr, clen, astr->data, astr->len, sep, case_match,
+      len_match );
 }
 
 STRLEN_T alpha_cmp_cc(
    const char* cstr1, STRLEN_T clen1, const char* cstr2, STRLEN_T clen2, 
-   char sep
+   char sep, bool case_match, bool len_match
 ) {
    STRLEN_T i = 0;
-   while(
+   while( 1 /*
       cstr1[i] != sep && 
       (0 == clen1 || clen1 > i) &&
       cstr2[i] != sep && 
       (0 == clen2 || clen2 > i) &&
       '\0' != cstr1[i] &&
-      '\0' != cstr2[i]
+      '\0' != cstr2[i] */
    ) {
-      if( cstr1[i] != cstr2[i] ) {
+      if(
+         len_match && (
+            (cstr1[i] == sep && (
+               cstr2[i] != sep &&
+               cstr2[i] != '\0'
+            )) ||
+            (cstr1[i] == '\0' && (
+               cstr2[i] != sep &&
+               cstr2[i] != '\0'
+            ))
+         )
+      ) {
+         tprintf( "\n(%d) len mismatch\n", i );
+         return 1;
+      } else if(
+         !len_match && (
+            (cstr1[i] == sep && cstr2[i] == sep) ||
+            (cstr1[i] == sep && cstr2[i] == '\0') ||
+            (cstr1[i] == '\0' && cstr2[i] == sep) ||
+            (cstr1[i] == '\0' && cstr2[i] == '\0')
+         )
+      ) {
+         tprintf( "\n(%d) len fuzzmatch\n", i );
+         //break;
+         return 0;
+      }
+
+      if( case_match && cstr1[i] != cstr2[i] ) {
+         tprintf( "\n(%d) case mismatch (%c / %c)\n", i,
+            cstr1[i], cstr2[i] );
+         return 1;
+      } else if(
+         !case_match &&
+         alpha_tolower( cstr1[i] ) != alpha_tolower( cstr2[i] )
+      ) {
+         tprintf( "\n(%d) caseless mismatch (%c / %c)\n", i,
+            alpha_tolower( cstr1[i] ), alpha_tolower( cstr2[i] ) );
          return 1;
       }
+
       i++;
    }
    return 0;
@@ -275,12 +297,12 @@ STRLEN_T alpha_cmp_cc(
  */
 int8_t alpha_cmp_l(
    const struct astring* str, const struct astring list[], uint8_t len,
-   char sep
+   char sep, bool case_match, bool len_match
 ) {
    uint8_t idx = 0;
 
    for( idx = 0 ; len > idx ; idx++ ) {
-      if( 0 == alpha_cmp( &(list[idx]), str, sep ) ) {
+      if( 0 == alpha_cmp( &(list[idx]), str, sep, case_match, len_match ) ) {
          return idx;
       }
    }
@@ -293,12 +315,12 @@ int8_t alpha_cmp_l(
  */
 int8_t alpha_cmp_cl(
    const char* cstr, STRLEN_T clen, const struct astring list[], uint8_t len,
-   char sep
+   char sep, bool case_match, bool len_match
 ) {
    uint8_t idx = 0;
 
    for( idx = 0 ; len > idx ; idx++ ) {
-      if( 0 == alpha_cmp_c( cstr, clen, &(list[idx]), sep ) ) {
+      if( 0 == alpha_cmp_c( cstr, clen, &(list[idx]), sep, case_match, len_match ) ) {
          return idx;
       }
    }

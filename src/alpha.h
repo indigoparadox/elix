@@ -4,6 +4,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
 
 #define UINT8_DIGITS_MAX 8
 #define UINT32_DIGITS_MAX 10
@@ -44,7 +45,9 @@ struct astring {
 #define alpha_tolower( c ) \
 	(alpha_isupper( c ) ? c + ('a' - 'A') : c)
 
-#define alpha_strlen( string, len ) alpha_charinstr( '\0', string, len )
+#define alpha_strlen_c( string, len ) alpha_charinstr_c( '\0', string, len )
+#define alpha_wordlen( string ) alpha_charinstr( ' ', string )
+#define alpha_wordlen_c( string, len ) alpha_charinstr_c( ' ', string, len )
 
 #ifdef ALPHA_C
 #define astring_const( id, str ) const struct astring id = astring_l( str )
@@ -62,7 +65,8 @@ STRLEN_T alpha_udigits( UTOA_T num, uint8_t base );
 STRLEN_T alpha_utoa(
    UTOA_T num, struct astring* str, STRLEN_T idx,
    STRLEN_T zero_pad_spaces, uint8_t base );
-int16_t alpha_charinstr( char c, const struct astring* string );
+STRLEN_T alpha_charinstr( char c, const struct astring* string );
+STRLEN_T alpha_charinstr_c( char c, const char* string, STRLEN_T len );
 void alpha_astring_append( TASK_PID pid, MEM_ID mid, char c );
 void alpha_astring_trunc( TASK_PID pid, MEM_ID mid );
 void alpha_astring_clear( TASK_PID pid, MEM_ID mid );
@@ -70,22 +74,24 @@ const struct astring* alpha_astring(
    uint8_t pid, MEM_ID mid, STRLEN_T len, char* str );
 const struct astring* alpha_astring_list_next( const struct astring* );
 STRLEN_T alpha_cmp(
-   const struct astring* str1, const struct astring* str2, char sep
+   const struct astring* str1, const struct astring* str2, char sep,
+   bool case_match, bool len_match
 );
 STRLEN_T alpha_cmp_c(
-   const char* cstr, STRLEN_T clen, const struct astring* astr, char sep
+   const char* cstr, STRLEN_T clen, const struct astring* astr, char sep,
+   bool case_match, bool len_match
 );
 STRLEN_T alpha_cmp_cc(
    const char* cstr1, STRLEN_T clen1, const char* cstr2, STRLEN_T clen2, 
-   char sep
+   char sep, bool case_match, bool len_match
 );
 int8_t alpha_cmp_l(
    const struct astring* str, const struct astring list[], uint8_t len,
-   char sep
+   char sep, bool case_match, bool len_match
 );
 int8_t alpha_cmp_cl(
    const char* cstr, STRLEN_T strlen, const struct astring list[], uint8_t len,
-   char sep
+   char sep, bool case_match, bool len_match
 );
 /* void alpha_insertstr(
 	char* dest, STRLEN_T dest_len, const char* src, int8_t* cursor

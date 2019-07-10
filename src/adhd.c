@@ -129,7 +129,7 @@ TASK_PID adhd_get_pid_by_gid( struct astring* gid ) {
       if(
          NULL != g_tasks[i].callback &&
          NULL != g_tasks[i].gid &&
-         0 == alpha_cmp( gid, g_tasks[i].gid, ' ' )
+         0 == alpha_cmp( gid, g_tasks[i].gid, ' ', true, true )
       ) {
          return i;
       }

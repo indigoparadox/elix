@@ -1,4 +1,6 @@
 
+#include "../code16.h"
+
 #include "../kernel.h"
 #include "../console.h"
 #include "../mfat.h"
@@ -79,7 +81,8 @@ static TASK_RETVAL trepl_net( const struct astring* cli ) {
 
    for( i = 0 ; NET_COMMANDS_COUNT > i ; i++ ) {
       if( 0 == alpha_cmp_cc(
-         tok, CMD_MAX_LEN, g_net_commands[i].command, CMD_MAX_LEN, ' '
+         tok, CMD_MAX_LEN, g_net_commands[i].command, CMD_MAX_LEN, ' ',
+         false, false
       ) ) {
          return g_net_commands[i].callback( cli );
       }
@@ -135,7 +138,8 @@ static TASK_RETVAL trepl_sys( const struct astring* cli ) {
 
    for( i = 0 ; SYS_COMMANDS_COUNT > i ; i++ ) {
       if( 0 == alpha_cmp_cc(
-         tok, CMD_MAX_LEN, g_sys_commands[i].command, CMD_MAX_LEN, ' '
+         tok, CMD_MAX_LEN, g_sys_commands[i].command, CMD_MAX_LEN, ' ',
+         false, false
       ) ) {
          return g_sys_commands[i].callback( cli );
       }
@@ -202,7 +206,8 @@ static TASK_RETVAL tdisk_fat( const struct astring* cli ) {
    i = 2;
    tok = alpha_tok( cli, ' ', i );
    while( NULL != tok ) {
-      if( !alpha_cmp_cc( "d", 1, tok, 1, ' ' ) ) {
+      /* Determine display mode. */
+      if( !alpha_cmp_cc( "d", 1, tok, 1, ' ', false, false ) ) {
          display_dec = 1;
       } else if( 0 < alpha_atou_c( tok, 5 /* TODO */, 10 ) ) {
          if( display_dec ) {
@@ -358,7 +363,8 @@ static TASK_RETVAL trepl_disk( const struct astring* cli ) {
 
    for( i = 0 ; DISK_COMMANDS_COUNT > i ; i++ ) {
       if( 0 == alpha_cmp_cc(
-         tok, CMD_MAX_LEN, g_disk_commands[i].command, CMD_MAX_LEN, ' '
+         tok, CMD_MAX_LEN, g_disk_commands[i].command, CMD_MAX_LEN, ' ',
+         false, false
       ) ) {
          return g_disk_commands[i].callback( cli );
       }
@@ -383,13 +389,25 @@ static const struct api_command g_commands[COMMANDS_COUNT] = {
 
 TASK_RETVAL repl_command( const struct astring* cli ) {
    uint8_t i = 0;
+   TASK_RETVAL retval = 0;
 
    for( i = 0 ; COMMANDS_COUNT > i ; i++ ) {
-      if( 0 == alpha_cmp_c( g_commands[i].command, CMD_MAX_LEN, cli, ' ' ) ) {
+      if(
+         0 == alpha_cmp_c( g_commands[i].command, CMD_MAX_LEN, cli, ' ',
+            false, true )
+      ) {
          return g_commands[i].callback( cli );
       }
    }
-   
+
+   /* Could not find an internal command. Try installed apps. */
+   for( i = 0 ; g_console_apps_top > i ; i++ ) {
+      retval = g_console_apps[i]( cli );
+      if( RETVAL_NOT_FOUND != retval ) {
+         return retval;
+      }
+   }
+
    return RETVAL_NOT_FOUND;
 }
 
@@ -402,6 +420,11 @@ TASK_RETVAL trepl_task() {
    adhd_task_setup();
 
    adhd_set_gid( &g_str_repl );
+
+   if( g_console_pid != 0 && g_console_pid != adhd_get_pid() ) {
+      g_console_flags &= ~CONSOLE_FLAG_INITIALIZED;
+      adhd_yield();
+   }
 
    if( !(g_console_flags & CONSOLE_FLAG_INITIALIZED) ) {
       for( i = 0 ; 8 > i ; i++ ) {

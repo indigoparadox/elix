@@ -24,8 +24,6 @@
 #define CTOR_PRIO_DISPLAY 105
 #define CTOR_PRIO_UART 110
 
-typedef TASK_RETVAL (*CONSOLE_CMD)( const struct astring* );
-
 struct api_command {
    char command[CMD_MAX_LEN];
    CONSOLE_CMD callback;
