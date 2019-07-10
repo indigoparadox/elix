@@ -207,13 +207,13 @@ static TASK_RETVAL tdisk_fat( const struct astring* cli ) {
          if( display_dec ) {
             /* Interpret as decimal. */
             entries_count = alpha_atou_c( tok, 5, 10 );
-            fat_entry = mfat_get_fat_entry( entries_count, 0, 0 );
+            fat_entry = mfat_get_fat_entry( entries_count, 0, 0, 0 );
             tprintf( "fat entry %5d: %5d\n", entries_count, fat_entry );
             return RETVAL_OK;
          } else {
             /* Interpret as hex. */
             entries_count = alpha_atou_c( tok, 5, 16 );
-            fat_entry = mfat_get_fat_entry( entries_count, 0, 0 );
+            fat_entry = mfat_get_fat_entry( entries_count, 0, 0, 0 );
             tprintf( "fat entry %4x: %4x\n", entries_count, fat_entry );
             return RETVAL_OK;
          }
@@ -226,7 +226,7 @@ static TASK_RETVAL tdisk_fat( const struct astring* cli ) {
 
    tprintf( "\n00000\t" );
    for( i = 0 ; entries_count > i ; i++ ) {
-      fat_entry = mfat_get_fat_entry( i, 0, 0 );
+      fat_entry = mfat_get_fat_entry( i, 0, 0, 0 );
 
       if( display_dec ) {
          tprintf( "%5d ", fat_entry );

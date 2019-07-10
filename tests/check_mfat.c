@@ -82,7 +82,7 @@ START_TEST( test_mfat_bpb ) {
 END_TEST
 
 START_TEST( test_mfat_entry ) {
-   uint16_t entry = mfat_get_fat_entry( _i, 0, 0 );
+   uint16_t entry = mfat_get_fat_entry( _i, 0, 0, 0 );
 
    ck_assert_uint_eq( entry, g_img_map[0x200 + (2 * _i)] );
 }
@@ -91,7 +91,7 @@ END_TEST
 START_TEST( test_mfat_consistency ) {
    uint16_t last_entry;
 
-   last_entry = mfat_get_fat_entry( _i - 1, 0, 0 );
+   last_entry = mfat_get_fat_entry( _i - 1, 0, 0, 0 );
 
    ck_assert(
       0x0000 == last_entry ||
@@ -119,7 +119,8 @@ START_TEST( test_mfat_cluster_data ) {
    int i = 0;
 
    /* Grab the root directory and find the test file. */
-   entry_offset = mfat_get_root_dir_first_entry_offset( 0, 0 );
+   entry_offset = mfat_get_root_dir_offset( 0, 0 );
+   entry_offset = mfat_get_dir_entry_first_offset( entry_offset, 0, 0 );
    entry_offset = mfat_get_dir_entry_offset(
       g_data_filename, g_data_filename_len, entry_offset, 0, 0 );
    file_size = mfat_get_dir_entry_size( entry_offset, 0, 0 );
@@ -159,6 +160,19 @@ START_TEST( test_mfat_cluster_data ) {
       bytes[i] = disk_get_byte( 0, 0, file_on_disk_offset + iter_offset + i );
    }
    g_data_test( test_num, _i );
+}
+END_TEST
+
+START_TEST( test_mfat_tables_identical ) {
+   uint16_t entry_1 = 0;
+   uint16_t entry_2 = 0;
+   uint8_t j = 0;
+   
+   entry_1 = mfat_get_fat_entry( _i, 0, 0, 0 );
+   for( j = 1 ; mfat_get_fat_count( 0, 0 ) > j ; j++ ) {
+      entry_2 = mfat_get_fat_entry( _i, j, 0, 0 );
+      ck_assert_uint_eq( entry_1, entry_2 );
+   }
 }
 END_TEST
 
@@ -223,6 +237,8 @@ Suite* mfat_suite( void ) {
    tcase_add_loop_test( tc_metadata, test_mfat_entry, 2, 50 );
    tcase_add_test( tc_metadata, test_mfat_fat_sz );
    tcase_add_loop_test( tc_metadata, test_mfat_consistency, 2, 50 );
+   tcase_add_loop_test( tc_metadata, test_mfat_tables_identical, 2,
+      2048 );
 
    /* File <= 1 cluster. */
    tc_data_short = tcase_create( "DataShort" );

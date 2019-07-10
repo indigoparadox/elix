@@ -19,7 +19,8 @@ typedef uint32_t FILEPTR_T;
 uint16_t mfat_get_root_dir_entries_count( uint8_t dev_idx, uint8_t part_idx );
 uint32_t mfat_get_sectors_total( uint8_t dev_idx, uint8_t part_idx );
 uint16_t mfat_get_entries_count( uint8_t dev_idx, uint8_t part_idx );
-uint16_t mfat_get_fat_entry( uint16_t idx, uint8_t dev_idx, uint8_t part_idx );
+uint16_t mfat_get_fat_entry(
+   uint16_t cluster_idx, uint8_t fat_idx, uint8_t dev_idx, uint8_t part_idx );
 
 FILEPTR_T mfat_get_dir_entry_first_offset(
    FILEPTR_T dir_offset, uint8_t dev_idx, uint8_t part_idx );

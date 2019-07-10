@@ -19,6 +19,8 @@ int main( int argc, char** argv ) {
    stat( "testimg.img", &img_stat );
    g_img_sz = img_stat.st_size;
 
+   assert( 0 < g_img_sz );
+
    img_handle = open( "testimg.img", O_RDWR, 0 );
    assert( 0 < img_handle );
 
