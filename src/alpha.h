@@ -75,23 +75,23 @@ const struct astring* alpha_astring(
 const struct astring* alpha_astring_list_next( const struct astring* );
 STRLEN_T alpha_cmp(
    const struct astring* str1, const struct astring* str2, char sep,
-   bool case_match, bool len_match
+   bool case_match, uint8_t len_match
 );
 STRLEN_T alpha_cmp_c(
    const char* cstr, STRLEN_T clen, const struct astring* astr, char sep,
-   bool case_match, bool len_match
+   bool case_match, uint8_t len_match
 );
 STRLEN_T alpha_cmp_cc(
    const char* cstr1, STRLEN_T clen1, const char* cstr2, STRLEN_T clen2, 
-   char sep, bool case_match, bool len_match
+   char sep, bool case_match, uint8_t len_match
 );
 int8_t alpha_cmp_l(
    const struct astring* str, const struct astring list[], uint8_t len,
-   char sep, bool case_match, bool len_match
+   char sep, bool case_match, uint8_t len_match
 );
 int8_t alpha_cmp_cl(
    const char* cstr, STRLEN_T strlen, const struct astring list[], uint8_t len,
-   char sep, bool case_match, bool len_match
+   char sep, bool case_match, uint8_t len_match
 );
 /* void alpha_insertstr(
 	char* dest, STRLEN_T dest_len, const char* src, int8_t* cursor

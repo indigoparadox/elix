@@ -394,7 +394,7 @@ TASK_RETVAL repl_command( const struct astring* cli ) {
    for( i = 0 ; COMMANDS_COUNT > i ; i++ ) {
       if(
          0 == alpha_cmp_c( g_commands[i].command, CMD_MAX_LEN, cli, ' ',
-            false, true )
+            false, 3 )
       ) {
          return g_commands[i].callback( cli );
       }
