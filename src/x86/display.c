@@ -1,5 +1,7 @@
 
 #include "../display.h"
+#include "../kernel.h"
+#include "../io.h"
 
 static int display_cursor_row = 0;
 static int display_cursor_col = 0;
@@ -12,7 +14,8 @@ void display_set_colors( uint8_t fg, uint8_t bg ) {
    display_color = fg;
 }
 
-void display_init() {
+__attribute__( (constructor( CTOR_PRIO_DISPLAY )) )
+static void display_init() {
    int x, y, index;
    display_set_colors( COLOR_WHITE, COLOR_BLACK );
    display_buffer = (uint16_t*)0xb8000;
@@ -45,6 +48,7 @@ void display_putc( uint8_t dev_index, char c ) {
    }
 }
 
-void display_shutdown() {
+__attribute__( (destructor( CTOR_PRIO_DISPLAY )) )
+static void display_shutdown() {
 }
 

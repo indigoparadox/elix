@@ -6,6 +6,7 @@
 #include "../net/net.h"
 
 #define CONSOLE_FLAG_INITIALIZED    0x01
+#define CONSOLE_FLAG_ANSI_SEQ       0x02
 
 /* Memory IDs for console tasks. */
 #define REPL_MID_LINE      1
@@ -439,6 +440,9 @@ TASK_RETVAL trepl_task() {
    switch( c ) {
       case '\r':
       case '\n':
+         /* Reset any pending ANSI flag. */
+         g_console_flags &= ~CONSOLE_FLAG_ANSI_SEQ;
+
          tprintf( CONSOLE_NEWLINE );
          retval = repl_command( line );
 
@@ -452,7 +456,37 @@ TASK_RETVAL trepl_task() {
          alpha_astring_clear( adhd_get_pid(), REPL_MID_LINE );
          break;
 
+      case 127:
+         /* Backspace */
+         alpha_astring_trunc( adhd_get_pid(), REPL_MID_LINE );
+         tputc( c );
+         break;
+
+      case 27:
+         g_console_flags |= CONSOLE_FLAG_ANSI_SEQ;
+         break;
+
       default:
+         if( g_console_flags & CONSOLE_FLAG_ANSI_SEQ ) {
+            if( 'A' == c ) {
+               /* Up */
+            } else if( 'B' == c ) {
+               /* Down */
+            } else if( 'C' == c ) {
+               /* Right */
+            } else if( 'D' == c ) {
+               /* Left */
+            } else if( '[' == c ) {
+               break;
+            } else {
+               tprintf( "\nansi+%d\n", c );
+            }
+
+            /* Reset pending ANSI flag. */
+            g_console_flags &= ~CONSOLE_FLAG_ANSI_SEQ;
+            break;
+         }
+
          alpha_astring_append( adhd_get_pid(), REPL_MID_LINE, c );
          tputc( c );
          break;

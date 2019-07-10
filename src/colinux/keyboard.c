@@ -34,7 +34,7 @@ static int handle_key( int count, int key ) {
 }
 #endif /* COLINUX_READLINE */
 
-void handle_ctrl_c( int param ) {
+static void handle_ctrl_c( int param ) {
    /* Tell the kernel we can exit. */
    g_system_state = SYSTEM_SHUTDOWN;
 }
@@ -65,11 +65,12 @@ static void keyboard_init() {
    io_reg_input_cb( keyboard_getc );
 }
 
-void keyboard_shutdown() {
+__attribute__( (destructor( CTOR_PRIO_DISPLAY )) )
+static void keyboard_shutdown() {
 }
 
 static char keyboard_hit( uint8_t dev_index ) {
-   char bytes = 0;
+   int bytes = 0;
 #ifdef COLINUX_TERMIOS
 /*
    struct timeval timeout;
@@ -86,7 +87,7 @@ static char keyboard_hit( uint8_t dev_index ) {
 #elif defined( COLINUX_READLINE )
    bytes = g_char_stack_top;
 #endif /* COLINUX_TERMIOS || COLINUX_CURSES */
-   return bytes;
+   return (char)bytes;
 }
 
 char keyboard_getc( uint8_t dev_index, bool wait ) {

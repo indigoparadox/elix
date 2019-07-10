@@ -162,6 +162,30 @@ void alpha_astring_append( TASK_PID pid, MEM_ID mid, char c ) {
    }
 }
 
+void alpha_astring_trunc( TASK_PID pid, MEM_ID mid ) {
+   const struct astring* str = NULL;
+   STRLEN_T new_strlen = 0;
+   char c = '\0';
+
+   str = mget( pid, mid, MGET_NO_CREATE );
+   if( NULL == str ) {
+      return;
+   }
+
+   if( str->len - 1 >= 0 ) {
+      /* Add a terminating NULL. */
+      meditprop(
+         pid, mid, offsetof( struct astring, data  ) + str->len - 1,
+         sizeof( char ), &c );
+
+      /* Bookkeeping. */
+      new_strlen = str->len - 1;
+      meditprop(
+         pid, mid, offsetof( struct astring, len  ),
+         sizeof( STRLEN_T ), &new_strlen );
+   }
+}
+
 const struct astring* alpha_astring(
    uint8_t pid, MEM_ID mid, STRLEN_T len, char* str
 ) {
