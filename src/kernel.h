@@ -20,6 +20,7 @@
 
 #define CMD_MAX_LEN 10
 
+#define CTOR_PRIO_MEM 101
 #define CTOR_PRIO_DISPLAY 105
 #define CTOR_PRIO_UART 110
 

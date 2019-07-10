@@ -52,7 +52,6 @@ void mprint();
 int mget_pos( int pid, int mid );
 #endif /* CHECK */
 
-void minit();
 MEMLEN_T get_mem_used();
 const void* mget( TASK_PID pid, MEM_ID mid, MEMLEN_T sz );
 void mgetprop(

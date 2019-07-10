@@ -57,8 +57,6 @@ int main() {
    P1DIR = BIT6;
    P1OUT = BIT6;
 
-   g_console_dev_index = 1;
-
 #if 0
    while( 1 ) {
       //UCA0TXBUF = 'c';

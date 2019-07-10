@@ -2,6 +2,7 @@
 #define MEM_C
 #include "mem.h"
 #include "adhd.h"
+#include "kernel.h"
 
 #ifdef MPRINT
 #include "console.h"
@@ -33,8 +34,9 @@ static
 #endif /* CHECK */
 MEMLEN_T g_mheap_top = 0;
 
-/* Setup the heap. */
-void minit() {
+__attribute__( (constructor( CTOR_PRIO_MEM )) )
+static void minit() {
+   /* Setup the heap. */
    mzero( g_mheap, MEM_HEAP_SIZE );
    g_mheap_top = 0;
 }
@@ -283,7 +285,6 @@ void mgetprop(
    mcopy( dest, &(var->data[offset]), sz );
    
 }
-
 
 int mincr( TASK_PID pid, MEM_ID mid ) {
    struct mvar* var = NULL;

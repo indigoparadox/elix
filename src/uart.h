@@ -50,7 +50,7 @@
 uint8_t uart_init( uint8_t index );
 void uart_clear( uint8_t index );
 /* The UART gets chars as unsigned, so they must stay this way. */
-unsigned char uart_getc( uint8_t dev_index );
+char uart_getc( uint8_t dev_index, bool wait );
 uint8_t uart_hit( uint8_t dev_index );
 void uart_putc( uint8_t dev_index, const char c );
 void uart_soft_pause( uint8_t index );

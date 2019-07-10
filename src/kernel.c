@@ -25,7 +25,6 @@ int kmain( int argc, char** argv ) {
 #else
 int kmain() {
 #endif /* USE_EXT_CLI */
-   uint8_t i = 0;
 #ifndef SCHEDULE_COOP
    TASK_PID active = 0;
    TASK_RETVAL retval = 0;
@@ -33,15 +32,11 @@ int kmain() {
 #ifdef USE_EXT_CLI
    const struct astring* cli = NULL;
    char c = 0;
-   int j = 0;
+   int i = 0, j = 0;
    bool switch_found = false;
    bool do_init = true;
    bool cmd_found = false;
-#endif /* USE_EXT_CLI */
 
-   minit();
-
-#ifdef USE_EXT_CLI
    if( 1 < argc ) {
       cli = alpha_astring(
          ADHD_PID_MAIN, KERNEL_MID_CLI, 30, NULL );
@@ -75,9 +70,6 @@ int kmain() {
    if( do_init ) {
 #endif /* USE_EXT_CLI */
 
-   for( i = 0 ; 4 > i ; i++ ) {
-      uart_init( i );
-   }
 #ifdef USE_NET
    net_init();
 #endif /* USE_NET */

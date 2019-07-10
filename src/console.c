@@ -10,15 +10,17 @@
 #define TPRINT_PAD_SPACE 1
 
 void tputc( char c ) {
-   g_io_output_cbs[g_io_output_idx - 1]( g_io_output_idx - 1, c );
+   g_io_output_cbs[g_console_out_dev_index]( g_console_out_dev_index, c );
 }
 
 char tgetc() {
-   g_io_input_cbs[g_io_input_idx - 1]( g_io_input_idx - 1, false );
+   return 
+      g_io_input_cbs[g_console_in_dev_index]( g_console_in_dev_index, false );
 }
 
 char twaitc() {
-   g_io_input_cbs[g_io_input_idx - 1]( g_io_input_idx - 1, true );
+   return
+      g_io_input_cbs[g_console_in_dev_index]( g_console_in_dev_index, true );
 }
 
 void tprintf( const char* pattern, ... ) {

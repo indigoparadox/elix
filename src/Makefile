@@ -24,7 +24,8 @@ MKVFAT=/sbin/mkfs.vfat
 SYSLINUX=syslinux
 MCOPY=mcopy
 
-DEBUG_FLAGS=-Wall -Werror -g -pg
+DEBUG_FLAGS=-Wall -Werror -g
+PROFILE_FLAGS=$(DEBUG_FLAGS) -pg
 
 CFLAGS=-DUSE_CONSOLE -DUSE_DISK -I../../chiipy/src -DALPHA_PRESENT
 SOURCES_TESTED= \
@@ -72,7 +73,6 @@ DRIVERS_COLINUX= \
 	colinux/net.o \
 	colinux/display.o \
 	colinux/keyboard.o \
-	colinux/uart.o \
 	colinux/disk.o
 
 DRIVERS_MSP430=\
@@ -86,7 +86,6 @@ DRIVERS_X86=\
 	x86/net.o \
 	x86/keyboard.o \
 	x86/disk.o \
-	x86/uart.o
 
 ISODIRX86=../isodir/x86
 CHECKSDIR=../tests
@@ -98,7 +97,8 @@ $(BIN_LIN): CFLAGS += \
 	-DQD_PLATFORM=QD_PLATFORM_COLINUX \
 	-DDEBUG \
 	-DMBMP_AGGRESSIVE_VALIDATE \
-	-DCOLINUX_TERMIOS
+	-DCOLINUX_TERMIOS \
+	$(DEBUG_FLAGS)
 $(BIN_LIN): LDFLAGS += -lpcap -lncurses -L../../chiipy/src/ -lchiipy
 $(BIN_LIN): OBJDIR := ../obj/linux
 
@@ -120,7 +120,8 @@ $(BIN_X86): CFLAGS += \
 	-nostartfiles \
 	-nodefaultlibs \
 	-DUSE_NET \
-	-DQD_PLATFORM=QD_PLATFORM_X86
+	-DQD_PLATFORM=QD_PLATFORM_X86 \
+	$(DEBUG_FLAGS)
 $(BIN_X86): OBJDIR := ../obj/os
 $(BIN_X86): LDFLAGS := 
 
@@ -131,8 +132,6 @@ $(BIN_MSP430): CFLAGS += \
 	-gdwarf-2 \
 	-DQD_PLATFORM=QD_PLATFORM_MSP430 \
 	-mmcu=msp430g2553 \
-	-DQD_CONSOLE_IN=uart \
-	-DQD_CONSOLE_OUT=uart \
 	-DQD_CONSOLE_IN_IDX=1 \
 	-DQD_CONSOLE_OUT_IDX=1 \
 	-DCOMMANDS_NET \
@@ -140,7 +139,8 @@ $(BIN_MSP430): CFLAGS += \
 	-DQD_CPU_MHZ=1 \
 	-DQD_SPI \
 	-DQD_UART \
-	-DQD_WDT_DISABLED
+	-DQD_WDT_DISABLED \
+	$(DEBUG_FLAGS)
 $(BIN_MSP430): CC := msp430-gcc
 $(BIN_MSP430): STRIP := msp430-strip
 $(BIN_MSP430): OBJDIR := ../obj/msp430
