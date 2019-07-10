@@ -13,6 +13,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 /* Memory IDs for network tasks. */
 #define NET_MID_SOCKET 1

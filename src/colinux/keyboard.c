@@ -1,6 +1,7 @@
 
 #include "../keyboard.h"
 #include "../kernel.h"
+#include "../io.h"
 
 #include <sys/time.h>
 #include <stdio.h>
@@ -38,7 +39,8 @@ void handle_ctrl_c( int param ) {
    g_system_state = SYSTEM_SHUTDOWN;
 }
 
-void keyboard_init() {
+__attribute__( (constructor( CTOR_PRIO_DISPLAY ) ) )
+static void keyboard_init() {
 #ifdef COLINUX_TERMIOS
    struct termios term;
 #elif defined( COLINUX_CURSES )
@@ -59,13 +61,15 @@ void keyboard_init() {
 #elif defined( COLINUX_READLINE )
    rl_bind_key(
 #endif /* COLINUX_TERMIOS || COLINUX_CURSES || COLINUX_READLINE */
+
+   io_reg_input_cb( keyboard_getc );
 }
 
 void keyboard_shutdown() {
 }
 
-int keyboard_hit( uint8_t dev_index ) {
-   int bytes = 0;
+static char keyboard_hit( uint8_t dev_index ) {
+   char bytes = 0;
 #ifdef COLINUX_TERMIOS
 /*
    struct timeval timeout;
@@ -85,11 +89,14 @@ int keyboard_hit( uint8_t dev_index ) {
    return bytes;
 }
 
-char keyboard_getc( uint8_t dev_index ) {
+char keyboard_getc( uint8_t dev_index, bool wait ) {
    char buffer = 0;
    /* if( 1 != read( &buffer, 1 ) ) {
       return 0;
    } */
+   if( wait ) {
+      return keyboard_hit( dev_index );
+   }
 #ifdef COLINUX_TERMIOS
    /*buffer = getchar();*/
    read( STDIN_FILENO, &buffer, 1 );
