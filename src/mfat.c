@@ -1,4 +1,6 @@
 
+#include "code16.h"
+
 #ifdef USE_DISK
 
 #include "mfat.h"

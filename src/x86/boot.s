@@ -1,3 +1,6 @@
+
+.code16gcc
+
 # Multiboot header.
 .set ALIGN,    1<<0
 .set MEMINFO,  1<<1

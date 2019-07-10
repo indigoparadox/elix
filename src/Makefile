@@ -29,12 +29,12 @@ PROFILE_FLAGS=$(DEBUG_FLAGS) -pg
 
 CFLAGS=-DUSE_CONSOLE -DUSE_DISK -I../../chiipy/src -DALPHA_PRESENT
 SOURCES_TESTED= \
-	mem.c \
 	console.c \
 	adhd.c \
 	alpha.c \
 	ring.c \
 	io.c \
+	mem.c \
 	mfat.c \
 	mbmp.c
 SOURCES=$(SOURCES_TESTED) \
@@ -100,7 +100,7 @@ $(BIN_LIN): CFLAGS += \
 	-DCOLINUX_TERMIOS \
 	$(DEBUG_FLAGS)
 $(BIN_LIN): LDFLAGS += -lpcap -lncurses -L../../chiipy/src/ -lchiipy
-$(BIN_LIN): OBJDIR := ../obj/linux
+$(BIN_LIN): OBJDIR := ../obj/linux/
 
 $(BIN_WIN): CC := i686-w64-mingw32-g
 $(BIN_WIN): CFLAGS += \
@@ -109,7 +109,7 @@ $(BIN_WIN): CFLAGS += \
 	-DQD_PLATFORM=QD_PLATFORM_COLINUX \
 	-DCOMMANDS_NET
 $(BIN_WIN): LDFLAGS += -lwpcap
-$(BIN_WIN): OBJDIR := ../obj/windows
+$(BIN_WIN): OBJDIR := ../obj/windows/
 
 $(BIN_X86): CC := i586-elf-gcc
 $(BIN_X86): AS := i586-elf-as
@@ -117,13 +117,13 @@ $(BIN_X86): CFLAGS += \
 	-Os \
 	-ffreestanding \
 	-nostdlib \
-	-nostartfiles \
-	-nodefaultlibs \
-	-DUSE_NET \
 	-DQD_PLATFORM=QD_PLATFORM_X86 \
+	-DGCC_REALMODE \
+	-nodefaultlibs \
+	-nostartfiles \
 	$(DEBUG_FLAGS)
-$(BIN_X86): OBJDIR := ../obj/os
-$(BIN_X86): LDFLAGS := 
+$(BIN_X86): OBJDIR := ../obj/os/
+$(BIN_X86): LDFLAGS := -T x86/linker.ld
 
 $(BIN_MSP430): CFLAGS += \
 	-g3 \
@@ -143,20 +143,20 @@ $(BIN_MSP430): CFLAGS += \
 	$(DEBUG_FLAGS)
 $(BIN_MSP430): CC := msp430-gcc
 $(BIN_MSP430): STRIP := msp430-strip
-$(BIN_MSP430): OBJDIR := ../obj/msp430
+$(BIN_MSP430): OBJDIR := ../obj/msp430/
 #$(BIN_MSP430): LDFLAGS += -L../../chiipy/src/ -lchiipy
 
 tests: LDFLAGS += -lpcap $(shell pkg-config --libs check)
 tests: CFLAGS += -DCHECK -DQD_PLATFORM=QD_PLATFORM_COLINUX -DUSE_NET
-tests: OBJDIR := ../obj/tests
+tests: OBJDIR := ../obj/tests/
 
 all:
 
 $(BIN_LIN): $(OBJECTS) $(OBJECTS_NET) $(DRIVERS_COLINUX) colinux/boot.o kernel.o
-	$(CC) -o $@ $(addprefix $(OBJDIR)/,$^) $(LDFLAGS)
+	$(CC) -o $@ $(addprefix $(OBJDIR),$^) $(LDFLAGS)
 
 $(BIN_WIN): $(OBJECTS) $(OBJECTS_NET) $(DRIVERS_COLINUX) kernel.o
-	$(CC) -o $@ $(addprefix $(OBJDIR)/,$^) $(LDFLAGS)
+	$(CC) -o $@ $(addprefix $(OBJDIR),$^) $(LDFLAGS)
 
 $(ISO_X86): $(ISODIRX86)/$(BIN_X86)
 	$(MKRESCUE) -o $@ $(ISODIRX86)
@@ -172,18 +172,18 @@ $(ISODIRX86)/$(BIN_X86): $(BIN_X86)
 	cp -v $(BIN_X86) $(ISODIRX86)/boot/$(BIN_X86)
 
 $(BIN_X86): $(OBJECTS) $(OBJECTS_NET) $(DRIVERS_X86) kernel.o
-	$(AS) x86/boot.s -o $(OBJDIR)/boot.o
-	$(CC) -T x86/linker.ld -o $@ $(addprefix $(OBJDIR)/,$^) $(OBJDIR)/boot.o $(LDFLAGS) $(CFLAGS)
+	$(AS) x86/boot.s -o $(OBJDIR)boot.o
+	$(CC) -o $@ $(addprefix $(OBJDIR),$^) $(OBJDIR)boot.o $(LDFLAGS) $(CFLAGS)
 
 $(BIN_MSP430): $(OBJECTS) $(DRIVERS_MSP430) kernel.o
-	$(CC) -o $@ $(addprefix $(OBJDIR)/,$^) $(CFLAGS) $(LDFLAGS)
+	$(CC) -o $@ $(addprefix $(OBJDIR),$^) $(CFLAGS) $(LDFLAGS)
 
 tests: $(OBJECTS_TESTED) $(OBJECTS_TESTED_NET) $(DRIVERS_TESTS) $(addprefix $(CHECKSDIR)/,$(CHECKOBJ))
-	$(CC) -o $@ $(addprefix $(OBJDIR)/,$(subst $(CHECKSDIR),,$^)) $(LDFLAGS)
+	$(CC) -o $@ $(addprefix $(OBJDIR),$(subst $(CHECKSDIR),,$^)) $(LDFLAGS)
 
 %.o: %.c
-	$(MD) $(OBJDIR)/$(dir $@)
-	$(CC) -c -o $(OBJDIR)/$@ $< $(CFLAGS)
+	$(MD) $(OBJDIR)$(dir $@)
+	$(CC) -c -o $(OBJDIR)$@ $< $(CFLAGS)
 
 .PHONY: clean
 
