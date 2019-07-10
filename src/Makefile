@@ -98,6 +98,8 @@ $(BIN_LIN): CFLAGS += \
 	-DUSE_NET \
 	-DUSE_DISK_RW \
 	-DQD_PLATFORM=QD_PLATFORM_COLINUX \
+	-DDEBUG \
+	-DMBMP_AGGRESSIVE_VALIDATE \
 	-DCOLINUX_TERMIOS
 $(BIN_LIN): LDFLAGS += -lpcap -lncurses -L../../chiipy/src/ -lchiipy
 $(BIN_LIN): OBJDIR := ../obj/linux
@@ -166,9 +168,6 @@ $(IMG_X86): $(BIN_X86) syslinux.cfg
 	$(MKVFAT) $@
 	$(SYSLINUX) -i $@
 	$(MCOPY) -i $@ $^ $(SYSLINUX_MODS)/mboot.c32 $(SYSLINUX_MODS)/libcom32.c32 ::
-
-#syslinux.cfg:
-#	echo "$$SYSLINUXCFG" >> $@
 
 $(ISODIRX86)/$(BIN_X86): $(BIN_X86)
 	$(MD) $(ISODIRX86)/boot

@@ -2,6 +2,12 @@
 #include "mbmp.h"
 #include "mfat.h"
 
+#ifdef DEBUG
+#include <assert.h>
+#else
+#define assert( x )
+#endif /* DEBUG */
+
 int32_t mbmp_get_width(
    FILEPTR_T file_ptr, uint8_t dev_idx, uint8_t part_idx
 ) {
@@ -99,6 +105,15 @@ FILEPTR_T mbmp_validate(
       filename, filename_len,
 #endif /* USE_ASTRING */
       offset, 0, 0 );
+
+#ifdef MBMP_AGGRESSIVE_VALIDATE
+   assert( 0x4d42 == mbmp_get_type( offset, dev_idx, part_idx ) );
+   assert( 40 == mbmp_get_hdr_sz( offset, dev_idx, part_idx ) );
+   assert( 24 == mbmp_get_bpp( offset, dev_idx, part_idx ) );
+   assert( 0 < mbmp_get_height( offset, dev_idx, part_idx ) );
+   assert( 0 == ((mbmp_get_bpp( offset, dev_idx, part_idx ) *
+      mbmp_get_width( offset, dev_idx, part_idx )) % 4 ) );
+#endif /* MBMP_AGGRESSIVE_VALIDATE */
 
    if(
       0x4d42 != mbmp_get_type( offset, dev_idx, part_idx ) ||
