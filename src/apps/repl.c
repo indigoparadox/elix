@@ -153,15 +153,18 @@ static TASK_RETVAL trepl_sys( const struct astring* cli ) {
 static TASK_RETVAL tdisk_dir( const struct astring* cli ) {
    const char* tok;
    uint16_t offset = 0;
-   char filename[13] = { 0 };
+   char filename[13];
    uint8_t attrib = 0;
-   char attrib_str[5] = { 0 };
+   char attrib_str[5];
    uint32_t size = 0;
 
    offset = mfat_get_root_dir_offset( 0, 0 );
    offset = mfat_get_dir_entry_first_offset( offset, 0, 0 );
 
    tok = alpha_tok( cli, ' ', 2 );
+
+   mzero( filename, 13 );
+   mzero( attrib_str, 5 );
 
    do {
       mfat_get_dir_entry_name( filename, offset, 0, 0 );
@@ -294,9 +297,11 @@ static TASK_RETVAL tdisk_touch( const struct astring* cli ) {
 static TASK_RETVAL tdisk_cat( const struct astring* cli ) {
    const char* tok;
    uint32_t offset = 0;
-   char buffer[MFAT_FILENAME_LEN + 1] = { 0 };
+   char buffer[MFAT_FILENAME_LEN + 1];
    uint32_t written = 0;
    uint32_t file_size = 0;
+
+   mzero( buffer, MFAT_FILENAME_LEN );
 
    tok = alpha_tok( cli, ' ', 2 );
    if( NULL == tok ) {

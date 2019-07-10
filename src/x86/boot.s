@@ -1,5 +1,5 @@
 
-.code16gcc
+#.code16gcc
 
 # Multiboot header.
 .set ALIGN,    1<<0

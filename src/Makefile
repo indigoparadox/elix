@@ -110,8 +110,8 @@ $(BIN_WIN): CFLAGS += \
 $(BIN_WIN): LDFLAGS += -lwpcap
 $(BIN_WIN): OBJDIR := ../obj/windows/
 
-$(BIN_X86): CC := i586-elf-gcc
-$(BIN_X86): AS := i586-elf-as
+$(BIN_X86): CC := ia16-elf-gcc
+$(BIN_X86): AS := ia16-elf-as
 $(BIN_X86): CFLAGS += \
 	-Os \
 	-ffreestanding \
@@ -122,7 +122,7 @@ $(BIN_X86): CFLAGS += \
 	-nostartfiles \
 	$(DEBUG_FLAGS)
 $(BIN_X86): OBJDIR := ../obj/os/
-$(BIN_X86): LDFLAGS := -T x86/linker.ld
+$(BIN_X86): LDFLAGS := -T x86/linker.ld -lgcc
 
 $(BIN_MSP430): CFLAGS += \
 	-g3 \

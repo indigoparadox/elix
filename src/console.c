@@ -31,11 +31,13 @@ void tprintf( const char* pattern, ... ) {
    char last = '\0';
    union mvalue spec;
    struct astring* astr_spec = NULL;
-   uint8_t num_buffer[sizeof( struct astring ) + UINT32_DIGITS_MAX] = { 0 };
+   uint8_t num_buffer[sizeof( struct astring ) + UINT32_DIGITS_MAX];
    struct astring* buffer_ptr = (struct astring*)&num_buffer;
    STRLEN_T padding = 0;
    char c;
    uint8_t pad_type = TPRINT_PAD_ZERO;
+
+   mzero( num_buffer, sizeof( struct astring ) + UINT32_DIGITS_MAX );
 
    /* Make sure the num_buffer knows how much space is available. */
    buffer_ptr->sz = UINT32_DIGITS_MAX;
