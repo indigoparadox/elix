@@ -76,10 +76,8 @@ DRIVERS_COLINUX= \
 	colinux/disk.o
 
 DRIVERS_MSP430=\
-	msp430/display.o \
 	msp430/boot.o \
 	msp430/uart.o \
-	msp430/keyboard.o \
 	msp430/wdt.o \
 	msp430/disk.o
 
