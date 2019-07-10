@@ -1,4 +1,6 @@
 
+#include "code16.h"
+
 #define MEM_C
 #include "mem.h"
 #include "adhd.h"
@@ -34,7 +36,9 @@ static
 #endif /* CHECK */
 MEMLEN_T g_mheap_top = 0;
 
+#ifdef __GNUC__
 __attribute__( (constructor( CTOR_PRIO_MEM )) )
+#endif /* __GNUC__ */
 static void minit() {
    /* Setup the heap. */
    mzero( g_mheap, MEM_HEAP_SIZE );

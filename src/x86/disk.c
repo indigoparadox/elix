@@ -1,4 +1,6 @@
 
+#include "../code16.h"
+
 #include "../disk.h"
 
 void disk_set_ptr( uint8_t dev_idx, uint8_t* disk_map ) {

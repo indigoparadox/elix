@@ -1,4 +1,6 @@
 
+#include "../code16.h"
+
 #include "../net/net.h"
 
 #include "../net/ether.h"

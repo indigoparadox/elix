@@ -1,4 +1,6 @@
 
+#include "code16.h"
+
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
@@ -69,6 +71,14 @@ int kmain() {
 
    if( do_init ) {
 #endif /* USE_EXT_CLI */
+
+#ifdef CRASH
+   int k = 1, l;
+   do {
+      l = 1 / k;
+      k--;
+   } while( k > 0 || l > 0 );
+#endif /* CRASH */
 
 #ifdef USE_NET
    net_init();

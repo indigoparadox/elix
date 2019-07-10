@@ -1,4 +1,6 @@
 
+#include "code16.h"
+
 #define ALPHA_C
 #include "alpha.h"
 #include "console.h"
