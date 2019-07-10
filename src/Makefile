@@ -32,7 +32,6 @@ SOURCES_TESTED= \
 	console.c \
 	adhd.c \
 	alpha.c \
-	ring.c \
 	io.c \
 	mem.c \
 	mfat.c \
@@ -50,7 +49,6 @@ SOURCES_NET=$(SOURCES_TESTED_NET) \
 CHECKOBJ=\
 	check.o \
 	check_mem.o \
-	check_ring.o \
 	check_mfat.o \
 	check_ether.o \
 	check_net.o

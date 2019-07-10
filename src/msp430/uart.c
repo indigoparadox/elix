@@ -1,7 +1,6 @@
 
 #include "../uart.h"
 
-#include "../ring.h"
 #include "../alpha.h"
 #include "../kernel.h"
 #include "../io.h"
