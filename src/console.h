@@ -9,21 +9,13 @@
 #include "alpha.h"
 #include "platform.h"
 
-#if 0
-#ifdef QD_CONSOLE_IN
-#define twaitc() PPCONCAT( QD_CONSOLE_IN, _hit( g_console_dev_index ) )
-#define tgetc() PPCONCAT( QD_CONSOLE_IN, _getc( g_console_dev_index ) )
-#else
-#define twaitc() keyboard_hit( g_console_dev_index )
-#define tgetc() keyboard_getc( g_console_dev_index )
-#endif /* QD_CONSOLE_IN */
+#ifndef QD_CONSOLE_IN_IDX
+#define QD_CONSOLE_IN_IDX 0
+#endif /* QD_CONSOLE_IN_IDX */
 
-#ifdef QD_CONSOLE_OUT
-#define tputc( c ) PPCONCAT( QD_CONSOLE_OUT, _putc( g_console_dev_index, c ) )
-#else
-#define tputc( c ) display_putc( g_console_dev_index, c )
-#endif /* QD_CONSOLE_OUT */
-#endif
+#ifndef QD_CONSOLE_OUT_IDX
+#define QD_CONSOLE_OUT_IDX 0
+#endif /* QD_CONSOLE_OUT_IDX */
 
 #ifndef CONSOLE_NEWLINE
 #define CONSOLE_NEWLINE "\n"
@@ -39,9 +31,11 @@ char twaitc();
 void tprintf( const char* pattern, ... );
 
 #ifdef CONSOLE_C
-uint8_t g_console_dev_index = 0;
+uint8_t g_console_in_dev_index = QD_CONSOLE_IN_IDX;
+uint8_t g_console_out_dev_index = QD_CONSOLE_OUT_IDX;
 #else
-extern uint8_t g_console_dev_index;
+extern uint8_t g_console_in_dev_index;
+extern uint8_t g_console_out_dev_index;
 #endif /* CONSOLE_C */
 
 #endif /* CONSOLE_H */

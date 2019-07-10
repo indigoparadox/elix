@@ -25,6 +25,14 @@ struct ring_buffer rx_buffer_info[UART_COUNT];
 #endif /* UART_RX_BUFFER_DISABLED */
 #endif
 
+__attribute__( (constructor(CTOR_PRIO_UART)) )
+static void uart_init_all() {
+   uint8_t i = 0;
+   for( i = 0 ; 2 > i ; i++ ) {
+      uart_init( i );
+   }
+}
+
 #if defined( QD_UART_SW ) || defined( QD_UART_HW )
 static bool uart_process_rx( uint8_t index, unsigned char c ) {
 
@@ -224,9 +232,9 @@ uint8_t uart_hit( uint8_t dev_index ) {
    //return uart_rx_buffer[dev_index];
 }
 
-unsigned char uart_getc( uint8_t dev_index ) {
+char uart_getc( uint8_t dev_index, bool wait ) {
 //#ifdef UART_RX_BUFFER_DISABLED
-   unsigned char out;
+   char out;
    //while( '\0' == uart_rx_buffer[dev_index] ) {
       //irqal_call_handlers();
       /* Suspend. */
