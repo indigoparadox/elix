@@ -220,7 +220,7 @@ const struct astring* alpha_astring_list_next( const struct astring* str_in ) {
 
 STRLEN_T alpha_cmp(
    const struct astring* str1, const struct astring* str2, char sep,
-   bool case_match, bool len_match
+   bool case_match, uint8_t len_match
 ) {
    return alpha_cmp_cc( str1->data, str1->len, str2->data, str2->len,
       sep, case_match, len_match );
@@ -228,7 +228,7 @@ STRLEN_T alpha_cmp(
 
 STRLEN_T alpha_cmp_c(
    const char* cstr, STRLEN_T clen, const struct astring* astr, char sep,
-   bool case_match, bool len_match
+   bool case_match, uint8_t len_match
 ) {
    return alpha_cmp_cc( cstr, clen, astr->data, astr->len, sep, case_match,
       len_match );
@@ -236,19 +236,26 @@ STRLEN_T alpha_cmp_c(
 
 STRLEN_T alpha_cmp_cc(
    const char* cstr1, STRLEN_T clen1, const char* cstr2, STRLEN_T clen2, 
-   char sep, bool case_match, bool len_match
+   char sep, bool case_match, uint8_t len_match
 ) {
    STRLEN_T i = 0;
-   while( 1 /*
+
+#ifdef ALPHA_CMP_DEBUG
+         tprintf( "\n(%s)[%d] vs (%s)[%d] [%c]\n",
+            cstr1, clen1, cstr2, clen2, sep );
+#endif /* ALPHA_CMP_DEBUG */
+
+   while( /*
       cstr1[i] != sep && 
       (0 == clen1 || clen1 > i) &&
       cstr2[i] != sep && 
       (0 == clen2 || clen2 > i) &&
       '\0' != cstr1[i] &&
       '\0' != cstr2[i] */
+      i < clen1 || i < clen2
    ) {
       if(
-         len_match && (
+         i < len_match && (
             (cstr1[i] == sep && (
                cstr2[i] != sep &&
                cstr2[i] != '\0'
@@ -259,36 +266,47 @@ STRLEN_T alpha_cmp_cc(
             ))
          )
       ) {
-         tprintf( "\n(%d) len mismatch\n", i );
+#ifdef ALPHA_CMP_DEBUG
+         tprintf( "(%d) len mismatch (0x%x vs 0x%x)\n", i, cstr1[i], cstr2[i] );
+#endif /* ALPHA_CMP_DEBUG */
          return 1;
       } else if(
-         !len_match && (
+         i >= len_match && (
             (cstr1[i] == sep && cstr2[i] == sep) ||
             (cstr1[i] == sep && cstr2[i] == '\0') ||
             (cstr1[i] == '\0' && cstr2[i] == sep) ||
             (cstr1[i] == '\0' && cstr2[i] == '\0')
          )
       ) {
-         tprintf( "\n(%d) len fuzzmatch\n", i );
+#ifdef ALPHA_CMP_DEBUG
+         tprintf( "(%d) len fuzzmatch\n", i );
+#endif /* ALPHA_CMP_DEBUG */
          //break;
          return 0;
       }
 
       if( case_match && cstr1[i] != cstr2[i] ) {
-         tprintf( "\n(%d) case mismatch (%c / %c)\n", i,
+#ifdef ALPHA_CMP_DEBUG
+         tprintf( "(%d) case mismatch (%c / %c)\n", i,
             cstr1[i], cstr2[i] );
+#endif /* ALPHA_CMP_DEBUG */
          return 1;
       } else if(
          !case_match &&
          alpha_tolower( cstr1[i] ) != alpha_tolower( cstr2[i] )
       ) {
-         tprintf( "\n(%d) caseless mismatch (%c / %c)\n", i,
-            alpha_tolower( cstr1[i] ), alpha_tolower( cstr2[i] ) );
+#ifdef ALPHA_CMP_DEBUG
+         tprintf( "(%d) caseless mismatch ('%c' -> '%c' / '%c' -> '%c')\n", i,
+            cstr1[i], alpha_tolower( cstr1[i] ),
+            cstr2[i], alpha_tolower( cstr2[i] ) );
+#endif /* ALPHA_CMP_DEBUG */
          return 1;
       }
 
       i++;
    }
+
+   tprintf( "de facto match\n" );
    return 0;
 }
 
@@ -297,7 +315,7 @@ STRLEN_T alpha_cmp_cc(
  */
 int8_t alpha_cmp_l(
    const struct astring* str, const struct astring list[], uint8_t len,
-   char sep, bool case_match, bool len_match
+   char sep, bool case_match, uint8_t len_match
 ) {
    uint8_t idx = 0;
 
@@ -315,7 +333,7 @@ int8_t alpha_cmp_l(
  */
 int8_t alpha_cmp_cl(
    const char* cstr, STRLEN_T clen, const struct astring list[], uint8_t len,
-   char sep, bool case_match, bool len_match
+   char sep, bool case_match, uint8_t len_match
 ) {
    uint8_t idx = 0;
 
