@@ -3,6 +3,7 @@
 
 #include "../ring.h"
 #include "../alpha.h"
+#include "../kernel.h"
 #include "../io.h"
 #include "../platform.h"
 
@@ -179,6 +180,9 @@ uint8_t uart_init( uint8_t dev_index ) {
 #else /* IE2_ */
       UCA0IE |= UCTXIE;
 #endif /* IE2_ */
+
+      io_reg_input_cb( uart_getc );
+      io_reg_output_cb( uart_putc );
 
       break;
 
