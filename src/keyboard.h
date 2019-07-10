@@ -3,11 +3,10 @@
 #define KEYBOARD_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
-void keyboard_init();
 void keyboard_shutdown();
-int keyboard_hit( uint8_t dev_index );
-char keyboard_getc( uint8_t dev_index );
+char keyboard_getc( uint8_t dev_index, bool wait );
 
 #endif /* KEYBOARD_H */
 

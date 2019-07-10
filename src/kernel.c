@@ -1,6 +1,8 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
+
 #include "console.h"
 #include "mem.h"
 #include "net/net.h"
@@ -73,8 +75,6 @@ int kmain() {
    if( do_init ) {
 #endif /* USE_EXT_CLI */
 
-   keyboard_init();
-   display_init();
    for( i = 0 ; 4 > i ; i++ ) {
       uart_init( i );
    }

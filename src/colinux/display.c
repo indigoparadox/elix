@@ -2,6 +2,7 @@
 #include "../display.h"
 #include "../kernel.h"
 #include "../mem.h"
+#include "../io.h"
 
 #include <sys/select.h>
 #ifdef COLINUX_TERMIOS
@@ -22,7 +23,8 @@ static uint8_t g_cur_pos = 0;
 void display_set_colors( uint8_t fg, uint8_t bg ) {
 }
 
-void display_init() {
+__attribute__( (constructor( CTOR_PRIO_DISPLAY ) ) )
+static void display_init() {
 #ifdef COLINUX_TERMIOS
    struct termios term;
 #endif /* COLINUX_TERMIOS */
@@ -42,6 +44,8 @@ void display_init() {
    noecho();
    raw();
 #endif /* COLINUX_TERMIOS || COLINUX_CURSES */
+
+   io_reg_output_cb( display_putc );
 }
 
 void display_shutdown() {

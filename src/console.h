@@ -7,9 +7,9 @@
 
 #include "adhd.h"
 #include "alpha.h"
-#include "uart.h"
-#include "display.h"
+#include "platform.h"
 
+#if 0
 #ifdef QD_CONSOLE_IN
 #define twaitc() PPCONCAT( QD_CONSOLE_IN, _hit( g_console_dev_index ) )
 #define tgetc() PPCONCAT( QD_CONSOLE_IN, _getc( g_console_dev_index ) )
@@ -23,6 +23,7 @@
 #else
 #define tputc( c ) display_putc( g_console_dev_index, c )
 #endif /* QD_CONSOLE_OUT */
+#endif
 
 #ifndef CONSOLE_NEWLINE
 #define CONSOLE_NEWLINE "\n"
@@ -32,6 +33,9 @@
 
 #define tputs( str ) tprintf( "%a", str )
 
+void tputc( char c );
+char tgetc();
+char twaitc();
 void tprintf( const char* pattern, ... );
 
 #ifdef CONSOLE_C

@@ -4,9 +4,22 @@
 #include "display.h"
 #include "mem.h"
 #include "alpha.h"
+#include "io.h"
 
 #define TPRINT_PAD_ZERO 0
 #define TPRINT_PAD_SPACE 1
+
+void tputc( char c ) {
+   g_io_output_cbs[g_io_output_idx - 1]( g_io_output_idx - 1, c );
+}
+
+char tgetc() {
+   g_io_input_cbs[g_io_input_idx - 1]( g_io_input_idx - 1, false );
+}
+
+char twaitc() {
+   g_io_input_cbs[g_io_input_idx - 1]( g_io_input_idx - 1, true );
+}
 
 void tprintf( const char* pattern, ... ) {
    va_list args;

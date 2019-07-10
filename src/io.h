@@ -3,6 +3,7 @@
 #define IO_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 /**
  * This module helps to coordinate between different functions (UART/SPI/etc)
@@ -25,10 +26,27 @@
 #define io_flag_off( dev_index, flag ) \
    g_io_flags &= ~(flag << dev_index)
 
+#define io_reg_input_cb( cb ) g_io_input_cbs[g_io_input_idx++] = cb
+
+#define io_reg_output_cb( cb ) g_io_output_cbs[g_io_output_idx++] = cb
+
+#define IO_CBS_MAX 5
+
+typedef void (*OUTPUT_CB)( uint8_t, char );
+typedef char (*INPUT_CB)( uint8_t, bool );
+
 #ifdef IO_C
 uint8_t g_io_flags;
+INPUT_CB g_io_input_cbs[IO_CBS_MAX];
+uint8_t g_io_input_idx = 0;
+OUTPUT_CB g_io_output_cbs[IO_CBS_MAX];
+uint8_t g_io_output_idx = 0;
 #else
 extern uint8_t g_io_flags;
+extern INPUT_CB g_io_input_cbs[IO_CBS_MAX];
+extern uint8_t g_io_input_idx;
+extern OUTPUT_CB g_io_output_cbs[IO_CBS_MAX];
+extern uint8_t g_io_output_idx;
 #endif /* IO_C */
 
 void io_call_handlers();
