@@ -17,6 +17,7 @@
 #define PWM_ON        0x0f
 #define _PWM_2_ON        0x20
 
+#ifdef QD_UART_SW
 #define io_flag( dev_index, flag ) \
    (g_io_flags & (flag << dev_index))
 
@@ -25,6 +26,7 @@
 
 #define io_flag_off( dev_index, flag ) \
    g_io_flags &= ~(flag << dev_index)
+#endif /* QD_UART_SW */
 
 #define io_reg_input_cb( cb ) g_io_input_cbs[g_io_input_idx++] = cb
 
@@ -36,7 +38,7 @@ typedef void (*OUTPUT_CB)( uint8_t, char );
 typedef char (*INPUT_CB)( uint8_t, bool );
 
 #ifdef IO_C
-uint8_t g_io_flags;
+volatile uint8_t g_io_flags;
 INPUT_CB g_io_input_cbs[IO_CBS_MAX];
 uint8_t g_io_input_idx = 0;
 OUTPUT_CB g_io_output_cbs[IO_CBS_MAX];
