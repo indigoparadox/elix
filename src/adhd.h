@@ -108,8 +108,6 @@ struct adhd_task {
 
 #define adhd_task_setup()
 
-#define adhd_start()
-
 #define adhd_continue_loop() return RETVAL_OK
 
 #define adhd_end_loop()
@@ -120,6 +118,7 @@ void adhd_launch_task( ADHD_TASK callback );
 TASK_RETVAL adhd_call_task( TASK_PID pid );
 #endif /* SCHEDULE_COOP */
 
+void adhd_start();
 const struct astring* adhd_get_gid_by_pid( TASK_PID pid );
 TASK_PID adhd_get_pid_by_gid( struct astring* gid );
 void adhd_step();
