@@ -17,7 +17,7 @@ void irqal_handler_deregister( uint8_t handler_index ) {
 }
 
 __attribute__((critical))
-int8_t irqal_add_handler(
+uint8_t irqal_add_handler(
    IRQALTYPE_T type, IRQAL_CALLBACK callback, int8_t repeat
 ) {
    uint8_t i = 0;
@@ -44,7 +44,7 @@ void irqal_call_handlers( IRQALTYPE_T type ) {
          continue;
       }
 
-		g_irqal_handlers[i].callback( &(g_irqal_handlers[i]) );
+		g_irqal_handlers[i].callback( i, &(g_irqal_handlers[i]) );
 
 		if( !g_irqal_handlers[i].repeat ) {
 			/* Just get rid of it when no repeats left. */
