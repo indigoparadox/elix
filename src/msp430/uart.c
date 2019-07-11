@@ -24,8 +24,8 @@ struct ring_buffer rx_buffer_info[UART_COUNT];
 #endif /* UART_RX_BUFFER_DISABLED */
 #endif
 
-__attribute__( (constructor(CTOR_PRIO_UART)) )
-static void uart_init_all() {
+//__attribute__( (constructor(CTOR_PRIO_UART)) )
+void uart_init_all() {
    uint8_t i = 0;
    for( i = 0 ; 2 > i ; i++ ) {
       uart_init( i );
@@ -112,9 +112,12 @@ __interrupt void USCI0RX_ISR( void ) {
    uint8_t i = 0;
 
    for( i = 0 ; UART_MAX_COUNT > i ; i++ ) {
+#ifdef QD_UART_SW
       if( !io_flag( i, UART_READY ) ) {
          continue;
-      } else if( uart_process_rx( i, rx_in ) ) {
+      } else
+#endif /* QD_UART_SW */
+      if( uart_process_rx( i, rx_in ) ) {
          /* Wake on exit. */
          //__bic_SR_register_on_exit( LPM0_bits );
       }
@@ -199,8 +202,10 @@ uint8_t uart_init( uint8_t dev_index ) {
 #endif /* QD_UART_HW */
    }
 
+#ifdef QD_UART_SW
    /* Enable the STATUS_UART_READY bit, even if not using soft UART. */
    io_flag_on( dev_index, UART_READY );
+#endif /* QD_UART_SW */
 
 	return retval;
 }
@@ -256,9 +261,11 @@ char uart_getc( uint8_t dev_index, bool wait ) {
 void uart_putc( uint8_t dev_index, const char c ) {
 
    /* Detect if UART is paused. */
+#ifdef QD_UART_SW
    if( !io_flag( dev_index, UART_READY ) ) {
       return;
    }
+#endif /* QD_UART_SW */
 
    switch( dev_index ) {
 #ifdef QD_UART_SW
