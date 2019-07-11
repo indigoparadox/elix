@@ -47,6 +47,7 @@
 */
 #endif
 
+void uart_init_all();
 uint8_t uart_init( uint8_t index );
 void uart_clear( uint8_t index );
 /* The UART gets chars as unsigned, so they must stay this way. */
