@@ -17,11 +17,6 @@
 #include "adhd.h"
 #include "alpha.h"
 
-#ifndef CONSOLE_SERIAL
-#include "display.h"
-#include "keyboard.h"
-#endif /* CONSOLE_SERIAL */
-
 TASK_RETVAL repl_command( const struct astring* cli );
 TASK_RETVAL trepl_task();
 

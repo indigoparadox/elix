@@ -10,7 +10,6 @@
 
 #include "adhd.h"
 #include "alpha.h"
-#include "keyboard.h"
 #include "console.h"
 
 #define STDIN 0

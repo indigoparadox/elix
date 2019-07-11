@@ -1,5 +1,4 @@
 
-#include "../keyboard.h"
 #include "../kernel.h"
 #include "../io.h"
 
@@ -37,36 +36,6 @@ static int handle_key( int count, int key ) {
 static void handle_ctrl_c( int param ) {
    /* Tell the kernel we can exit. */
    g_system_state = SYSTEM_SHUTDOWN;
-}
-
-__attribute__( (constructor( CTOR_PRIO_DISPLAY ) ) )
-static void keyboard_init() {
-#ifdef COLINUX_TERMIOS
-   struct termios term;
-#elif defined( COLINUX_CURSES )
-#endif /* COLINUX_TERMIOS || COLINUX_CURSES */
-
-   /* Handle CTRL-C. */
-   signal( SIGINT, handle_ctrl_c );
-
-#ifdef COLINUX_TERMIOS
-   tcgetattr( STDIN, &term );
-
-   term.c_lflag &= ~ICANON;
-   term.c_lflag &= ~ECHO;
-   tcsetattr( STDIN, TCSANOW, &term );
-
-   setbuf( stdin, NULL );
-#elif defined( COLINUX_CURSES )
-#elif defined( COLINUX_READLINE )
-   rl_bind_key(
-#endif /* COLINUX_TERMIOS || COLINUX_CURSES || COLINUX_READLINE */
-
-   io_reg_input_cb( keyboard_getc );
-}
-
-__attribute__( (destructor( CTOR_PRIO_DISPLAY )) )
-static void keyboard_shutdown() {
 }
 
 static char keyboard_hit( uint8_t dev_index ) {
@@ -111,5 +80,35 @@ char keyboard_getc( uint8_t dev_index, bool wait ) {
    }
 #endif /* COLINUX_TERMIOS || COLINUX_CURSES || COLINUX_READLINE */
    return buffer;
+}
+
+__attribute__( (constructor( CTOR_PRIO_DISPLAY ) ) )
+static void keyboard_init() {
+#ifdef COLINUX_TERMIOS
+   struct termios term;
+#elif defined( COLINUX_CURSES )
+#endif /* COLINUX_TERMIOS || COLINUX_CURSES */
+
+   /* Handle CTRL-C. */
+   signal( SIGINT, handle_ctrl_c );
+
+#ifdef COLINUX_TERMIOS
+   tcgetattr( STDIN, &term );
+
+   term.c_lflag &= ~ICANON;
+   term.c_lflag &= ~ECHO;
+   tcsetattr( STDIN, TCSANOW, &term );
+
+   setbuf( stdin, NULL );
+#elif defined( COLINUX_CURSES )
+#elif defined( COLINUX_READLINE )
+   rl_bind_key(
+#endif /* COLINUX_TERMIOS || COLINUX_CURSES || COLINUX_READLINE */
+
+   io_reg_input_cb( keyboard_getc );
+}
+
+__attribute__( (destructor( CTOR_PRIO_DISPLAY )) )
+static void keyboard_shutdown() {
 }
 
