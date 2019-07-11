@@ -38,7 +38,8 @@ TASK_RETVAL trepl_task();
 
 __attribute__( (constructor) )
 void repl_constructor() {
-   adhd_launch_task( trepl_task );
+   //adhd_launch_task( trepl_task );
+   g_console_flags = 0;
 }
 
 /* = Command Callbacks */

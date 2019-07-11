@@ -22,6 +22,10 @@ TASK_RETVAL repl_command( const struct astring* cli );
 
 #define TASKS_MAX 5
 
+#include "uart.h"
+
+TASK_RETVAL trepl_task();
+
 #ifdef USE_EXT_CLI
 int kmain( int argc, char** argv ) {
 #else
@@ -80,6 +84,8 @@ int kmain() {
    } while( k > 0 || l > 0 );
 #endif /* CRASH */
 
+   uart_init_all();
+
 #ifdef USE_NET
    net_init();
 #endif /* USE_NET */
@@ -96,6 +102,22 @@ int kmain() {
 #endif /* USE_EXT_CLI */
 
    /* TODO: Kill task on request in COOP mode. */
+
+/*
+   P1DIR = BIT0;
+   P1OUT = BIT0;
+
+   uint8_t c = 'a';
+      
+   while( 1 ) {
+      if( 'z' <= c ) {
+         c = 'a';
+      }
+      uart_putc( 1, c++ );
+   }
+*/
+
+   adhd_launch_task( trepl_task );
 
 #ifndef SCHEDULE_COOP
    while( SYSTEM_SHUTDOWN != g_system_state ) {

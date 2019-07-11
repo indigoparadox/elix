@@ -11,18 +11,29 @@
 #define TPRINT_PAD_ZERO 0
 #define TPRINT_PAD_SPACE 1
 
+#include "uart.h"
+
 void tputc( char c ) {
-   g_io_output_cbs[g_console_out_dev_index]( g_console_out_dev_index, c );
+   //uint8_t i = 0;
+   //g_io_output_cbs[g_console_out_dev_index]( g_console_out_dev_index, c );
+   uart_putc( 1, c );
+   /*
+   for( i = 0 ; g_io_output_idx > i ; i++ ) {
+      g_io_output_cbs[i]( i, c );
+   }
+   */
 }
 
 char tgetc() {
-   return 
-      g_io_input_cbs[g_console_in_dev_index]( g_console_in_dev_index, false );
+   return uart_getc( 1, false );
+   //return 
+   //   g_io_input_cbs[g_console_in_dev_index]( g_console_in_dev_index, false );
 }
 
 char twaitc() {
-   return
-      g_io_input_cbs[g_console_in_dev_index]( g_console_in_dev_index, true );
+   return uart_getc( 1, true );
+   //return
+   //   g_io_input_cbs[g_console_in_dev_index]( g_console_in_dev_index, true );
 }
 
 void tprintf( const char* pattern, ... ) {
