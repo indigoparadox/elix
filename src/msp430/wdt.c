@@ -3,6 +3,8 @@
 
 #include <msp430.h>
 
+#include "../kernel.h"
+
 #ifndef QD_WDT_DISABLED
 
 //volatile register uint32_t wdt_counter asm( "r6" );
@@ -39,6 +41,7 @@ void wdt_sleep( uint16_t microseconds ) {
 
 #endif /* QD_WDT_DISABLED */
 
+__attribute__( (constructor(CTOR_PRIO_WDT)) )
 void wdt_init( void ) {
 #if QD_WDT_DISABLED
 

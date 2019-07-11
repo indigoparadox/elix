@@ -78,7 +78,8 @@ DRIVERS_MSP430=\
 	msp430/boot.o \
 	msp430/uart.o \
 	msp430/wdt.o \
-	msp430/disk.o
+	msp430/disk.o \
+	msp430/irqal.o
 
 DRIVERS_X86=\
 	x86/display.o \
