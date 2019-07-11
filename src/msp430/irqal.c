@@ -6,7 +6,7 @@
 struct irqal_handler {
    IRQAL_CALLBACK callback;
 	uint8_t type;
-	uint8_t repeat;
+	int8_t repeat;
 };
 
 static struct irqal_handler g_irqal_handlers[IRQAL_HANDLERS_COUNT_MAX];
@@ -18,7 +18,7 @@ void irqal_handler_deregister( uint8_t handler_index ) {
 
 __attribute__((critical))
 int8_t irqal_add_handler(
-   IRQALTYPE_T type, IRQAL_CALLBACK callback, uint8_t repeat
+   IRQALTYPE_T type, IRQAL_CALLBACK callback, int8_t repeat
 ) {
    uint8_t i = 0;
 
@@ -47,7 +47,7 @@ void irqal_call_handlers( IRQALTYPE_T type ) {
 		g_irqal_handlers[i].callback( &(g_irqal_handlers[i]) );
 
 		if( !g_irqal_handlers[i].repeat ) {
-			/* Just get rid of it after one instance. */
+			/* Just get rid of it when no repeats left. */
          g_irqal_handlers[i].type = IRQAL_TYPE_NONE;
 		}
 	}
