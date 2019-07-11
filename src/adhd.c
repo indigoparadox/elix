@@ -65,6 +65,10 @@ cleanup:
 
 static struct adhd_task g_tasks[ADHD_TASKS_MAX];
 
+void adhd_start() {
+   mzero( g_tasks, sizeof( struct adhd_task ) * ADHD_TASKS_MAX );
+}
+
 void adhd_launch_task( ADHD_TASK callback ) {
    struct adhd_task* task = NULL;
    TASK_PID pid_iter = 0;
