@@ -183,6 +183,9 @@ $(BIN_MSP430): $(OBJECTS) $(DRIVERS_MSP430) kernel.o
 tests: $(OBJECTS_TESTED) $(OBJECTS_TESTED_NET) $(DRIVERS_TESTS) $(addprefix $(CHECKSDIR)/,$(CHECKOBJ))
 	$(CC) -o $@ $(addprefix $(OBJDIR),$(subst $(CHECKSDIR),,$^)) $(LDFLAGS)
 
+docs:
+	doxygen doxyfile
+
 %.o: %.c
 	$(MD) $(OBJDIR)$(dir $@)
 	$(CC) -c -o $(OBJDIR)$@ $< $(CFLAGS)

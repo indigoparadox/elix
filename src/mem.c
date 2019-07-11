@@ -216,14 +216,6 @@ static struct mvar* mfind( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
    return var;
 }
 
-/**
- * \brief Get a dynamic variable.
- *
- * @param sz   The size (in bytes) of the variable to allocate.
- *             Set to MGET_NO_CREATE to not allocate the variable if it is not
- *             already allocated.
- *             Set to MGET_UNSET to unset it if it is.
- */
 const void* mget( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
    struct mvar* var = NULL;
 

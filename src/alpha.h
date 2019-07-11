@@ -2,6 +2,8 @@
 #ifndef ALPHA_H
 #define ALPHA_H
 
+/*! \file alpha.h */
+
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
@@ -95,10 +97,18 @@ STRLEN_T alpha_cmp_cc(
    const char* cstr1, STRLEN_T clen1, const char* cstr2, STRLEN_T clen2, 
    char sep, bool case_match, uint8_t len_match
 );
+
+/** \brief  Return the index of the current string in the given list, or
+ *          ASTR_NOT_FOUND if string is not in list.
+ */
 int8_t alpha_cmp_l(
    const struct astring* str, const struct astring list[], uint8_t len,
    char sep, bool case_match, uint8_t len_match
 );
+
+/** \brief  Return the index of the current string in the given list, or
+ *          ASTR_NOT_FOUND if string is not in list.
+ */
 int8_t alpha_cmp_cl(
    const char* cstr, STRLEN_T strlen, const struct astring list[], uint8_t len,
    char sep, bool case_match, uint8_t len_match
