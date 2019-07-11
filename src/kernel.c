@@ -5,6 +5,10 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+#if defined( USE_EXT_CLI ) && !defined( USE_REPL )
+#error "repl app is required to enable external CLI!"
+#endif /* USE_EXT_CLI && !USE_REPL */
+
 #define KERNEL_C
 #include "kernel.h"
 #include "console.h"
@@ -19,6 +23,7 @@
 #endif /* CONSOLE_SERIAL */
 
 TASK_RETVAL repl_command( const struct astring* cli );
+TASK_RETVAL trepl_task();
 
 #define TASKS_MAX 5
 
@@ -85,6 +90,10 @@ int kmain() {
 #endif /* USE_NET */
 
    adhd_start();
+
+#ifdef USE_REPL
+   adhd_launch_task( trepl_task );
+#endif /* USE_REPL */
 
 #ifdef USE_EXT_CLI
    }

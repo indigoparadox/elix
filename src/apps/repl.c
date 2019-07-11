@@ -1,4 +1,6 @@
 
+#ifdef USE_REPL
+
 #include "../code16.h"
 
 #include "../kernel.h"
@@ -35,11 +37,6 @@ const char qd_logo[8][16] = {
 };
 
 TASK_RETVAL trepl_task();
-
-__attribute__( (constructor) )
-void repl_constructor() {
-   adhd_launch_task( trepl_task );
-}
 
 /* = Command Callbacks */
 
@@ -523,4 +520,6 @@ TASK_RETVAL trepl_task() {
    adhd_yield();
    adhd_end_loop();
 }
+
+#endif /* USE_REPL */
 
