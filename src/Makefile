@@ -141,6 +141,7 @@ $(BIN_MSP430): CFLAGS += \
 	-O0 \
 	-ggdb \
 	-gdwarf-2 \
+	-DMEM_HEAP_SIZE=320 \
 	-DQD_PLATFORM=QD_PLATFORM_MSP430 \
 	-mmcu=msp430g2553 \
 	-DQD_CONSOLE_IN_IDX=1 \
