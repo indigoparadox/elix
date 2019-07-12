@@ -97,6 +97,7 @@ $(BIN_LIN): CFLAGS += \
 	-DUSE_EXT_CLI \
 	-DUSE_REPL \
 	-DUSE_NET \
+	-DUSE_BMP \
 	-DQD_PLATFORM=QD_PLATFORM_COLINUX \
 	-DDEBUG \
 	-DMBMP_AGGRESSIVE_VALIDATE \
@@ -143,7 +144,8 @@ $(BIN_MSP430): CFLAGS += \
 	-O0 \
 	-ggdb \
 	-gdwarf-2 \
-	-DMEM_HEAP_SIZE=320 \
+	-DUSE_REPL \
+	-DMEM_HEAP_SIZE=260 \
 	-DQD_PLATFORM=QD_PLATFORM_MSP430 \
 	-mmcu=msp430g2553 \
 	-DQD_CONSOLE_IN_IDX=1 \
@@ -158,12 +160,8 @@ $(BIN_MSP430): CFLAGS += \
 $(BIN_MSP430): CC := msp430-gcc
 $(BIN_MSP430): OBJDIR := ../obj/msp430/
 $(BIN_MSP430): LDFLAGS += \
-	-L../../chiipy/bin/msp430g2553/ \
-	-lchiipy \
 	-L../../mfat/bin/msp430g2553 \
-	-lmfat \
-	-L../../mbmp/bin/msp430g2553 \
-	-lmbmp
+	-lmfat
 
 tests: LDFLAGS += -lpcap $(shell pkg-config --libs check)
 tests: CFLAGS += -DCHECK -DQD_PLATFORM=QD_PLATFORM_COLINUX -DUSE_NET

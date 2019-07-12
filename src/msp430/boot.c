@@ -54,9 +54,6 @@ int main() {
    BCSCTL1 = CALBC1_1MHZ;
    DCOCTL = CALDCO_1MHZ;
 
-   P1DIR = BIT6;
-   P1OUT = BIT6;
-
 #if 0
    while( 1 ) {
       //UCA0TXBUF = 'c';
