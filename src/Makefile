@@ -27,14 +27,18 @@ MCOPY=mcopy
 DEBUG_FLAGS=-Wall -Werror -g
 PROFILE_FLAGS=$(DEBUG_FLAGS) -pg
 
-CFLAGS=-DUSE_CONSOLE -DUSE_DISK -I../../chiipy/src -DALPHA_PRESENT
+CFLAGS=\
+	-DUSE_CONSOLE \
+	-DUSE_DISK \
+	-I../../chiipy/src \
+	-I../../mfat/src \
+	-DALPHA_PRESENT
 SOURCES_TESTED= \
 	console.c \
 	adhd.c \
 	alpha.c \
 	io.c \
 	mem.c \
-	mfat.c \
 	mbmp.c
 SOURCES=$(SOURCES_TESTED) \
 	apps/repl.c \
@@ -50,7 +54,6 @@ SOURCES_NET=$(SOURCES_TESTED_NET) \
 CHECKOBJ=\
 	check.o \
 	check_mem.o \
-	check_mfat.o \
 	check_ether.o \
 	check_net.o
 #	check_console.o \
@@ -94,13 +97,18 @@ $(BIN_LIN): CFLAGS += \
 	-DUSE_EXT_CLI \
 	-DUSE_REPL \
 	-DUSE_NET \
-	-DUSE_DISK_RW \
 	-DQD_PLATFORM=QD_PLATFORM_COLINUX \
 	-DDEBUG \
 	-DMBMP_AGGRESSIVE_VALIDATE \
 	-DCOLINUX_TERMIOS \
 	$(DEBUG_FLAGS)
-$(BIN_LIN): LDFLAGS += -lpcap -lncurses -L../../chiipy/src/ -lchiipy
+$(BIN_LIN): LDFLAGS += \
+	-lpcap \
+	-lncurses \
+	-L../../chiipy/src/ \
+	-lchiipy \
+	-L../../mfat/bin/linux \
+	-lmfat
 $(BIN_LIN): OBJDIR := ../obj/linux/
 
 $(BIN_WIN): CC := i686-w64-mingw32-g
@@ -138,15 +146,19 @@ $(BIN_MSP430): CFLAGS += \
 	-DQD_CONSOLE_IN_IDX=1 \
 	-DQD_CONSOLE_OUT_IDX=1 \
 	-DCOMMANDS_NET \
+	-DUSE_DISK_RO \
 	-DQD_UART_HW \
 	-DQD_CPU_MHZ=1 \
 	-DQD_SPI \
 	-DQD_UART \
 	-DQD_WDT_DISABLED
 $(BIN_MSP430): CC := msp430-gcc
-$(BIN_MSP430): STRIP := msp430-strip
 $(BIN_MSP430): OBJDIR := ../obj/msp430/
-#$(BIN_MSP430): LDFLAGS += -L../../chiipy/src/ -lchiipy
+$(BIN_MSP430): LDFLAGS += \
+	-L../../chiipy/src/ \
+	-lchiipy \
+	-L../../mfat/bin/msp430g2553 \
+	-lmfat
 
 tests: LDFLAGS += -lpcap $(shell pkg-config --libs check)
 tests: CFLAGS += -DCHECK -DQD_PLATFORM=QD_PLATFORM_COLINUX -DUSE_NET
