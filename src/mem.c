@@ -13,10 +13,8 @@
 
 #include <stddef.h>
 
-#ifdef DEBUG
-#ifdef MEM_PRINTF_TRACE
+#if defined( DEBUG ) || defined( MEM_PRINTF_TRACE ) || defined( MEM_SAVE )
 #include <stdio.h>
-#endif /* MEM_PRINTF_TRACE */
 #endif /* DEBUG */
 
 #ifdef DEBUG
@@ -260,14 +258,19 @@ void mset( TASK_PID pid, MEM_ID mid, MEMLEN_T sz, const void* data ) {
 }
 
 void mfree( TASK_PID pid, MEM_ID mid ) {
+   MEMLEN_T mheap_addr_iter = 0;
    struct mvar* var = NULL;
-   
-   var = mfind( pid, mid, MGET_NO_CREATE );
-   if( NULL == var ) {
+   MEMLEN_T sz = 0;
+
+   mheap_addr_iter = mget_pos( pid, mid );
+   if( 0 > mheap_addr_iter ) {
       return;
    }
 
-   //mshift( 
+   var = (struct mvar*)&(g_mheap[mheap_addr_iter]);
+   sz = var->size;
+
+   mshift( mheap_addr_iter, -1 * sz );
 }
 
 void meditprop(
@@ -317,4 +320,17 @@ int mincr( TASK_PID pid, MEM_ID mid ) {
 
    return *iptr;
 }
+
+#ifdef MEM_SAVE
+
+void msave( char* filename ) {
+   FILE* save_f = NULL;
+
+   save_f = fopen( filename, "wb" );
+   assert( NULL != save_f );
+   fwrite( g_mheap, 1, MEM_HEAP_SIZE, save_f );
+   fclose( save_f );
+}
+
+#endif /* MEM_SAVE */
 

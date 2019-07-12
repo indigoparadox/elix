@@ -162,7 +162,11 @@ $(BIN_MSP430): LDFLAGS += \
 	-lmfat
 
 tests: LDFLAGS += -lpcap $(shell pkg-config --libs check)
-tests: CFLAGS += -DCHECK -DQD_PLATFORM=QD_PLATFORM_COLINUX -DUSE_NET
+tests: CFLAGS += \
+	-DCHECK \
+	-DQD_PLATFORM=QD_PLATFORM_COLINUX \
+	-DUSE_NET \
+	-DMEM_SAVE
 tests: OBJDIR := ../obj/tests/
 
 all:
