@@ -4,7 +4,7 @@
 
 #include <stdint.h>
 
-#include "mfat.h"
+#include <mfat.h>
 
 #ifdef USE_ASTRING
 #include "alpha.h"
