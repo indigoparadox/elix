@@ -7,6 +7,8 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include "platform.h"
+
 typedef int16_t MEMLEN_T;
 typedef uint16_t BITFIELD;
 typedef uint8_t MEM_ID;
@@ -40,7 +42,9 @@ struct mvar {
    uint8_t data[];
 } __attribute__((packed));
 
-#define MEM_HEAP_SIZE 380
+#ifndef MEM_HEAP_SIZE
+#define MEM_HEAP_SIZE 10240
+#endif /* !MEM_HEAP_SIZE */
 
 #ifdef CHECK
 void mshift( MEMLEN_T start, MEMLEN_T offset );
