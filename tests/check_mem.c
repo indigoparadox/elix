@@ -47,10 +47,16 @@ static void setup_mem() {
    int offset = 0;
    int i = 0;
 
-   minit();
+#ifdef CHECK_VERBOSE
+   printf( "Setting up...\n" );
+#endif /* CHECK_VERBOSE */
+   g_mheap_top = 0;
 
    /* Place the strings on the heap to check. */
    for( i = 0 ; 3 > i ; i++ ) {
+#ifdef CHECK_VERBOSE
+      printf( "Adding \"%s\" to main heap...\n", g_chk_str[i] );
+#endif /* CHECK_VERBOSE */
       mem_ptr = (uint8_t*)mget( CHECK_PID, i + 1, g_chk_len[i] );
       ck_assert_ptr_ne( mem_ptr, NULL );
       mcopy( mem_ptr, g_chk_str[i], g_chk_len[i] );
@@ -61,7 +67,11 @@ static void setup_mem() {
    g_theap = calloc( 1, MEM_HEAP_SIZE );
    i = 0;
    do {
+#ifdef CHECK_VERBOSE
+      printf( "Adding \"%s\" to sim heap...\n", g_chk_str[i] );
+#endif /* CHECK_VERBOSE */
       var_header = (struct mvar*)&(g_theap[offset]);
+      ck_assert_ptr_ne( var_header, NULL );
       var_header->pid = CHECK_PID;
       var_header->mid = i + 1;
       var_header->size = g_chk_len[i];
@@ -72,6 +82,9 @@ static void setup_mem() {
 }
 
 static void teardown_mem() {
+#ifdef CHECK_VERBOSE
+   printf( "Tearing down...\n" );
+#endif /* CHECK_VERBOSE */
    free( g_theap );
 }
 
@@ -306,8 +319,6 @@ END_TEST
 /* Tests: Editing */
 
 static void setup_medit() {
-   minit();
-
    mset( CHECK_PID, 8, g_chk_len[0], &(g_chk_str[0]) );
 }
 

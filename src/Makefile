@@ -68,7 +68,6 @@ LDFLAGS=
 DRIVERS_TESTS= \
 	colinux/display.o \
 	colinux/keyboard.o \
-	colinux/uart.o \
 	colinux/disk.o
 
 DRIVERS_COLINUX= \

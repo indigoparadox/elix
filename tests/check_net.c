@@ -11,8 +11,6 @@
 static void setup_net() {
    NET_SOCK socket = NULL;
 
-   minit();
-
    socket = net_open_socket( "eth0" );
    if( NULL != socket ) {
       mset( adhd_get_pid(), NET_MID_SOCKET, sizeof( NET_SOCK ), socket );
