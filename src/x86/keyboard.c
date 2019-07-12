@@ -1,7 +1,6 @@
 
 #include "../code16.h"
 
-#include "../keyboard.h"
 #include "../kernel.h"
 
 __attribute__( (constructor( CTOR_PRIO_DISPLAY )) )
