@@ -57,10 +57,7 @@ static void setup_mem() {
 #ifdef CHECK_VERBOSE
       printf( "Adding \"%s\" to main heap...\n", g_chk_str[i] );
 #endif /* CHECK_VERBOSE */
-      mem_ptr = (uint8_t*)mget( CHECK_PID, i + 1, g_chk_len[i] );
-      ck_assert_ptr_ne( mem_ptr, NULL );
-      mcopy( mem_ptr, g_chk_str[i], g_chk_len[i] );
-      ck_assert_str_eq( (char*)mem_ptr, g_chk_str[i] );
+      mset( CHECK_PID, i + 1, g_chk_len[i], g_chk_str[i] );
    }
 
    /* Fill up a simulated heap to compare. */
@@ -141,22 +138,28 @@ START_TEST( test_mget_overwrite ) {
 END_TEST
 
 START_TEST( test_mget_pos ) {
-   MEMLEN_T pos = 0;
+   MEMLEN_T should_pos = 0;
+   MEMLEN_T actual_pos = 0;
 
-   pos = mget_pos( CHECK_PID, _i );
+   char mem_fn_buffer[256];
+
+   snprintf( mem_fn_buffer, 255, "mchk_pos_%d.bin", _i );
+   msave( mem_fn_buffer );
+
+   actual_pos = mget_pos( CHECK_PID, _i );
    switch( _i ) {
       case 1:
-         ck_assert_int_eq( pos, 0 );
+         ck_assert_int_eq( actual_pos, 0 );
          break;
 
       case 2:
-         ck_assert_int_eq( pos,
-            sizeof( struct mvar ) + g_chk_len[0]  );
+         should_pos = sizeof( struct mvar ) + g_chk_len[0];
+         ck_assert_int_eq( actual_pos, should_pos );
          break;
 
       case 3:
-         ck_assert_int_eq( pos,
-            (2 * sizeof( struct mvar )) + g_chk_len[0] + g_chk_len[1] );
+         should_pos = (2 * sizeof( struct mvar )) + g_chk_len[0] + g_chk_len[1];
+         ck_assert_int_eq( actual_pos, should_pos );
          break;
    }
 }
@@ -375,7 +378,7 @@ Suite* mem_suite( void ) {
 
    /* Tests: Layout */
    tcase_add_checked_fixture( tc_layout, setup_mem, teardown_mem );
-   tcase_add_loop_test( tc_layout, test_bytes, 0, MEM_HEAP_SIZE - 1 );
+   tcase_add_loop_test( tc_layout, test_bytes, 0, 320 );
    tcase_add_loop_test( tc_layout, test_vars, 1, CHECK_STR_COUNT );
 
    /* Tests: Shift */
