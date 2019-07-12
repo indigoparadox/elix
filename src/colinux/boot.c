@@ -16,12 +16,12 @@ int main( int argc, char** argv ) {
    struct stat img_stat;
    int retval = 0;
 
-   stat( "testimg.img", &img_stat );
+   stat( "testimg.fat.img", &img_stat );
    g_img_sz = img_stat.st_size;
 
    assert( 0 < g_img_sz );
 
-   img_handle = open( "testimg.img", O_RDWR, 0 );
+   img_handle = open( "testimg.fat.img", O_RDWR, 0 );
    assert( 0 < img_handle );
 
    g_img_map = mmap( NULL, g_img_sz, PROT_READ | PROT_WRITE,
