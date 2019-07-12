@@ -134,8 +134,7 @@ $(BIN_X86): CFLAGS += \
 	-DQD_PLATFORM=QD_PLATFORM_X86 \
 	-DGCC_REALMODE \
 	-nodefaultlibs \
-	-nostartfiles \
-	$(DEBUG_FLAGS)
+	-nostartfiles
 $(BIN_X86): OBJDIR := ../obj/os/
 $(BIN_X86): LDFLAGS := -T x86/linker.ld -lgcc
 
