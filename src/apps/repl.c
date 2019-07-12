@@ -6,7 +6,7 @@
 #include "../kernel.h"
 #include "../console.h"
 #include <mfat.h>
-#include "../mbmp.h"
+#include <mbmp.h>
 #include "../net/net.h"
 
 #define CONSOLE_FLAG_INITIALIZED    0x01

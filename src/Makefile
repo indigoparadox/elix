@@ -32,14 +32,14 @@ CFLAGS=\
 	-DUSE_DISK \
 	-I../../chiipy/src \
 	-I../../mfat/src \
+	-I../../mbmp/src \
 	-DALPHA_PRESENT
 SOURCES_TESTED= \
 	console.c \
 	adhd.c \
 	alpha.c \
 	io.c \
-	mem.c \
-	mbmp.c
+	mem.c
 SOURCES=$(SOURCES_TESTED) \
 	apps/repl.c \
 	apps/microd.c
@@ -108,7 +108,9 @@ $(BIN_LIN): LDFLAGS += \
 	-L../../chiipy/src/ \
 	-lchiipy \
 	-L../../mfat/bin/linux \
-	-lmfat
+	-lmfat \
+	-L../../mbmp/bin/linux \
+	-lmbmp
 $(BIN_LIN): OBJDIR := ../obj/linux/
 
 $(BIN_WIN): CC := i686-w64-mingw32-g
@@ -159,7 +161,9 @@ $(BIN_MSP430): LDFLAGS += \
 	-L../../chiipy/src/ \
 	-lchiipy \
 	-L../../mfat/bin/msp430g2553 \
-	-lmfat
+	-lmfat \
+	-L../../mbmp/bin/msp430g2553 \
+	-lmbmp
 
 tests: LDFLAGS += -lpcap $(shell pkg-config --libs check)
 tests: CFLAGS += -DCHECK -DQD_PLATFORM=QD_PLATFORM_COLINUX -DUSE_NET
