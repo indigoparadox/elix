@@ -253,7 +253,7 @@ static TASK_RETVAL tdisk_fat( const struct astring* cli ) {
    return RETVAL_OK;
 }
 
-#ifdef USE_DISK_RW
+#ifndef USE_DISK_RO
 
 static TASK_RETVAL tdisk_touch( const struct astring* cli ) {
    const char* tok;
@@ -289,7 +289,7 @@ static TASK_RETVAL tdisk_touch( const struct astring* cli ) {
    return RETVAL_OK;
 }
 
-#endif /* USE_DISK_RW */
+#endif /* !USE_DISK_RO */
 
 static TASK_RETVAL tdisk_cat( const struct astring* cli ) {
    const char* tok;
@@ -346,9 +346,9 @@ static TASK_RETVAL tdisk_bmp( const struct astring* cli ) {
 #define DISK_COMMANDS_COUNT 5
 const struct api_command g_disk_commands[DISK_COMMANDS_COUNT] = {
    { "dir", tdisk_dir },
-#ifdef USE_DISK_RW
+#ifndef USE_DISK_RO
    { "touch", tdisk_touch },
-#endif /* USE_DISK_RW */
+#endif /* !USE_DISK_RO */
    { "fat", tdisk_fat },
    { "cat", tdisk_cat },
    { "bmp", tdisk_bmp }
