@@ -105,7 +105,7 @@ $(BIN_LIN): CFLAGS += \
 $(BIN_LIN): LDFLAGS += \
 	-lpcap \
 	-lncurses \
-	-L../../chiipy/src/ \
+	-L../../chiipy/bin/linux/ \
 	-lchiipy \
 	-L../../mfat/bin/linux \
 	-lmfat \
@@ -158,7 +158,7 @@ $(BIN_MSP430): CFLAGS += \
 $(BIN_MSP430): CC := msp430-gcc
 $(BIN_MSP430): OBJDIR := ../obj/msp430/
 $(BIN_MSP430): LDFLAGS += \
-	-L../../chiipy/src/ \
+	-L../../chiipy/bin/msp430g2553/ \
 	-lchiipy \
 	-L../../mfat/bin/msp430g2553 \
 	-lmfat \
