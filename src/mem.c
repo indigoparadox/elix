@@ -141,12 +141,19 @@ static
 void mshift( MEMLEN_T start, MEMLEN_T offset ) {
    MEMLEN_T i = 0;
 
-   for( i = g_mheap_top ; i >= start ; i-- ) {
-      g_mheap[i + offset] = g_mheap[i];
-      g_mheap[i] = 0;
+   if( 0 < offset ) {
+      for( i = g_mheap_top ; i >= start ; i-- ) {
+         g_mheap[i + offset] = g_mheap[i];
+         g_mheap[i] = 0;
+      }
+      g_mheap_top += offset;
+   } else if( 0 > offset ) {
+      for( i = start ; g_mheap_top > i ; i++ ) {
+         g_mheap[i + offset] = g_mheap[i];
+         g_mheap[i] = 0;
+      }
+      g_mheap_top -= offset;
    }
-
-   g_mheap_top += offset;
 }
 
 static struct mvar* mresize(
@@ -250,6 +257,17 @@ void mset( TASK_PID pid, MEM_ID mid, MEMLEN_T sz, const void* data ) {
    if( NULL != data ) {
       mcopy( var->data, data, sz );
    }
+}
+
+void mfree( TASK_PID pid, MEM_ID mid ) {
+   struct mvar* var = NULL;
+   
+   var = mfind( pid, mid, MGET_NO_CREATE );
+   if( NULL == var ) {
+      return;
+   }
+
+   //mshift( 
 }
 
 void meditprop(
