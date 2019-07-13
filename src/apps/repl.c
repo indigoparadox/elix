@@ -439,7 +439,7 @@ TASK_RETVAL trepl_task() {
          tprintf( qd_logo[i] );
          tprintf( CONSOLE_NEWLINE );
       }
-      tprintf( "EL console v" VERSION CONSOLE_NEWLINE );
+      tprintf( "ELix console v" VERSION CONSOLE_NEWLINE );
       tprintf( "ptr %d bytes" CONSOLE_NEWLINE, sizeof( void* ) );
       tprintf( "ready" CONSOLE_NEWLINE );
       g_console_flags |= CONSOLE_FLAG_INITIALIZED;

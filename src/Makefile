@@ -33,7 +33,7 @@ CFLAGS=\
 	-I../../chiipy/src \
 	-I../../mfat/src \
 	-I../../mbmp/src \
-	-DALPHA_PRESENT
+	-DVERSION=\"$(shell date +'%Y.%m.%d.%H.%M.%S')\"
 SOURCES_TESTED= \
 	console.c \
 	adhd.c \
