@@ -4,8 +4,7 @@
 
 /*! \file mem.h */
 
-#include "etypes.h"
-#include "platform.h"
+#include "kernel.h"
 
 #define MGET_UNSET      -1
 #define MGET_NO_CREATE  0
@@ -31,7 +30,7 @@ int mget_pos( int pid, int mid );
 void mprint();
 #endif /* MPRINT || CHECK */
 
-void minit();
+//void minit();
 MEMLEN_T get_mem_used();
 
 /**

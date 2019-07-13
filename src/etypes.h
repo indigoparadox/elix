@@ -21,10 +21,10 @@ typedef uint16_t BITFIELD;
 typedef uint8_t MEM_ID;
 
 struct mvar {
-   uint8_t pid;
-   MEM_ID mid;
-   MEMLEN_T sz; /*! Bytes allocated. */
-   uint8_t data[0];
+   uint8_t pid;      /*!< \brief Process ID of owner. */
+   MEM_ID mid;       /*!< \brief Memory ID of owner. */
+   MEMLEN_T sz;      /*!< \brief Bytes allocated. */
+   uint8_t data[0];  /*!< \brief Dummy pointer to memory block contents. */
 } __attribute__((packed));
 
 /*! @} */
@@ -36,9 +36,9 @@ struct mvar {
 typedef MEMLEN_T STRLEN_T;
 
 struct astring {
-   struct mvar mem;
-   STRLEN_T len;
-   char data[];
+   struct mvar mem; /*!< \brief Piggyback off of memory block for alloc size. */
+   STRLEN_T len;    /*!< \brief Length of actual string data. */
+   char data[];     /*!< \brief Dummy pointer to string start. */
 } __attribute__( (packed) );
 
 #define UINT8_DIGITS_MAX 8
