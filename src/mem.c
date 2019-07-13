@@ -8,13 +8,7 @@
 
 extern uint8_t* heap;
 
-#ifndef CHECK
-static
-#endif /* CHECK */
 uint8_t g_mheap[MEM_HEAP_SIZE];
-#ifndef CHECK
-static
-#endif /* CHECK */
 MEMLEN_T g_mheap_top = 0;
 
 /* Setup the heap. */

@@ -142,6 +142,24 @@ void tprintf( const char* pattern, ... ) {
                tputc( spec.c );
                break;
 
+            case 'p':
+               spec.p = va_arg( args, void* );
+
+               /* Print padding. */
+               pad_len -= alpha_udigits( (uintptr_t)spec.p, 16 );
+               tpad( pad_char, pad_len );
+
+               /* Print pointer as number. */
+               alpha_utoa(
+                  (uintptr_t)spec.p, (struct astring*)&num_buffer, 0, 0, 16 );
+               tputs( (struct astring*)&num_buffer );
+               break;
+
+            case '%':
+               last = '\0';
+               tputc( '%' );
+               break;
+
             case '0':
                /* If we haven't started counting padding with a non-zero number,
                 * this must be a 0-padding signifier.
