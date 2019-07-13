@@ -18,7 +18,8 @@ static
 MEMLEN_T g_mheap_top = 0;
 
 /* Setup the heap. */
-void minit() {
+__attribute__( (constructor(CTOR_PRIO_MEM)) )
+static void minit() {
    mzero( g_mheap, MEM_HEAP_SIZE );
    g_mheap_top = 0;
 }
@@ -207,6 +208,8 @@ struct mvar* mget_meta( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
          var = mresize( var, mheap_addr_iter, sz );
       }
    }
+
+   assert( g_mheap_top + sizeof( struct mvar ) + sz < MEM_HEAP_SIZE );
   
    /* Make sure create/resize were successful. */
    if( NULL == var ) {

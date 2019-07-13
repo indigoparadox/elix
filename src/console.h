@@ -2,7 +2,7 @@
 #ifndef CONSOLE_H
 #define CONSOLE_H
 
-#include "etypes.h"
+/*! \file alpha.h */
 
 #include <stdarg.h>
 

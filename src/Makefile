@@ -35,6 +35,7 @@ CFLAGS=\
 	-I../../mfat/src \
 	-I../../mbmp/src \
 	-DVERSION=\"$(shell date +'%Y.%m.%d.%H.%M.%S')\"
+
 SOURCES_TESTED= \
 	console.c \
 	adhd.c \
@@ -144,16 +145,13 @@ $(BIN_LIN_MIN): CFLAGS += \
 	-O0 \
 	-ggdb \
 	-gdwarf-2 \
+	-DDEBUG \
+	-DCOLINUX_TERMIOS \
 	-DUSE_REPL \
 	-DMEM_HEAP_SIZE=260 \
 	-DQD_PLATFORM=QD_PLATFORM_COLINUX \
 	-DCOMMANDS_NET \
-	-DUSE_DISK_RO \
-	-DQD_UART_HW \
-	-DQD_CPU_MHZ=1 \
-	-DQD_SPI \
-	-DQD_UART \
-	-DQD_WDT_DISABLED
+	-DUSE_DISK_RO
 $(BIN_LIN_MIN): OBJDIR := ../obj/colinux-min/
 $(BIN_LIN_MIN): LDFLAGS += \
 	-lpcap \

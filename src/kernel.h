@@ -6,8 +6,7 @@
  *  \brief  General definitions and types for internal OS processes.
  */
 
-#include "adhd.h"
-#include "alpha.h"
+#include "etypes.h"
 
 #define STDIN 0
 
