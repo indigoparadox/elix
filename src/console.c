@@ -46,6 +46,19 @@ char twaitc() {
 #endif /* CONSOLE_UART_WO */
 }
 
+static void tpad( char pad, uint8_t len ) {
+   uint8_t i = 0;
+
+   if( 0 >= len || '\0' == pad ) {
+      return;
+   }
+
+   while( 0 == len || i < len) {
+      tputc( pad );
+      i++;
+   }
+}
+
 void tprintf( const char* pattern, ... ) {
    va_list args;
    int i = 0, j = 0;
@@ -53,9 +66,9 @@ void tprintf( const char* pattern, ... ) {
    union mvalue spec;
    struct astring* astr_spec = NULL;
    struct astring* num_buffer = NULL;
-   STRLEN_T padding = 0;
+   STRLEN_T pad_len = 0;
    char c;
-   uint8_t pad_type = TPRINT_PAD_ZERO;
+   uint8_t pad_char = ' ';
 
    alpha_astring( PID_MAIN, MID_PRINTF_NUMBUF, UTOA_DIGITS_MAX, NULL );
 
@@ -70,7 +83,15 @@ void tprintf( const char* pattern, ... ) {
          switch( pattern[i] ) {
             case 'a':
                astr_spec = va_arg( args, struct astring* );
-               j = 0;
+
+               /* Print padding. */
+               pad_len -= astr_spec->len;
+               if( pad_len < 0 ) {
+                  pad_len = 0;
+               }
+               tpad( pad_char, pad_len );
+
+               /* Print string. */
                while( '\0' != astr_spec->data[j] && astr_spec->len > j ) {
                   tputc( astr_spec->data[j++] );
                }
@@ -78,48 +99,83 @@ void tprintf( const char* pattern, ... ) {
 
             case 's':
                spec.s = va_arg( args, char* );
-               j = 0;
-               while(
-                  '\0' != spec.s[j] &&          /* NULL found, or... */
-                  (0 == padding || j < padding) /* Padding present. */
-               ) {
-                  tputc( spec.s[j++] );
+
+               /* Print padding. */
+               pad_len -= alpha_strlen_c( spec.s, STRLEN_MAX );
+               if( pad_len < 0 ) {
+                  pad_len = 0;
                }
-               if( TPRINT_PAD_SPACE == pad_type ) {
-                  while( 0 == padding || j < padding ) {
-                     tputc( ' ' );
-                     j++;
-                  }
+               tpad( pad_char, pad_len );
+
+               /* Print string. */
+               j = 0;
+               while( '\0' != spec.s[j] ) {
+                  tputc( spec.s[j++] );
                }
                break;
 
             case 'd':
                spec.d = va_arg( args, UTOA_T );
-               alpha_utoa(
-                  spec.d, (struct astring*)&num_buffer, 0, padding, 10 );
+               
+               /* Print padding. */
+               pad_len -= alpha_udigits( spec.d, 10 );
+               if( pad_len < 0 ) {
+                  pad_len = 0;
+               }
+               tpad( pad_char, pad_len );
+
+               /* Print number. */
+               alpha_utoa( spec.d, (struct astring*)&num_buffer, 0, 0, 10 );
                tputs( (struct astring*)&num_buffer );
-               padding = 0; /* Reset. */
                break;
 
             case 'x':
                spec.d = va_arg( args, int );
-               alpha_utoa(
-                  spec.d, (struct astring*)&num_buffer, 0, padding, 16 );
+
+               /* Print padding. */
+               pad_len -= alpha_udigits( spec.d, 16 );
+               if( pad_len < 0 ) {
+                  pad_len = 0;
+               }
+               tpad( pad_char, pad_len );
+
+               /* Print number. */
+               alpha_utoa( spec.d, (struct astring*)&num_buffer, 0, 0, 16 );
                tputs( (struct astring*)&num_buffer );
-               padding = 0; /* Reset. */
                break;
 
             case 'c':
                spec.c = va_arg( args, int );
+
+               /* Print padding. */
+               if( pad_len > 1 ) {
+                  pad_len = 0;
+               }
+               tpad( pad_char, pad_len );
+
+               /* Print char. */
                tputc( spec.c );
                break;
 
+/*
             case ' ':
                pad_type = TPRINT_PAD_SPACE;
                c = '%';
                break;
+*/
 
             case '0':
+               /* If we haven't started counting padding with a non-zero number,
+                * this must be a 0-padding signifier.
+                */
+               if( 0 >= pad_len ) {
+                  pad_char = '0';
+                  c = '%';
+                  break;
+               }
+               /* If we've already started parsing padding count digits, then
+                * fall through below as a regular number.
+                */
             case '1':
             case '2':
             case '3':
@@ -130,14 +186,14 @@ void tprintf( const char* pattern, ... ) {
             case '8':
             case '9':
                /* Handle multi-digit qty padding. */
-               padding *= 10;
-               padding += (c - '0'); /* Convert from char to int. */
+               pad_len *= 10;
+               pad_len += (c - '0'); /* Convert from char to int. */
                c = '%';
                break;
          }
       } else if( '%' != c ) {
-         pad_type = TPRINT_PAD_ZERO; /* Reset padding. */
-         padding = 0; /* Reset padding. */
+         pad_char = ' '; /* Reset padding. */
+         pad_len = 0; /* Reset padding. */
          /* Print non-escape characters verbatim. */
          tputc( c );
       }

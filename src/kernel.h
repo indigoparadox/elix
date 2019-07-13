@@ -3,7 +3,7 @@
 #define KERNEL_H
 
 /*! \file kernel.h
- *  \brief  General definitions and types for internal OS processes.
+ *  \brief General definitions and types for internal OS processes.
  */
 
 #include "etypes.h"
