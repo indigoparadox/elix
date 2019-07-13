@@ -1,8 +1,6 @@
 
 More documentation is available by running "make docs" in src/ and then checking out docs/html/index.html.
 
-# Stdlib
-
 # Defines
 
 | Definition      | Type    | Notes                                  |

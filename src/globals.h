@@ -115,19 +115,50 @@ uint8_t g_console_apps_top
 
 #define IO_CBS_MAX 5
 
+#ifndef IO_C
+extern
+#endif /* !IO_C */
+volatile uint8_t g_io_flags
 #ifdef IO_C
-volatile uint8_t g_io_flags;
-INPUT_CB g_io_input_cbs[IO_CBS_MAX];
-uint8_t g_io_input_idx = 0;
-OUTPUT_CB g_io_output_cbs[IO_CBS_MAX];
-uint8_t g_io_output_idx = 0;
-#else
-extern uint8_t g_io_flags;
-extern INPUT_CB g_io_input_cbs[IO_CBS_MAX];
-extern uint8_t g_io_input_idx;
-extern OUTPUT_CB g_io_output_cbs[IO_CBS_MAX];
-extern uint8_t g_io_output_idx;
+= 0
 #endif /* IO_C */
+;
+
+#ifndef IO_C
+extern
+#endif /* !IO_C */
+INPUT_CB g_io_input_cbs[IO_CBS_MAX]
+#ifdef IO_C
+= { 0 }
+#endif /* IO_C */
+;
+
+#ifndef IO_C
+extern
+#endif /* !IO_C */
+uint8_t g_io_input_idx
+#ifdef IO_C
+= 0
+#endif /* IO_C */
+;
+
+#ifndef IO_C
+extern
+#endif /* !IO_C */
+OUTPUT_CB g_io_output_cbs[IO_CBS_MAX]
+#ifdef IO_C
+= { 0 }
+#endif /* IO_C */
+;
+
+#ifndef IO_C
+extern
+#endif /* !IO_C */
+uint8_t g_io_output_idx
+#ifdef IO_C
+= 0
+#endif /* IO_C */
+;
 
 #endif /* GLOBALS_H */
 
