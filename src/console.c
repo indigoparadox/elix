@@ -46,7 +46,7 @@ char twaitc() {
 #endif /* CONSOLE_UART_WO */
 }
 
-static void tpad( char pad, uint8_t len ) {
+static void tpad( char pad, STRLEN_T len ) {
    uint8_t i = 0;
 
    if( 0 >= len || '\0' == pad ) {
@@ -86,9 +86,6 @@ void tprintf( const char* pattern, ... ) {
 
                /* Print padding. */
                pad_len -= astr_spec->len;
-               if( pad_len < 0 ) {
-                  pad_len = 0;
-               }
                tpad( pad_char, pad_len );
 
                /* Print string. */
@@ -102,9 +99,6 @@ void tprintf( const char* pattern, ... ) {
 
                /* Print padding. */
                pad_len -= alpha_strlen_c( spec.s, STRLEN_MAX );
-               if( pad_len < 0 ) {
-                  pad_len = 0;
-               }
                tpad( pad_char, pad_len );
 
                /* Print string. */
@@ -119,9 +113,6 @@ void tprintf( const char* pattern, ... ) {
                
                /* Print padding. */
                pad_len -= alpha_udigits( spec.d, 10 );
-               if( pad_len < 0 ) {
-                  pad_len = 0;
-               }
                tpad( pad_char, pad_len );
 
                /* Print number. */
@@ -134,9 +125,6 @@ void tprintf( const char* pattern, ... ) {
 
                /* Print padding. */
                pad_len -= alpha_udigits( spec.d, 16 );
-               if( pad_len < 0 ) {
-                  pad_len = 0;
-               }
                tpad( pad_char, pad_len );
 
                /* Print number. */
@@ -148,21 +136,11 @@ void tprintf( const char* pattern, ... ) {
                spec.c = va_arg( args, int );
 
                /* Print padding. */
-               if( pad_len > 1 ) {
-                  pad_len = 0;
-               }
                tpad( pad_char, pad_len );
 
                /* Print char. */
                tputc( spec.c );
                break;
-
-/*
-            case ' ':
-               pad_type = TPRINT_PAD_SPACE;
-               c = '%';
-               break;
-*/
 
             case '0':
                /* If we haven't started counting padding with a non-zero number,
