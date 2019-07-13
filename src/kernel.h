@@ -14,7 +14,9 @@
 
 #define STDIN 0
 
+#ifndef VERSION
 #define VERSION "2019.21"
+#endif /* VERSION */
 
 /*! \addtogroup sys_state System State
  *  \brief This system allows executing a major operation (like shutdown)
