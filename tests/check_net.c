@@ -9,24 +9,22 @@
 #define NET_PID_SOCKET 1
 
 static void setup_net() {
-   NET_SOCK socket = NULL;
+   NET_SOCK* socket = NULL;
 
-   socket = net_open_socket( "eth0" );
-   if( NULL != socket ) {
-      mset( adhd_get_pid(), NET_MID_SOCKET, sizeof( NET_SOCK ), socket );
+   minit();
+
+   socket = mget( NET_PID_SOCKET, NET_MID_SOCKET, sizeof( NET_SOCK ) );
+   if( NULL == *socket ) {
+      *socket = net_open_socket( "eth0" );
    }
 }
 
 static void teardown_net() {
-   const NET_SOCK socket = 
-      (const NET_SOCK)mget( NET_PID_SOCKET, NET_MID_SOCKET, sizeof( NET_SOCK ) );
-   if( NULL != socket ) {
-      net_close_socket( socket );
-   }
+
 }
 
 START_TEST( test_poll_frame ) {
-   const NET_SOCK* socket = NULL;
+   NET_SOCK* socket = NULL;
    struct ether_frame frame;
 
    socket = mget( NET_PID_SOCKET, NET_MID_SOCKET, sizeof( NET_SOCK ) );

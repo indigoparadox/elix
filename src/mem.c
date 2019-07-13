@@ -69,17 +69,16 @@ void mprint() {
 
    for( i = 0 ; MEM_HEAP_SIZE > i ; i++ ) {
       if( 0 == i % 20 ) {
-         //printf( "\n" );
-         tputs( &g_str_newline );
+         tprintf( CONSOLE_NEWLINE );
       }
       if( i == g_mheap_top ) {
-         tputs( &g_str_xx );
+         tprintf( "** " );
       } else {
          /* TODO: Implement hex tprintf. */
          tprintf( "%2X ", g_mheap[i] );
       }
    }
-   tputs( &g_str_newline );
+   tprintf( CONSOLE_NEWLINE );
 }
 #endif /* MPRINT || CHECK */
 
@@ -128,12 +127,27 @@ static
 void mshift( MEMLEN_T start, MEMLEN_T offset ) {
    MEMLEN_T i = 0;
 
-   for( i = g_mheap_top ; i >= start ; i-- ) {
-      g_mheap[i + offset] = g_mheap[i];
-      g_mheap[i] = 0;
+   if( 0 < offset ) {
+      for( i = g_mheap_top ; i >= start ; i-- ) {
+         g_mheap[i + offset] = g_mheap[i];
+         g_mheap[i] = 0;
+      }
+      g_mheap_top += offset;
+   } else if( 0 > offset ) {
+      //printf( "shifting to %d by %d\n", start, offset );
+      for(
+         i = start;
+         MEM_HEAP_SIZE > i - offset;
+         i++
+      ) {
+         //printf( "erasing %d\n", i );
+         //printf( "offset: %d\n", i - offset );
+         g_mheap[i] = g_mheap[i - offset];
+         g_mheap[i - offset] = 0;
+      }
+      /* Offset is negative, so we're still adding it to subtract. */
+      g_mheap_top += offset;
    }
-
-   g_mheap_top += offset;
 }
 
 static struct mvar* mresize(
@@ -214,5 +228,21 @@ struct mvar* mget_meta( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
    }
 
    return var;
+}
+
+void mfree( TASK_PID pid, MEM_ID mid ) {
+   MEMLEN_T mheap_addr_iter = 0;
+   struct mvar* var = NULL;
+   MEMLEN_T sz = 0;
+
+   mheap_addr_iter = mget_pos( pid, mid );
+   if( 0 > mheap_addr_iter ) {
+      return;
+   }
+
+   var = (struct mvar*)&(g_mheap[mheap_addr_iter]);
+   sz = var->sz + sizeof( struct mvar );
+
+   mshift( mheap_addr_iter, -1 * sz );
 }
 
