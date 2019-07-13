@@ -2,16 +2,9 @@
 #define MEM_C
 #include "mem.h"
 #include "console.h"
-#include "strings.h"
 #include "adhd.h"
 
 #include <stddef.h>
-
-#ifdef DEBUG
-#ifdef MEM_PRINTF_TRACE
-#include <stdio.h>
-#endif /* MEM_PRINTF_TRACE */
-#endif /* DEBUG */
 
 extern uint8_t* heap;
 

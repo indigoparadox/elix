@@ -3,6 +3,7 @@
 
 BIN_WIN=qdwx.exe
 BIN_LIN=qdlx
+BIN_LIN_MIN=qdlx-min
 BIN_MSP430=qd430.bin
 BIN_X86=qd86.bin
 ISO_X86=qd86.iso
@@ -38,7 +39,6 @@ SOURCES_TESTED= \
 	console.c \
 	adhd.c \
 	alpha.c \
-	io.c \
 	mem.c
 SOURCES=$(SOURCES_TESTED) \
 	apps/repl.c \
@@ -138,6 +138,28 @@ $(BIN_X86): CFLAGS += \
 $(BIN_X86): OBJDIR := ../obj/os/
 $(BIN_X86): LDFLAGS := -T x86/linker.ld -lgcc
 
+# Try to match the MSP430 target as closely as possible in test env.
+$(BIN_LIN_MIN): CFLAGS += \
+	-g3 \
+	-O0 \
+	-ggdb \
+	-gdwarf-2 \
+	-DUSE_REPL \
+	-DMEM_HEAP_SIZE=260 \
+	-DQD_PLATFORM=QD_PLATFORM_COLINUX \
+	-DCOMMANDS_NET \
+	-DUSE_DISK_RO \
+	-DQD_UART_HW \
+	-DQD_CPU_MHZ=1 \
+	-DQD_SPI \
+	-DQD_UART \
+	-DQD_WDT_DISABLED
+$(BIN_LIN_MIN): OBJDIR := ../obj/colinux-min/
+$(BIN_LIN_MIN): LDFLAGS += \
+	-lpcap \
+	-L../../mfat/bin/linux \
+	-lmfat
+
 $(BIN_MSP430): CFLAGS += \
 	-g3 \
 	-O0 \
@@ -173,6 +195,9 @@ tests: OBJDIR := ../obj/tests/
 all:
 
 $(BIN_LIN): $(OBJECTS) $(OBJECTS_NET) $(DRIVERS_COLINUX) colinux/boot.o kernel.o
+	$(CC) -o $@ $(addprefix $(OBJDIR),$^) $(LDFLAGS)
+
+$(BIN_LIN_MIN): $(OBJECTS) $(OBJECTS_NET) $(DRIVERS_COLINUX) colinux/boot.o kernel.o
 	$(CC) -o $@ $(addprefix $(OBJDIR),$^) $(LDFLAGS)
 
 $(BIN_WIN): $(OBJECTS) $(OBJECTS_NET) $(DRIVERS_COLINUX) kernel.o

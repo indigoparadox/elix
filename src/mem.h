@@ -5,6 +5,7 @@
 /*! \file mem.h */
 
 #include "etypes.h"
+#include "platform.h"
 
 #define MGET_UNSET      -1
 #define MGET_NO_CREATE  0
@@ -17,7 +18,9 @@ union mvalue {
    char* s;
 };
 
+#ifndef MEM_HEAP_SIZE
 #define MEM_HEAP_SIZE 440
+#endif /* MEM_HEAP_SIZE */
 
 #ifdef CHECK
 void mshift( MEMLEN_T start, MEMLEN_T offset );
@@ -50,6 +53,7 @@ struct mvar* mget_meta( TASK_PID pid, MEM_ID mid, MEMLEN_T sz );
 void mzero( void* dest, int sz );
 int mcopy( void* dest, const void* src, int sz );
 int mcompare( const void* c1, const void* c2, int sz );
+void mfree( TASK_PID pid, MEM_ID mid );
 
 /*! @} */
 
