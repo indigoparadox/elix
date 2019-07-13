@@ -102,15 +102,16 @@ $(BIN_LIN): CFLAGS += \
 	-DMBMP_AGGRESSIVE_VALIDATE \
 	-DCOLINUX_TERMIOS \
 	$(DEBUG_FLAGS)
+#	-DALPHA_CMP_DEBUG
 $(BIN_LIN): LDFLAGS += \
 	-lpcap \
 	-lncurses \
-	-L../../chiipy/bin/linux/ \
-	-lchiipy \
 	-L../../mfat/bin/linux \
 	-lmfat \
 	-L../../mbmp/bin/linux \
 	-lmbmp
+#	-L../../chiipy/bin/linux/ \
+#	-lchiipy
 $(BIN_LIN): OBJDIR := ../obj/linux/
 
 $(BIN_WIN): CC := i686-w64-mingw32-g

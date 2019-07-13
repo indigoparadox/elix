@@ -2,8 +2,6 @@
 #ifndef MEM_H
 #define MEM_H
 
-/*! \file mem.h */
-
 #include <stdint.h>
 #include <stddef.h>
 
@@ -60,16 +58,7 @@ int mget_pos( int pid, int mid );
 
 MEMLEN_T get_mem_used();
 
-/**
- * \brief Get a dynamic variable.
- *
- * @param sz   The size (in bytes) of the variable to allocate.
- *             Set to MGET_NO_CREATE to not allocate the variable if it is not
- *             already allocated.
- *             Set to MGET_UNSET to unset it if it is.
- */
 const void* mget( TASK_PID pid, MEM_ID mid, MEMLEN_T sz );
-
 void mgetprop(
    TASK_PID pid, MEM_ID mid, MEMLEN_T offset, MEMLEN_T sz, void* dest );
 void mset( TASK_PID pid, MEM_ID mid, MEMLEN_T sz, const void* data );

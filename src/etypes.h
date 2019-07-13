@@ -5,15 +5,11 @@
 #include <stdint.h>
 #include <stddef.h>
 
-/*! \addtogroup etypes_mem Types: Tasks
- *  @{
- */
-
-typedef int16_t TASK_PID;
-typedef uint8_t TASK_RETVAL;
-typedef TASK_RETVAL (*ADHD_TASK)();
-
-/*! @} */
+#ifdef DEBUG
+#include <assert.h>
+#else
+#define assert( x )
+#endif /* DEBUG */
 
 /*! \addtogroup etypes_mem Types: Memory
  *  @{
@@ -23,11 +19,26 @@ typedef int16_t MEMLEN_T;
 typedef uint16_t BITFIELD;
 typedef uint8_t MEM_ID;
 
+struct mvar {
+   uint8_t pid;
+   MEM_ID mid;
+   MEMLEN_T sz; /*! Bytes allocated. */
+   uint8_t data[0];
+} __attribute__((packed));
+
 /*! @} */
 
 /*! \addtogroup etypes_mem Types: Strings
  *  @{
  */
+
+typedef MEMLEN_T STRLEN_T;
+
+struct astring {
+   struct mvar mem;
+   STRLEN_T len;
+   char data[];
+} __attribute__( (packed) );
 
 #define UINT8_DIGITS_MAX 8
 #define UINT32_DIGITS_MAX 10
@@ -46,6 +57,22 @@ typedef uint32_t UTOA_T; /*!< Biggest type utoa can convert to string. */
 typedef uint64_t UTOA_T; /*!< Biggest type utoa can convert to string. */
 #define UTOA_DIGITS_MAX INT64_DIGITS_MAX
 #endif /* UTOA_BITS */
+
+/*! @} */
+
+/*! \addtogroup etypes_mem Types: Tasks
+ *  @{
+ */
+
+typedef int16_t TASK_PID;
+typedef uint8_t TASK_RETVAL;
+typedef TASK_RETVAL (*ADHD_TASK)();
+typedef TASK_RETVAL (*CONSOLE_CMD)( const struct astring* );
+
+#define PID_MAIN 1
+#define PID_FIRST 1
+
+#define MID_PRINTF_NUMBUF 5
 
 /*! @} */
 

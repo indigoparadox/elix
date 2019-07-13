@@ -13,10 +13,6 @@
 #endif /* MEM_PRINTF_TRACE */
 #endif /* DEBUG */
 
-#ifdef CHECK
-#include <assert.h>
-#endif /* CHECK */
-
 extern uint8_t* heap;
 
 #ifndef CHECK
@@ -111,7 +107,7 @@ int mget_pos( int pid, int mid ) {
       }
 
       /* Advance past the variable and metadara. */
-      mheap_addr_iter += var_iter->size;
+      mheap_addr_iter += var_iter->sz;
       mheap_addr_iter += sizeof( struct mvar );
 
       /* Advance the pointer to match. */
@@ -146,7 +142,7 @@ static struct mvar* mresize(
    MEMLEN_T size_diff = 0;
 
    /* Only bother resizing if a size was provided. */
-   size_diff = sz - var->size;
+   size_diff = sz - var->sz;
    if( 0 < size_diff && g_mheap_top + size_diff > MEM_HEAP_SIZE ) {
       /* Not enough heap space! */
       return NULL;
@@ -182,21 +178,15 @@ static struct mvar* mcreate( MEMLEN_T sz ) {
    return out;
 }
 
-/**
- * \brief Get or set a dynamic variable.
- *
- * @param sz   The size (in bytes) of the variable to allocate.
- *             Set to MGET_NO_CREATE to not allocate the variable if it is not
- *             already allocated.
- *             Set to MGET_UNSET to unset it if it is.
- */
 void* mget( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
+   return mget_meta( pid, mid, sz )->data;
+}
+
+struct mvar* mget_meta( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
    MEMLEN_T mheap_addr_iter = 0;
    struct mvar* var = NULL;
 
-#ifdef CHECK
    assert( 0 < mid );
-#endif /* CHECK */
 
    mheap_addr_iter = mget_pos( pid, mid );
    if( 0 > mheap_addr_iter ) {
@@ -206,7 +196,7 @@ void* mget( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
       var = mcreate( sz );
    } else if( 0 < sz ) {
       var = (struct mvar*)&(g_mheap[mheap_addr_iter]);
-      if( sz > var->size ) {
+      if( sz > var->sz ) {
          var = mresize( var, mheap_addr_iter, sz );
       }
    }
@@ -220,9 +210,9 @@ void* mget( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
    var->pid = pid;
    var->mid = mid;
    if( 0 < sz ) {
-      var->size = sz;
+      var->sz = sz;
    }
 
-   return &(var->data);
+   return var;
 }
 

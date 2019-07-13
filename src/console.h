@@ -2,12 +2,9 @@
 #ifndef CONSOLE_H
 #define CONSOLE_H
 
-#include <stdint.h>
+#include "etypes.h"
+
 #include <stdarg.h>
-
-#include "adhd.h"
-
-typedef TASK_RETVAL (*CONSOLE_CMD)( const struct astring* );
 
 #include "alpha.h"
 #include "kernel.h"

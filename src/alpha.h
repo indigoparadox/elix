@@ -4,27 +4,14 @@
 
 /*! \file alpha.h */
 
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
 
-
-#include "mem.h" /* This uses UTOA_DIGITS_MAX for mvalue. */
-
-typedef MEMLEN_T STRLEN_T;
-
-struct astring {
-   STRLEN_T sz;
-   STRLEN_T len;
-   char data[];
-} __attribute__( (packed) );
-
-#define ASTR_NOT_FOUND -1
+#include "mem.h"
 
 #define PPCONCAT_I( a, b ) a##b
 #define PPCONCAT( a, b ) PPCONCAT_I( a, b )
 
-#define astring_l( str ) { sizeof( str ), sizeof( str ), str }
+#define astring_l( str ) { { 0, 0, sizeof( str ), {} }, sizeof( str ), str }
 #define astring_sizeof( str ) \
    (sizeof( struct astring ) + sizeof( str ))
 
@@ -62,12 +49,12 @@ STRLEN_T alpha_utoa(
    STRLEN_T zero_pad_spaces, uint8_t base );
 STRLEN_T alpha_charinstr( char c, const struct astring* string );
 STRLEN_T alpha_charinstr_c( char c, const char* string, STRLEN_T len );
-void alpha_astring_append( TASK_PID pid, MEM_ID mid, char c );
-void alpha_astring_trunc( TASK_PID pid, MEM_ID mid );
-void alpha_astring_clear( TASK_PID pid, MEM_ID mid );
-const struct astring* alpha_astring(
-   uint8_t pid, MEM_ID mid, STRLEN_T len, char* str );
-const struct astring* alpha_astring_list_next( const struct astring* );
+void alpha_astring_append( struct astring* str, char c );
+void alpha_astring_trunc( struct astring* str, STRLEN_T diff );
+void alpha_astring_clear( struct astring* str );
+struct astring* alpha_astring(
+   uint8_t pid, MEM_ID mid, STRLEN_T len, const char* str );
+struct astring* alpha_astring_list_next( const struct astring* );
 STRLEN_T alpha_cmp(
    const struct astring* str1, const struct astring* str2, char sep,
    bool case_match, uint8_t len_match
