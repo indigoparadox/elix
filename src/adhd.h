@@ -4,8 +4,6 @@
 
 #include "etypes.h"
 
-#define ASTR_NOT_FOUND -1
-
 #define ADHD_MID_ENV_MAIN 1
 #define ADHD_MID_ENV_SCHEDULER 2
 #define ADHD_MID_ENV_CURRENT 3

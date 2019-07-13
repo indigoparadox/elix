@@ -5,6 +5,7 @@
 
 #include "../kernel.h"
 #include "../console.h"
+#include "../adhd.h"
 #include <mfat.h>
 #include <mbmp.h>
 #include "../net/net.h"
@@ -15,13 +16,12 @@
 /* Memory IDs for console tasks. */
 #define REPL_MID_LINE      1
 #define REPL_MID_CUR_POS   2
+#define REPL_MID_FLAGS     3
 #define REPL_MID_ARG_MIN   10
 /* Empty */
 #define REPL_MID_ARG_MAX   20
 
 #define REPL_LINE_SIZE_MAX 20
-
-uint8_t g_console_flags = 0;
 
 const struct astring g_str_repl = astring_l( "repl" );
 
@@ -424,17 +424,23 @@ TASK_RETVAL trepl_task() {
    struct astring* line;
    uint8_t i = 0;
    uint8_t retval = 0;
+   uint8_t* flags = NULL;
 
    adhd_task_setup();
 
    adhd_set_gid( &g_str_repl );
 
+   flags = mget( adhd_get_pid(), REPL_MID_FLAGS, 1 );
+
+   /* If we're not the current app using the console, uninitialize so that
+    * we will reinitialize once whatever other app is done with it.
+    */
    if( g_console_pid != 0 && g_console_pid != adhd_get_pid() ) {
-      g_console_flags &= ~CONSOLE_FLAG_INITIALIZED;
+      *flags &= ~CONSOLE_FLAG_INITIALIZED;
       adhd_yield();
    }
 
-   if( !(g_console_flags & CONSOLE_FLAG_INITIALIZED) ) {
+   if( !(*flags & CONSOLE_FLAG_INITIALIZED) ) {
       for( i = 0 ; 8 > i ; i++ ) {
          tprintf( qd_logo[i] );
          tprintf( CONSOLE_NEWLINE );
@@ -442,7 +448,7 @@ TASK_RETVAL trepl_task() {
       tprintf( "ELix console v" VERSION CONSOLE_NEWLINE );
       tprintf( "ptr %d bytes" CONSOLE_NEWLINE, sizeof( void* ) );
       tprintf( "ready" CONSOLE_NEWLINE );
-      g_console_flags |= CONSOLE_FLAG_INITIALIZED;
+      *flags |= CONSOLE_FLAG_INITIALIZED;
    }
 
    if( !twaitc() ) {
@@ -473,7 +479,7 @@ TASK_RETVAL trepl_task() {
       case '\r':
       case '\n':
          /* Reset any pending ANSI flag. */
-         g_console_flags &= ~CONSOLE_FLAG_ANSI_SEQ;
+         *flags &= ~CONSOLE_FLAG_ANSI_SEQ;
 
          tprintf( CONSOLE_NEWLINE );
          retval = repl_command( line );
@@ -495,11 +501,11 @@ TASK_RETVAL trepl_task() {
          break;
 
       case 27:
-         g_console_flags |= CONSOLE_FLAG_ANSI_SEQ;
+         *flags |= CONSOLE_FLAG_ANSI_SEQ;
          break;
 
       default:
-         if( g_console_flags & CONSOLE_FLAG_ANSI_SEQ ) {
+         if( *flags & CONSOLE_FLAG_ANSI_SEQ ) {
             if( 'A' == c ) {
                /* Up */
             } else if( 'B' == c ) {
@@ -515,7 +521,7 @@ TASK_RETVAL trepl_task() {
             }
 
             /* Reset pending ANSI flag. */
-            g_console_flags &= ~CONSOLE_FLAG_ANSI_SEQ;
+            *flags &= ~CONSOLE_FLAG_ANSI_SEQ;
             break;
          }
 
