@@ -71,6 +71,7 @@ char twaitc();
  * | %a     | struct astring\*   | String             | Test      |
  * | %c     | char               | Single character   | T         |
  * | %d     | int                | Decimal number     | 16        |
+ * | %p     | void\*             | Hexidecimal number | 0x40      |
  * | %s     | char\*             | String             | Test      |
  * | %x     | int                | Hexidecimal number | 0xf       |
  *

@@ -2,6 +2,8 @@
 #ifndef ETYPES_H
 #define ETYPES_H
 
+/*! \file etypes.h */
+
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
@@ -17,9 +19,15 @@
  */
 
 typedef int16_t MEMLEN_T;
+
 typedef uint16_t BITFIELD;
+
+/*! \brief An ID used to identify a memory allocation block within a process.
+ */
 typedef uint8_t MEM_ID;
 
+/*! \brief The header attached to a dynamic memory allocation block.
+ */
 struct mvar {
    uint8_t pid;      /*!< \brief Process ID of owner. */
    MEM_ID mid;       /*!< \brief Memory ID of owner. */
@@ -34,6 +42,12 @@ struct mvar {
  */
 
 #define STRLEN_MAX 255
+
+/*! \brief A type that can hold the number of characters in a practical string.
+ * 
+ * This type exists so that larger platforms are not necessarily constrained by
+ * the tiny memory amounts of the smaller platforms.
+ */
 typedef MEMLEN_T STRLEN_T;
 
 struct astring {
