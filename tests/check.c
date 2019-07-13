@@ -1,6 +1,9 @@
 
 #include <check.h>
 
+#define IO_C
+#include "../src/io.h"
+
 #define main_add_test_proto( suite_name ) \
    Suite* suite_name ## _suite();
 

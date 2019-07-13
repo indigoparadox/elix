@@ -8,7 +8,9 @@
 #endif /* USE_EXT_CLI && !USE_REPL */
 
 #define KERNEL_C
+#define IO_C
 #include "kernel.h"
+#include "io.h"
 #include "console.h"
 #include "mem.h"
 #include "net/net.h"

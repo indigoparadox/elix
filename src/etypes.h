@@ -82,6 +82,21 @@ typedef TASK_RETVAL (*CONSOLE_CMD)( const struct astring* );
 
 /*! @} */
 
+/*! \addtogroup io_select IO Selection System
+ *  \brief Functions and variables to coordinate use of IO devices.
+ * @{
+ */
+
+/*! \brief Output callback registered by drivers to print output when called.
+ */
+typedef void (*OUTPUT_CB)( uint8_t, char );
+
+/*! \brief Input callback registered by drivers to receive input when called.
+ */
+typedef char (*INPUT_CB)( uint8_t, bool );
+
+/*! @} */
+
 #define CMD_MAX_LEN 10
 
 struct api_command {

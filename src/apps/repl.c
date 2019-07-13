@@ -437,6 +437,7 @@ TASK_RETVAL trepl_task() {
     */
    if( g_console_pid != 0 && g_console_pid != adhd_get_pid() ) {
       *flags &= ~CONSOLE_FLAG_INITIALIZED;
+      mfree( adhd_get_pid(), REPL_MID_LINE );
       adhd_yield();
    }
 
