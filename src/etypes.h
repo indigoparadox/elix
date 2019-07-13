@@ -65,9 +65,14 @@ typedef uint64_t UTOA_T; /*!< Biggest type utoa can convert to string. */
  *  @{
  */
 
+/*! \brief The PID for a running task.
+ */
 typedef int16_t TASK_PID;
 typedef uint8_t TASK_RETVAL;
 typedef TASK_RETVAL (*ADHD_TASK)();
+
+/*! \brief Callback, process console cmds and decide if their app handles them.
+ */
 typedef TASK_RETVAL (*CONSOLE_CMD)( const struct astring* );
 
 #define PID_MAIN 1
@@ -76,6 +81,13 @@ typedef TASK_RETVAL (*CONSOLE_CMD)( const struct astring* );
 #define MID_PRINTF_NUMBUF 5
 
 /*! @} */
+
+#define CMD_MAX_LEN 10
+
+struct api_command {
+   char command[CMD_MAX_LEN]; /*!< Command entered into repl to invoke. */
+   CONSOLE_CMD callback;      /*!< Callback to be executed on invocation. */
+} __attribute__( (packed) );
 
 #endif /* ETYPES_H */
 

@@ -4,9 +4,9 @@
 
 /*! \file alpha.h */
 
-#include <stdbool.h>
-
 #include "mem.h"
+
+#define ASTR_NOT_FOUND -1
 
 #define PPCONCAT_I( a, b ) a##b
 #define PPCONCAT( a, b ) PPCONCAT_I( a, b )

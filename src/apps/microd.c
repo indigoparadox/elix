@@ -1,6 +1,7 @@
 
 #include "../code16.h"
 #include "../console.h"
+#include "../adhd.h"
 
 const struct astring g_str_micd = astring_l( "micd" );
 
