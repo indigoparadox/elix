@@ -2,8 +2,7 @@
 #ifndef ADHD_H
 #define ADHD_H
 
-#include <stdint.h>
-#include <stddef.h>
+#include "etypes.h"
 
 #define ADHD_PID_MAIN 1
 #define ADHD_PID_FIRST 1
@@ -13,13 +12,6 @@
 #define ADHD_MID_ENV_CURRENT 3
 
 #define ADHD_TASKS_MAX 5
-
-typedef int16_t TASK_PID;
-typedef uint8_t TASK_RETVAL;
-typedef TASK_RETVAL (*ADHD_TASK)();
-
-struct adhd_task;
-struct astring;
 
 #define TASK_PID_INVALID -1
 

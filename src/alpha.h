@@ -8,23 +8,6 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-#define UINT8_DIGITS_MAX 8
-#define UINT32_DIGITS_MAX 10
-#define INT64_DIGITS_MAX 11
-#define INT32_DIGITS_MAX 10
-#define INT16_DIGITS_MAX 6
-#define INT_DIGITS_MAX 10
-
-#if UTOA_BITS == 16
-typedef uint16_t UTOA_T; /*!< Biggest type utoa can convert to string. */
-#define UTOA_DIGITS_MAX INT16_DIGITS_MAX
-#elif UTOA_BITS == 32
-typedef uint32_t UTOA_T; /*!< Biggest type utoa can convert to string. */
-#define UTOA_DIGITS_MAX INT32_DIGITS_MAX
-#else
-typedef uint64_t UTOA_T; /*!< Biggest type utoa can convert to string. */
-#define UTOA_DIGITS_MAX INT64_DIGITS_MAX
-#endif /* UTOA_BITS */
 
 #include "mem.h" /* This uses UTOA_DIGITS_MAX for mvalue. */
 
