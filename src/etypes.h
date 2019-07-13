@@ -33,6 +33,7 @@ struct mvar {
  *  @{
  */
 
+#define STRLEN_MAX 255
 typedef MEMLEN_T STRLEN_T;
 
 struct astring {

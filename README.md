@@ -3,16 +3,6 @@ More documentation is available by running "make docs" in src/ and then checking
 
 # Stdlib
 
-## tprintf()
-
-| Token  | Type               | Formatted As       | Example   |
-|--------|--------------------|--------------------|-----------|
-| %a     | struct astring\*   | String             | Test      |
-| %c     | char               | Single character   | T         |
-| %d     | int                | Decimal number     | 16        |
-| %s     | char\*             | String             | Test      |
-| %x     | int                | Hexidecimal number | 0xf       |
-
 # Defines
 
 | Definition      | Type    | Notes                                  |
