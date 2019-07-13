@@ -23,6 +23,8 @@
 
 #define REPL_LINE_SIZE_MAX 20
 
+extern uint8_t* g_mheap;
+
 const struct astring g_str_repl = astring_l( "repl" );
 
 const char qd_logo[8][16] = {
@@ -111,8 +113,9 @@ static TASK_RETVAL tsys_exit( const struct astring* cli ) {
 
 static TASK_RETVAL tsys_mem( const struct astring* cli ) {
    tprintf(
-      "mem:\nused: %d\ntotal: %d\nfree: %d\n",
-      get_mem_used(), MEM_HEAP_SIZE, MEM_HEAP_SIZE - get_mem_used()
+      "mem:\nused: %d\ntotal: %d\nfree: %d\nstart: %p\n",
+      get_mem_used(), MEM_HEAP_SIZE, MEM_HEAP_SIZE - get_mem_used(),
+      g_mheap
    );
    return RETVAL_OK;
 }
