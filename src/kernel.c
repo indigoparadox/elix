@@ -1,9 +1,7 @@
 
 #include "code16.h"
 
-#include <stdint.h>
-#include <stddef.h>
-#include <stdbool.h>
+#include "etypes.h"
 
 #if defined( USE_EXT_CLI ) && !defined( USE_REPL )
 #error "repl app is required to enable external CLI!"
@@ -36,7 +34,7 @@ int kmain() {
    TASK_RETVAL retval = 0;
 #endif /* !SCHEDULE_COOP */
 #ifdef USE_EXT_CLI
-   const struct astring* cli = NULL;
+   struct astring* cli = NULL;
    char c = 0;
    int i = 0, j = 0;
    bool switch_found = false;
@@ -48,7 +46,7 @@ int kmain() {
 
    if( 1 < argc ) {
       cli = alpha_astring(
-         ADHD_PID_MAIN, KERNEL_MID_CLI, 30, NULL );
+         PID_MAIN, KERNEL_MID_CLI, 30, NULL );
 
       for( i = 1 ; argc > i ; i++ ) {
          j = 0;
@@ -63,14 +61,14 @@ int kmain() {
                }
             } else {
                cmd_found = true;
-               alpha_astring_append( ADHD_PID_MAIN, KERNEL_MID_CLI, c );
+               alpha_astring_append( cli, c );
             }
          }
          if( i + 1 < argc ) {
             if( switch_found ) {
                switch_found = false;
             } else {
-               alpha_astring_append( ADHD_PID_MAIN, KERNEL_MID_CLI, ' ' );
+               alpha_astring_append( cli, ' ' );
             }
          }
       }

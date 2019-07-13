@@ -52,16 +52,12 @@ void tprintf( const char* pattern, ... ) {
    char last = '\0';
    union mvalue spec;
    struct astring* astr_spec = NULL;
-   uint8_t num_buffer[sizeof( struct astring ) + UINT32_DIGITS_MAX];
-   struct astring* buffer_ptr = (struct astring*)&num_buffer;
+   struct astring* num_buffer = NULL;
    STRLEN_T padding = 0;
    char c;
    uint8_t pad_type = TPRINT_PAD_ZERO;
 
-   mzero( num_buffer, sizeof( struct astring ) + UINT32_DIGITS_MAX );
-
-   /* Make sure the num_buffer knows how much space is available. */
-   buffer_ptr->sz = UINT32_DIGITS_MAX;
+   alpha_astring( PID_MAIN, MID_PRINTF_NUMBUF, UTOA_DIGITS_MAX, NULL );
 
    va_start( args, pattern );
 

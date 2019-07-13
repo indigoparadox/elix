@@ -421,7 +421,7 @@ TASK_RETVAL repl_command( const struct astring* cli ) {
 
 TASK_RETVAL trepl_task() {
    char c = '\0';
-   const struct astring* line;
+   struct astring* line;
    uint8_t i = 0;
    uint8_t retval = 0;
 
@@ -455,15 +455,16 @@ TASK_RETVAL trepl_task() {
     */
    line = alpha_astring(
       adhd_get_pid(), REPL_MID_LINE, REPL_LINE_SIZE_MAX + 1, NULL );
+   assert( NULL != line );
 
    if(
-      line->len + 1 >= line->sz ||
+      line->len + 1 >= (line->mem.sz - sizeof( struct astring )) ||
       (('\r' == c || '\n' == c) && 0 == line->len)
    ) {
       /* Line would be too long if we accepted this char. */
       tprintf( CONSOLE_NEWLINE );
       tprintf( "invalid" CONSOLE_NEWLINE );
-      alpha_astring_clear( adhd_get_pid(), REPL_MID_LINE );
+      alpha_astring_clear( line );
       adhd_yield();
       adhd_continue_loop();
    }
@@ -484,12 +485,12 @@ TASK_RETVAL trepl_task() {
          } else {
             tprintf( "ready" CONSOLE_NEWLINE );
          }
-         alpha_astring_clear( adhd_get_pid(), REPL_MID_LINE );
+         alpha_astring_clear( line );
          break;
 
       case 127:
          /* Backspace */
-         alpha_astring_trunc( adhd_get_pid(), REPL_MID_LINE );
+         alpha_astring_trunc( line, 1 );
          tputc( c );
          break;
 
@@ -518,7 +519,7 @@ TASK_RETVAL trepl_task() {
             break;
          }
 
-         alpha_astring_append( adhd_get_pid(), REPL_MID_LINE, c );
+         alpha_astring_append( line, c );
          tputc( c );
          break;
    }

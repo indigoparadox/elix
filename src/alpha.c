@@ -5,13 +5,6 @@
 #include "alpha.h"
 #include "console.h"
 
-#ifdef DEBUG
-#include <assert.h>
-#else
-#define assert( x )
-#endif /* DEBUG */
-
-
 uint16_t alpha_atou_c( const char* ch, int len, uint8_t base ) {
    uint16_t value = 0;
    uint8_t i = 0;
@@ -81,7 +74,7 @@ STRLEN_T alpha_utoa(
    if( digits < zero_pad_spaces ) {
       digits = zero_pad_spaces;
    }
-   if( digits >= (dest_idx + dest->sz) ) {
+   if( digits >= (dest_idx + sizeof( struct astring ) + dest->mem.sz) ) {
       /* Not enough space in dest to hold the number. */
       return -1;
    }
@@ -134,86 +127,53 @@ STRLEN_T alpha_charinstr_c( char c, const char* string, STRLEN_T len ) {
    return ASTR_NOT_FOUND;
 }
 
-void alpha_astring_clear( TASK_PID pid, MEM_ID mid ) {
-   STRLEN_T zero = 0;
-   meditprop(
-      pid, mid, offsetof( struct astring, len ), sizeof( STRLEN_T ), &zero );
+void alpha_astring_clear( struct astring* str ) {
+   assert( NULL != str );
+   str->len = 0;
+   mzero( str->data, str->mem.sz - sizeof( struct astring ) );
 }
 
-void alpha_astring_append( TASK_PID pid, MEM_ID mid, char c ) {
-   const struct astring* str = NULL;
-   STRLEN_T new_strlen = 0;
+void alpha_astring_append( struct astring* str, char c ) {
+   assert( NULL != str );
+   assert( str->mem.sz > sizeof( struct astring ) );
+   assert( str->len + sizeof( struct astring ) + 1 < str->mem.sz );
 
-   str = mget( pid, mid, MGET_NO_CREATE );
-   if( NULL == str ) {
-      return;
-   }
+   str->data[str->len++] = c;
 
-   if( str->len + 1 < str->sz ) {
-      meditprop(
-         pid, mid, offsetof( struct astring, data  ) + str->len,
-         sizeof( char ), &c );
+   /* Add a terminating NULL. */
+   str->data[str->len] = '\0';
+}
 
-      /* Add a terminating NULL. */
-      c = '\0';
-      meditprop(
-         pid, mid, offsetof( struct astring, data  ) + str->len + 1,
-         sizeof( char ), &c );
-
-      /* Bookkeeping. */
-      new_strlen = str->len + 1;
-      meditprop(
-         pid, mid, offsetof( struct astring, len  ),
-         sizeof( STRLEN_T ), &new_strlen );
+void alpha_astring_trunc( struct astring* str, STRLEN_T diff ) {
+   assert( NULL != str );
+   if( str->len - diff >= 0 ) {
+      str->len -= diff;
+      str->data[str->len] = '\0';
    }
 }
 
-void alpha_astring_trunc( TASK_PID pid, MEM_ID mid ) {
-   const struct astring* str = NULL;
-   STRLEN_T new_strlen = 0;
-   char c = '\0';
-
-   str = mget( pid, mid, MGET_NO_CREATE );
-   if( NULL == str ) {
-      return;
-   }
-
-   if( str->len - 1 >= 0 ) {
-      /* Add a terminating NULL. */
-      meditprop(
-         pid, mid, offsetof( struct astring, data  ) + str->len - 1,
-         sizeof( char ), &c );
-
-      /* Bookkeeping. */
-      new_strlen = str->len - 1;
-      meditprop(
-         pid, mid, offsetof( struct astring, len  ),
-         sizeof( STRLEN_T ), &new_strlen );
-   }
-}
-
-const struct astring* alpha_astring(
-   uint8_t pid, MEM_ID mid, STRLEN_T len, char* str
-) {
-   const struct astring* str_out = NULL;
+struct astring*
+alpha_astring( uint8_t pid, MEM_ID mid, STRLEN_T len, const char* str ) {
+   struct astring* str_out = NULL;
 
    assert( NULL == str || len > sizeof( str ) );
    
-   //mset( pid, mid, sizeof( struct astring ) + len, str );
-   str_out = mget( pid, mid, sizeof( struct astring ) + len );
-   if( 0 == str_out->sz ) {
-      meditprop(
-         pid, mid, offsetof( struct astring, sz ), sizeof( STRLEN_T ), &len );
+   /* The mem struct is embedded at the front of the astring struct. */
+   str_out = (struct astring*)mget_meta(
+      pid, mid, sizeof( struct astring ) + len );
+   assert( NULL != str_out );
+   if( NULL != str && 0 < len ) {
+      mcopy( str_out->data, str, len );
    }
 
    return str_out;
 }
 
-const struct astring* alpha_astring_list_next( const struct astring* str_in ) {
+struct astring* alpha_astring_list_next( const struct astring* str_in ) {
    uint8_t* str_out = (uint8_t*)str_in;
 
    str_out += sizeof( struct astring );
-   str_out += str_in->sz;
+   str_out += str_in->mem.sz;
 
    return (struct astring*)str_out;
 }

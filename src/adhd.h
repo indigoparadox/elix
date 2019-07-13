@@ -4,8 +4,7 @@
 
 #include "etypes.h"
 
-#define ADHD_PID_MAIN 1
-#define ADHD_PID_FIRST 1
+#define ASTR_NOT_FOUND -1
 
 #define ADHD_MID_ENV_MAIN 1
 #define ADHD_MID_ENV_SCHEDULER 2
@@ -20,8 +19,6 @@
 #define RETVAL_YIELD 254
 #define RETVAL_NOT_FOUND 253
 #define RETVAL_BAD_ARGS 252
-
-#include "mem.h"
 
 #ifdef SCHEDULE_COOP
 

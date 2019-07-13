@@ -10,10 +10,10 @@
 /* TODO: Move interactive net stuff into its own module so it doesn't depend
  * on strings and console. */
 #include "../console.h"
+#include "../strings.h"
 
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 
 /* Memory IDs for network tasks. */
 #define NET_MID_SOCKET 1
@@ -34,6 +34,7 @@ uint8_t net_respond_arp_request(
    int arp_sz = frame_len - ether_get_header_len( frame, frame_len );
    uint8_t retval = 0;
    uint8_t dest_mac[6];
+   int* responded = 0;
 
    arp_len = arp_respond( arp, arp_sz, NULL, 0,
       g_src_mac, ETHER_ADDRLEN, g_src_ip, ETHER_ADDRLEN_IPV4 );
@@ -41,10 +42,11 @@ uint8_t net_respond_arp_request(
       goto cleanup;
    }
 
-   mincr( pid, NET_MID_RESPONDED );
+   responded = mget( pid, NET_MID_RESPONDED, sizeof( int ) );
+   (*responded)++;
 
 #ifdef NET_CON_ECHO
-   tprintf( "responding\n" );
+   tputs( g_str_responding );
    arp_print_packet( arp, arp_len );
 #endif /* NET_CON_ECHO */
 
@@ -74,35 +76,23 @@ uint8_t net_respond_arp(
    return ARP_INVALID_PACKET;
 }
 
-static bool net_create_socket() {
-   NET_SOCK sock_tmp = NULL;
-
-   /* TODO: Get ifname from command line. */
-   sock_tmp = net_open_socket( g_ifname );
-   if( NULL == sock_tmp ) {
-      return true;
-   }
-
-   mset( adhd_get_pid(), NET_MID_SOCKET, sizeof( NET_SOCK ), &sock_tmp );
-
-   return false;
-}
-
 TASK_RETVAL net_respond_task() {
    struct ether_frame frame;
    int frame_len = 0;
-   const NET_SOCK* socket = NULL;
+   NET_SOCK* socket = NULL;
+   int* received = NULL;
 
    adhd_task_setup();
 
    adhd_set_gid( &g_str_netp );
 
-   /* Try to get the socket. If we fail, create it and continue. */
    socket = mget( adhd_get_pid(), NET_MID_SOCKET, sizeof( NET_SOCK ) );
-   if( NULL == *socket && net_create_socket() ) {
-      /* Couldn't create it. */
-      tprintf( "no socket\n" );
-      adhd_exit_task();
+   if( NULL == *socket ) {
+      *socket = net_open_socket( g_ifname );
+      if( NULL == *socket ) {
+         tprintf( "no socket\n" );
+         adhd_exit_task();
+      }
    }
 
    frame_len = 
@@ -112,7 +102,8 @@ TASK_RETVAL net_respond_task() {
       adhd_continue_loop();
    }
 
-   mincr( adhd_get_pid(), NET_MID_RECEIVED );
+   received = mget( adhd_get_pid(), NET_MID_RECEIVED, sizeof( int ) );
+   (*received)++;
 
 #ifdef NET_CON_ECHO
    net_print_frame( &frame, frame_len );
