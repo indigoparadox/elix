@@ -26,9 +26,14 @@
 #define COLOR_LIGHT_BROWN     0x0e
 #define COLOR_WHITE           0x0f
 
+void display_init();
 void display_set_colors( uint8_t fg, uint8_t bg );
 void display_putc_at( char c, int x, int y );
-void display_putc( uint8_t dev_index, char c );
+void display_putc( char c );
+
+void keyboard_init();
+char keyboard_hit();
+char keyboard_getc();
 
 #endif /* DISPLAY_H */
  

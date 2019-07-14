@@ -22,10 +22,6 @@ TASK_RETVAL INIT_TASK();
 
 #define TASKS_MAX 5
 
-#ifdef CONSOLE_UART_WO
-#include "uart.h"
-#endif /* CONSOLE_UART_WO */
-
 #ifdef USE_EXT_CLI
 int kmain( int argc, char** argv ) {
 #else
@@ -80,22 +76,8 @@ int kmain() {
    if( do_init ) {
 #endif /* USE_EXT_CLI */
 
-#ifdef CONSOLE_UART_WO
-   uint8_t i = 0;
-
-   uart_init_all();
-
-   uart_putc( 1, 'U' );
-   uart_putc( 1, 'U' );
-   uart_putc( 1, 'U' );
-   for( i = 0 ; 30 > i ; i++ ) {
-      uart_putc( 1, '.' );
-   }
-   uart_putc( 1, '\n' );
-   
-   /* MSP430 crashes somewhere around here. */
-
-#endif /* CONSOLE_UART_WO */
+   tinput_init();
+   toutput_init();
 
 #ifdef USE_NET
    net_init();

@@ -27,10 +27,6 @@
    g_io_flags &= ~(flag << dev_index)
 #endif /* QD_UART_SW */
 
-#define io_reg_input_cb( cb ) g_io_input_cbs[g_io_input_idx++] = cb
-
-#define io_reg_output_cb( cb ) g_io_output_cbs[g_io_output_idx++] = cb
-
 #include "globals.h"
 
 #endif /* IO_H */

@@ -8,9 +8,6 @@
 
 #define ASTR_NOT_FOUND -1
 
-#define PPCONCAT_I( a, b ) a##b
-#define PPCONCAT( a, b ) PPCONCAT_I( a, b )
-
 #define astring_l( str ) { { 0, 0, sizeof( str ), {} }, sizeof( str ), str }
 #define astring_sizeof( str ) \
    (sizeof( struct astring ) + sizeof( str ))

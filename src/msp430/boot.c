@@ -51,8 +51,19 @@ int main() {
    //WDTCTL = WDTPW + WDTHOLD;
 
    DCOCTL = 0;
-   BCSCTL1 = CALBC1_8MHZ;
-   DCOCTL = CALDCO_8MHZ;
+#if QD_CPU_MHZ == 1
+   BCSCTL1  =  CALBC1_1MHZ;
+   DCOCTL   =  CALDCO_1MHZ;
+#elif QD_CPU_MHZ == 8
+   BCSCTL1  =  CALBC1_8MHZ;
+   DCOCTL   =  CALDCO_8MHZ;
+#elif QD_CPU_MHZ == 12
+   BCSCTL1  =  CALBC1_12MHZ;
+   DCOCTL   =  CALDCO_12MHZ;
+#elif QD_CPU_MHZ == 16
+   BCSCTL1  =  CALBC1_16MHZ;
+   DCOCTL   =  CALDCO_16MHZ;
+#endif /* QD_CPU_MHZ */
 
 #if 0
    while( 1 ) {

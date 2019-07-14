@@ -6,152 +6,75 @@
 #include "../io.h"
 #include "../platform.h"
 
+/* TEMP */
+uint8_t g_uart_init = 0;
+
 #include <msp430.h>
 
-//#define UART_BIT_CYCLES ((QD_CPU_MHZ * 1000000) / UART_BAUD_RATE)
-//#define UART_BIT_CYCLES_DIV2 ((QD_CPU_MHZ * 1000000) / (UART_BAUD_RATE * 2))
+/* Dynamic calculation of USCI register values for a requested clockspeed and
+ * baud rate:
+ */
 
-#define uart_is_sw( dev_index ) (dev_index == 0)
+/* Calculate USCI_BR0_VAL and USCI_BR1_VAL. */
 
-static unsigned char uart_rx_buffer[UART_MAX_COUNT] = { '\0' };
+#define USCI_INPUT_CLK  (QD_CPU_MHZ * 1000000)
+#define USCI_DIV_INT             (USCI_INPUT_CLK/UART_BAUD_RATE)
+#define USCI_BR0_VAL             (USCI_DIV_INT & 0x00FF)
+#define USCI_BR1_VAL             ((USCI_DIV_INT >> 8) & 0xFF)
 
-#if 0
-#ifdef UART_RX_BUFFER_DISABLED
-static unsigned char uart_rx_buffer[UART_COUNT] = { '\0' };
+/* Calculate USCI_BRS_VAL. */
+#define USCI_DIV_FRAC_NUMERATOR \
+   (USCI_INPUT_CLK - (USCI_DIV_INT*UART_BAUD_RATE))
+#define USCI_DIV_FRAC_NUM_X_8    (USCI_DIV_FRAC_NUMERATOR*8)
+#define USCI_DIV_FRAC_X_8        (USCI_DIV_FRAC_NUM_X_8/UART_BAUD_RATE)
+#if (((USCI_DIV_FRAC_NUM_X_8-(USCI_DIV_FRAC_X_8*UART_BAUD_RATE))*10)/UART_BAUD_RATE < 5)
+#define USCI_BRS_VAL             (USCI_DIV_FRAC_X_8<< 1)
 #else
-static unsigned char rx_buffer_array[UART_COUNT][UART_RX_BUFFER_LENGTH];
-struct ring_buffer rx_buffer_info[UART_COUNT];
-#endif /* UART_RX_BUFFER_DISABLED */
+#define USCI_BRS_VAL             ((USCI_DIV_FRAC_X_8+1)<< 1)
 #endif
 
-//__attribute__( (constructor(CTOR_PRIO_UART)) )
-void uart_init_all() {
-   uint8_t i = 0;
-   for( i = 0 ; 2 > i ; i++ ) {
-      uart_init( i );
-   }
-}
+/* UART buffers. */
 
-#if defined( QD_UART_SW ) || defined( QD_UART_HW )
-static bool uart_process_rx( uint8_t index, unsigned char c ) {
+static unsigned char uart_rx_buffer[1] = { '\0' };
+static unsigned char uart_tx_buffer[1] = { '\0' };
 
-   uart_rx_buffer[index] = c;
-   //ring_buffer_push( MAIN_PID, UART_MID_BASE + index, c );
-
-	return true;
-}
-#endif /* QD_UART_SW || QD_UART_HW */
-
-#ifdef QD_UART_SW
-static volatile uint16_t uart_tx_buffer[UART_COUNT] = { 0 };
-static volatile uint8_t uart_tx_bit_count[] = {[0 ... UART_COUNT] = 10 }; /* Includes encapsulation. */
-
-#pragma vector = TIMERA0_VECTOR
-__interrupt void SOFTUARTTX_ISR( void ) {
-	uint8_t i = 0;
-
-   for( i = 0 ; UART_MAX_COUNT > i ; i++ ) {
-      if( !io_flag( i, UART_READY ) && !uart_is_sw( i ) ) {
-         /* Hardware UART doesn't need to use PWM. */
-         return;
-      } else if( 0 == uart_tx_bit_count[i] ) {
-         /* Done transmitting, so shut off and clean up. */
-         TACCTL0 &= ~CCIE;
-         uart_tx_bit_count[i] = 10;
-         io_flag_off( 0, PWM_ON ); /* Soft UART always uses PWM1. */
-      } else {
-         /* Transmit the next bit and then shove it off the end. */
-         TACCR0 += UART_BIT_CYCLES;
-         if( 0x01 & uart_tx_buffer[i] ) {
-            TACCTL0 &= ~OUTMOD2;
-         } else {
-            TACCTL0 |= OUTMOD2;
-         }
-         uart_tx_buffer[i] >>= 1;
-         uart_tx_bit_count[i]--;
-      }
-   }
-}
-
-static volatile uint8_t uart_rx_bit_count[] = {[0 ... UART_COUNT] = 8 };
-static unsigned char uart_rx_c[UART_COUNT] = { 0 };
-
-#pragma vector = TIMERA1_VECTOR
-__interrupt void SOFTUARTRX_ISR( void ) {
-	const uint8_t index = 0; /* Soft UART is always index 0. */
-
-   if( TA0IV == TA0IV_TACCR1 ) {
-    	TACCR1 += UART_BIT_CYCLES;
-      if( TACCTL1 & CAP ) {
-      	TACCTL1 &= ~CAP;
-         TACCR1 += UART_BIT_CYCLES_DIV2;
-      } else {
-         uart_rx_c[index] >>= 1;
-         if( TACCTL1 & SCCI ) {
-         	uart_rx_c[index] |= 0x80;
-         }
-         uart_rx_bit_count[index]--;
-         if( 0 == uart_rx_bit_count[index] ) {
-				/* Store the complete byte and reset for the next one. */
-				uart_process_rx( index, uart_rx_c[index] );
-				uart_rx_bit_count[index] = 8;
-            TACCTL1 |= CAP;
-            TACCR1 += UART_BIT_CYCLES;
-         }
-      }
-   }
-}
-
-#endif /* QD_UART_SW */
-
-#ifdef QD_UART_HW
+/* UART interrupt handlers. */
 
 #pragma vector = USCIAB0RX_VECTOR
 __interrupt void USCI0RX_ISR( void ) {
-	unsigned char rx_in = UCA0RXBUF;
-   uint8_t i = 0;
-
-   for( i = 0 ; UART_MAX_COUNT > i ; i++ ) {
-#ifdef QD_UART_SW
-      if( !io_flag( i, UART_READY ) ) {
-         continue;
-      } else
-#endif /* QD_UART_SW */
-      if( uart_process_rx( i, rx_in ) ) {
-         /* Wake on exit. */
-         //__bic_SR_register_on_exit( LPM0_bits );
-      }
+   if( IFG2 & UCA0RXIFG ) {
+      uart_rx_buffer[0] = UCA0RXBUF;
+   } else {
+      IFG2 &= ~UCB0RXIFG;
    }
 }
 
-#endif /* QD_UART_HW */
+#pragma vector = USCIAB0TX_VECTOR
+__interrupt void USCI0TX_ISR( void ) {
+   if( IFG2 & UCA0TXIFG ) {
+      if( '\0' != uart_tx_buffer[1] ) {
+         UCA0TXBUF = uart_tx_buffer[1];
+         UCA0TXBUF = 'U';
+      } else {
+         IE2 &= ~UCA0TXIE;
+      }
+   } else {
+      IFG2 &= ~UCB0TXIFG;
+   }
+}
 
-uint8_t uart_init( uint8_t dev_index ) {
+/* Exposed utility functions. */
+
+//__attribute__( (constructor(CTOR_PRIO_UART)) )
+uint8_t uart_init() {
 	uint8_t retval = 0;
 
-#if 0
-#ifndef UART_RX_BUFFER_DISABLED
-   ring_buffer_init(
-      &(rx_buffer_info[dev_index]),
-		&(rx_buffer_array[dev_index][0]),
-		UART_RX_BUFFER_LENGTH
-   );
-#endif /* UART_RX_BUFFER_DISABLED */
-#endif
+   if( g_uart_init ) {
+      return 0;
+   }
+   g_uart_init = 1;
 
-   switch( dev_index ) {
-#ifdef QD_UART_SW
-   case 0:
-      /* #0 is always software if present. */
-      /* These don't use all this hardware init stuff. */
-      uart_soft_resume( dev_index );
-      break;
-#endif /* QD_UART_SW */
-
-#ifdef QD_UART_HW
-   case 1:
-
-      //ring_buffer( MAIN_PID, UART_MID_BASE + 1, UART_BUFFER_SZ );  
+      IE2 &= ~(UCA0TXIE | UCA0RXBUF | UCB0TXIE | UCB0RXIE );
 
       /* (1) Set state machine to the reset state. */
       UCA0CTL1 |= UCSWRST;
@@ -160,21 +83,9 @@ uint8_t uart_init( uint8_t dev_index ) {
       UCA0CTL1 |= UCSSEL_2;               /* CLK = SMCLK */
 
       /* Modulation */
-#if QD_CPU_MHZ == 1
-      UCA0BR0 = 104;
-      UCA0BR1 = 0x00;
-      UCA0MCTL = UCBRS_1;
-#elif QD_CPU_MHZ == 8
-      /* TODO */
-      UCA0BR0 = 0x41;
-      UCA0BR1 = 0x03;
-      UCA0MCTL = UCBRS_3 + UCBRF_0;
-#elif QD_CPU_MHZ == 16
-      /* TODO */
-      UCA0MCTL = UCBRS_3 + UCBRF_0;
-#else
-#error Invalid CPU clock speed specified!
-#endif /* QD_CPU_MHZ */
+      UCA0BR0 = USCI_BR0_VAL;
+      UCA0BR1 = USCI_BR1_VAL;
+      UCA0MCTL = USCI_BRS_VAL;
 
       /* (4) Clear UCSWRST flag. */
       UCA0CTL1 &= ~UCSWRST; /* Initialize USCI state machine. */
@@ -193,52 +104,32 @@ uint8_t uart_init( uint8_t dev_index ) {
       UCA0IE |= UCTXIE;
 #endif /* IE2_ */
 
-      io_reg_input_cb( uart_getc );
-      io_reg_output_cb( uart_putc );
+      IFG2 |= UCA0TXIFG;
 
-      break;
-
-   case 2:
-      /* TODO */
-      break;
-#endif /* QD_UART_HW */
-   }
-
-#ifdef QD_UART_SW
    /* Enable the STATUS_UART_READY bit, even if not using soft UART. */
-   io_flag_on( dev_index, UART_READY );
-#endif /* QD_UART_SW */
+   //io_flag_on( dev_index, UART_READY );
+   uint8_t i = 0;
 
+   uart_putc( 'U' );
+   uart_putc( 'U' );
+   uart_putc( 'U' );
+   for( i = 0 ; 30 > i ; i++ ) {
+      uart_putc( '.' );
+   }
+   uart_putc( '\r' );
+   uart_putc( '\n' );
+   
 	return retval;
 }
 
-#ifdef UART_BUFFER_CLEARABLE
-void uart_clear() {
-	rx_buffer_index_start = rx_buffer_index_end;
-}
-#endif /* UART_BUFFER_CLEARABLE */
-
-uint8_t uart_hit( uint8_t dev_index ) {
-/*
-   const struct ring_buffer* rb = NULL;
-
-   rb = mget( MAIN_PID, UART_MID_BASE + dev_index, MGET_NO_CREATE );
-   if( NULL != rb && rb->start != rb->end ) {
+uint8_t uart_hit() {
+   if( '\0' != uart_rx_buffer[0] ) {
       return 1;
    }
-
    return 0;
-   */
-   if( IFG2 & UCA0RXIFG ) {
-      uart_rx_buffer[dev_index] = UCA0RXBUF;
-      return uart_rx_buffer[dev_index];
-   } else {
-      return '\0';
-   }
-   //return uart_rx_buffer[dev_index];
 }
 
-char uart_getc( uint8_t dev_index, bool wait ) {
+char uart_getc() {
 //#ifdef UART_RX_BUFFER_DISABLED
    char out;
    //while( '\0' == uart_rx_buffer[dev_index] ) {
@@ -249,8 +140,8 @@ char uart_getc( uint8_t dev_index, bool wait ) {
    //out = uart_rx_buffer[dev_index];
    //uart_rx_buffer[dev_index] = '\0';
    //return out;
-   out = uart_rx_buffer[dev_index];
-   uart_rx_buffer[dev_index] = '\0';
+   out = uart_rx_buffer[0];
+   uart_rx_buffer[0] = '\0';
    return out;
 //#else
    /* Wait until an actual character is present. */
@@ -260,112 +151,13 @@ char uart_getc( uint8_t dev_index, bool wait ) {
 //#endif /* UART_RX_BUFFER_DISABLED */
 }
 
-void uart_putc( uint8_t dev_index, const char c ) {
-
-   /* Detect if UART is paused. */
-#ifdef QD_UART_SW
-   if( !io_flag( dev_index, UART_READY ) ) {
-      return;
-   }
-#endif /* QD_UART_SW */
-
-   switch( dev_index ) {
-#ifdef QD_UART_SW
-   case 0:
-      /* UART 0 is always software if present. */
-
-      while( TACCTL0 & CCIE ) {
-         asm( ";" ); /* Don't optimize away. */
-      }
-
-#ifdef UART_SW_BLINK_TX
-      /* led_1_blink( 200 ); */
-#endif /* UART_SOFT_BLINK_TX */
-
-      uart_tx_buffer[dev_index] = c;
-
-      /* Add encapsulation bits. */
-      uart_tx_buffer[dev_index] |= 0x100;
-      uart_tx_buffer[dev_index] <<= 1;
-
-      /* Ready timer to transmit new byte. */
-      TA0CCR0 = TAR;
-      TA0CCR0 += UART_BIT_CYCLES;
-      TA0CCTL0 = OUTMOD0 + CCIE;
-#endif /* QD_UART_SW */
-
-#ifdef QD_UART_HW
-   case 1:
+void uart_putc( const char c ) {
 #ifdef IFG2_
-      while( !(IFG2 & UCA0TXIFG) );
+   while( !(IFG2 & UCA0TXIFG) );
 #else /* IFG2_ */
-      while( !(UCA0IFG & UCTXIFG) );
+   while( !(UCA0IFG & UCTXIFG) );
 #endif /* IFG2_ */
-      UCA0TXBUF = c;
-      break;
-
-   case 2:
-      /* TODO */
-      break;
-#endif /* QD_UART_HW */
-   }
-}
-
-void uart_soft_pause( uint8_t index ) {
-#ifdef QD_UART_SW
-   TACCR0 = 0;
-   TACCTL0 = 0;
-   TACCTL1 = 0;
-   TACTL = 0;
-   io_flag_off( 0, PWM_ON ); /* Turn off PWM used to simulate UART. */
-
-   /* Only ever pause the soft UART. No reason to pause hard UART. */
-   
-   io_flag_off( index, UART_READY );
-#endif /* QD_UART_SW */
-}
-
-#ifdef QD_UART_SW
-static void uart_lock_wait( uint8_t dev_index, uint8_t flag, bool is_true ) {
-   while(
-		(is_true && io_flag( dev_index, flag )) ||
-		(!is_true && !io_flag( dev_index, flag ))
-	) {
-      /* Keep calling handlers or the status may never go away. */
-      //io_call_handlers();
-      /* Otherwise, suspend and wait for IRQ. */
-      /* TODO: Multitask. */
-      __bis_SR_register( GIE + LPM0_bits );
-   }
-}
-#endif /* QD_UART_SW */
-
-void uart_soft_resume( uint8_t index ) {
-#ifdef QD_UART_SW
-   /* Wait for PWM timer to finish. */
-   uart_lock_wait( 0, BIT1, true );
-
-   io_flag_on( 0, PWM_ON );
-
-	P1OUT |= UART_0_TX | UART_RX;
-	P1SEL |= UART_0_TX | UART_RX;
-	P1DIR |= UART_0_TX;
-
-	/* UART has the timer allll to itself, for now. */
-	TACCTL0 = OUT;
-   TACCTL1 = SCS + CM1 + CAP + CCIE;
-   TACTL = TASSEL_2 + MC_2 + TACLR;
-
-   io_flag_on( index, UART_READY );
-
-#ifdef UART_PRIME_U
-   if( !io_flag( index, UART_READY ) ) {
-      /* U is 01010101, good to establish the connection. */
-      /* XXX: This will cause a stack overflow. */
-      uart_putc( index, 'U' );
-   }
-#endif /* UART_PRIME_U */
-
-#endif /* QD_UART_SW */
+   UCA0TXBUF = c;
+   IE2 |= UCA0TXIE + UCA0RXIE;
 }
 
