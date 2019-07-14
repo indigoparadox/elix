@@ -93,7 +93,9 @@ DRIVERS_MSP430=\
 	msp430/uart.o \
 	msp430/wdt.o \
 	msp430/disk.o \
-	msp430/irqal.o
+	msp430/irqal.o \
+	msp430/i2c.o \
+	i2c/ssd1306.o
 
 DRIVERS_X86=\
 	x86/display.o \

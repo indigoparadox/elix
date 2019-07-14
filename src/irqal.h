@@ -17,10 +17,11 @@ struct irqal_handler;
 typedef void (*IRQAL_CALLBACK)( uint8_t index, struct irqal_handler* );
 typedef uint8_t IRQALTYPE_T;
 
-#define IRQAL_TYPE_NONE     0
-#define IRQAL_TYPE_WDT      1
-#define IRQAL_TYPE_ADC      2
-#define IRQAL_TYPE_PORT_1   3
+#define IRQAL_TYPE_NONE    0
+#define IRQAL_TYPE_WDT     1
+#define IRQAL_TYPE_ADC     2
+#define IRQAL_TYPE_UART_TX 3
+#define IRQAL_TYPE_PORT_1  4
 
 /*! \brief  Create a handler for the specified type of event.
  *  @param type      The IRQALTYPE_T indicating for what event to trigger the
@@ -42,6 +43,9 @@ void irqal_handler_deregister( uint8_t index );
  *  @param type   The type of event for which all handlers should be executed.
  */
 void irqal_call_handlers( IRQALTYPE_T type );
+
+void irqal_interrupts_off();
+void irqal_interrupts_on();
 
 #endif /* IRQAL_H */
 

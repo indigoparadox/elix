@@ -153,6 +153,20 @@ uint8_t g_uart_rx_buffer_end
 #endif /* UART_C */
 ;
 
+#define UART_STATUS_UART1_READY     0x01
+#define UART_STATUS_UART2_READY     0x02
+#define UART_STATUS_I2C_READY       0x04
+#define UART_STATUS_SPI_READY       0x08
+
+#ifndef UART_C
+extern
+#endif /* UART_C */
+uint8_t g_uart_status
+#ifdef UART_C
+= 0
+#endif /* UART_C */
+;
+
 /*! @} */
 
 #endif /* GLOBALS_H */
