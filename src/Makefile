@@ -36,14 +36,19 @@ CFLAGS=\
 	-I../../mbmp/src \
 	-DVERSION=\"$(shell date +'%Y.%m.%d.%H.%M.%S')\"
 
-SOURCES_TESTED= \
+SOURCES= \
 	console.c \
 	adhd.c \
 	alpha.c \
 	mem.c
-SOURCES=$(SOURCES_TESTED) \
+
+SOURCES_APPS_COLINUX= \
 	apps/repl.c \
 	apps/microd.c
+
+SOURCES_APPS_X86=$(SOURCES_APPS_COLINUX)
+
+SOURCES_APPS_MSP430=apps/uartping.c
 
 SOURCES_TESTED_NET= \
 	net/tcp.c \
@@ -61,7 +66,9 @@ CHECKOBJ=\
 #	check_alpha.o \
 
 OBJECTS=$(subst .c,.o,$(SOURCES))
-OBJECTS_TESTED=$(subst .c,.o,$(SOURCES_TESTED))
+OBJECTS_APPS_X86=$(subst .c,.o,$(SOURCES_APPS_X86))
+OBJECTS_APPS_COLINUX=$(subst .c,.o,$(SOURCES_APPS_COLINUX))
+OBJECTS_APPS_MSP430=$(subst .c,.o,$(SOURCES_APPS_MSP430))
 OBJECTS_NET=$(subst .c,.o,$(SOURCES_NET))
 OBJECTS_TESTED_NET=$(subst .c,.o,$(SOURCES_TESTED_NET))
 LDFLAGS=
@@ -95,9 +102,9 @@ CHECKSDIR=../tests
 
 $(BIN_LIN): CFLAGS += \
 	-DUSE_EXT_CLI \
-	-DUSE_REPL \
 	-DUSE_NET \
 	-DUSE_BMP \
+	-DINIT_TASK="trepl_task" \
 	-DQD_PLATFORM=QD_PLATFORM_COLINUX \
 	-DDEBUG \
 	-DMBMP_AGGRESSIVE_VALIDATE \
@@ -119,7 +126,6 @@ $(BIN_WIN): CC := i686-w64-mingw32-g
 $(BIN_WIN): CFLAGS += \
 	-DNET_CON_ECHO \
 	-DUSE_EXT_CLI \
-	-DUSE_REPL \
 	-DUSE_NET \
 	-DQD_PLATFORM=QD_PLATFORM_COLINUX \
 	-DCOMMANDS_NET
@@ -133,6 +139,7 @@ $(BIN_X86): CFLAGS += \
 	-ffreestanding \
 	-nostdlib \
 	-DQD_PLATFORM=QD_PLATFORM_X86 \
+	-DINIT_TASK="trepl_task" \
 	-DGCC_REALMODE \
 	-nodefaultlibs \
 	-nostartfiles
@@ -147,10 +154,9 @@ $(BIN_LIN_MIN): CFLAGS += \
 	-gdwarf-2 \
 	-DDEBUG \
 	-DCOLINUX_TERMIOS \
-	-DUSE_REPL \
-	-DMEM_HEAP_SIZE=260 \
+	-DMEM_HEAP_SIZE=320 \
+	-DINIT_TASK="uartping_task" \
 	-DQD_PLATFORM=QD_PLATFORM_COLINUX \
-	-DCOMMANDS_NET \
 	-DUSE_DISK_RO
 $(BIN_LIN_MIN): OBJDIR := ../obj/colinux-min/
 $(BIN_LIN_MIN): LDFLAGS += \
@@ -163,16 +169,16 @@ $(BIN_MSP430): CFLAGS += \
 	-O0 \
 	-ggdb \
 	-gdwarf-2 \
-	-DUSE_REPL \
-	-DMEM_HEAP_SIZE=260 \
+	-DMEM_HEAP_SIZE=320 \
+	-DINIT_TASK="uartping_task" \
 	-DQD_PLATFORM=QD_PLATFORM_MSP430 \
 	-mmcu=msp430g2553 \
 	-DQD_CONSOLE_IN_IDX=1 \
 	-DQD_CONSOLE_OUT_IDX=1 \
-	-DCOMMANDS_NET \
 	-DUSE_DISK_RO \
 	-DQD_UART_HW \
-	-DQD_CPU_MHZ=1 \
+	-DQD_CPU_MHZ=8 \
+	-DCONSOLE_UART_WO \
 	-DQD_SPI \
 	-DQD_UART \
 	-DQD_WDT_DISABLED
@@ -192,10 +198,10 @@ tests: OBJDIR := ../obj/tests/
 
 all:
 
-$(BIN_LIN): $(OBJECTS) $(OBJECTS_NET) $(DRIVERS_COLINUX) colinux/boot.o kernel.o
+$(BIN_LIN): $(OBJECTS) $(OBJECTS_NET) $(OBJECTS_APPS_COLINUX) $(DRIVERS_COLINUX) colinux/boot.o kernel.o
 	$(CC) -o $@ $(addprefix $(OBJDIR),$^) $(LDFLAGS)
 
-$(BIN_LIN_MIN): $(OBJECTS) $(OBJECTS_NET) $(DRIVERS_COLINUX) colinux/boot.o kernel.o
+$(BIN_LIN_MIN): $(OBJECTS) $(OBJECTS_NET) $(OBJECTS_APPS_MSP430) $(DRIVERS_COLINUX) colinux/boot.o kernel.o
 	$(CC) -o $@ $(addprefix $(OBJDIR),$^) $(LDFLAGS)
 
 $(BIN_WIN): $(OBJECTS) $(OBJECTS_NET) $(DRIVERS_COLINUX) kernel.o
@@ -214,11 +220,11 @@ $(ISODIRX86)/$(BIN_X86): $(BIN_X86)
 	$(MD) $(ISODIRX86)/boot
 	cp -v $(BIN_X86) $(ISODIRX86)/boot/$(BIN_X86)
 
-$(BIN_X86): $(OBJECTS) $(OBJECTS_NET) $(DRIVERS_X86) kernel.o
+$(BIN_X86): $(OBJECTS) $(OBJECTS_NET) $(OBJECTS_APPS_X86) $(DRIVERS_X86) kernel.o
 	$(AS) x86/boot.s -o $(OBJDIR)boot.o
 	$(CC) -o $@ $(addprefix $(OBJDIR),$^) $(OBJDIR)boot.o $(LDFLAGS) $(CFLAGS)
 
-$(BIN_MSP430): $(OBJECTS) $(DRIVERS_MSP430) kernel.o
+$(BIN_MSP430): $(OBJECTS) $(DRIVERS_MSP430) $(OBJECTS_APPS_MSP430) kernel.o
 	$(CC) -o $@ $(addprefix $(OBJDIR),$^) $(CFLAGS) $(LDFLAGS)
 
 tests: $(OBJECTS_TESTED) $(OBJECTS_TESTED_NET) $(DRIVERS_TESTS) $(addprefix $(CHECKSDIR)/,$(CHECKOBJ))
@@ -240,6 +246,7 @@ clean:
 	rm $(BIN_WIN); \
 	rm $(IMG_X86); \
 	rm $(ISO_X86); \
+	rm $(BIN_LIN_MIN); \
 	rm *.bin; \
 	rm $(ISODIRX86)/boot/*.bin
 

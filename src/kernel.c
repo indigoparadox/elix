@@ -3,7 +3,7 @@
 
 #include "etypes.h"
 
-#if defined( USE_EXT_CLI ) && !defined( USE_REPL )
+#if defined( USE_EXT_CLI ) && INIT_TASK != trepl_task
 #error "repl app is required to enable external CLI!"
 #endif /* USE_EXT_CLI && !USE_REPL */
 
@@ -18,7 +18,7 @@
 #include "alpha.h"
 
 TASK_RETVAL repl_command( const struct astring* cli );
-TASK_RETVAL trepl_task();
+TASK_RETVAL INIT_TASK();
 
 #define TASKS_MAX 5
 
@@ -42,10 +42,11 @@ int kmain() {
    bool switch_found = false;
    bool do_init = true;
    bool cmd_found = false;
-#ifdef CONSOLE_UART_WO
-   uint8_t i = 0;
-#endif /* CONSOLE_UART_WO */
+#endif /* USE_EXT_CLI */
 
+   minit();
+
+#ifdef USE_EXT_CLI
    if( 1 < argc ) {
       cli = alpha_astring(
          PID_MAIN, KERNEL_MID_CLI, 30, NULL );
@@ -79,17 +80,14 @@ int kmain() {
    if( do_init ) {
 #endif /* USE_EXT_CLI */
 
-#ifdef CRASH
-   int k = 1, l;
-   do {
-      l = 1 / k;
-      k--;
-   } while( k > 0 || l > 0 );
-#endif /* CRASH */
-
 #ifdef CONSOLE_UART_WO
+   uint8_t i = 0;
+
    uart_init_all();
 
+   uart_putc( 1, 'U' );
+   uart_putc( 1, 'U' );
+   uart_putc( 1, 'U' );
    for( i = 0 ; 30 > i ; i++ ) {
       uart_putc( 1, '.' );
    }
@@ -104,10 +102,7 @@ int kmain() {
 #endif /* USE_NET */
 
    adhd_start();
-
-#ifdef USE_REPL
-   adhd_launch_task( trepl_task );
-#endif /* USE_REPL */
+   adhd_launch_task( INIT_TASK );
 
 #ifdef USE_EXT_CLI
    }
@@ -119,20 +114,6 @@ int kmain() {
 #endif /* USE_EXT_CLI */
 
    /* TODO: Kill task on request in COOP mode. */
-
-/*
-   P1DIR = BIT0;
-   P1OUT = BIT0;
-
-   uint8_t c = 'a';
-      
-   while( 1 ) {
-      if( 'z' <= c ) {
-         c = 'a';
-      }
-      uart_putc( 1, c++ );
-   }
-*/
 
 #ifndef SCHEDULE_COOP
    while( SYSTEM_SHUTDOWN != g_system_state ) {
@@ -147,15 +128,6 @@ int kmain() {
 #endif /* !SCHEDULE_COOP */
 
    tprintf( "stopping..." CONSOLE_NEWLINE );
-
-#ifdef USE_EXT_CLI
-cleanup:
-   if( do_init ) {
-#endif /* USE_EXT_CLI */
-
-#ifdef USE_EXT_CLI
-   }
-#endif /* USE_EXT_CLI */
 
 #if 0
    /* Create an ARP request. */
@@ -180,6 +152,10 @@ cleanup:
 #endif
    /* Listen for and handle incoming packets. */
    // TODO: net_close_socket( socket );
+
+#ifdef USE_EXT_CLI
+cleanup:
+#endif /* USE_EXT_CLI */
 
    return 0;
 }

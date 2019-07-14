@@ -18,8 +18,10 @@ union mvalue {
 };
 
 #ifndef MEM_HEAP_SIZE
-#define MEM_HEAP_SIZE 440
+#define MEM_HEAP_SIZE 300
 #endif /* MEM_HEAP_SIZE */
+
+void minit();
 
 #ifdef CHECK
 void mshift( MEMLEN_T start, MEMLEN_T offset );
