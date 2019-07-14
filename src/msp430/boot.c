@@ -101,6 +101,8 @@ int main() {
 #endif
 #endif
 
+   __enable_interrupt();
+
    kmain();
    return 0;
 }
