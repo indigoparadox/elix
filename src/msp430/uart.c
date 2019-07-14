@@ -35,15 +35,30 @@ uint8_t g_uart_init = 0;
 
 /* UART buffers. */
 
-static unsigned char uart_rx_buffer[1] = { '\0' };
-static unsigned char uart_tx_buffer[1] = { '\0' };
+static unsigned char g_uart_rx_buffer[UART_RX_BUFFER_LENGTH] = { '\0' };
+static unsigned char g_uart_tx_buffer[UART_TX_BUFFER_LENGTH] = { '\0' };
+static uint8_t g_uart_tx_buffer_start = 0;
+static uint8_t g_uart_tx_buffer_end = 0;
+static uint8_t g_uart_rx_buffer_start = 0;
+static uint8_t g_uart_rx_buffer_end = 0;
 
 /* UART interrupt handlers. */
 
 #pragma vector = USCIAB0RX_VECTOR
 __interrupt void USCI0RX_ISR( void ) {
    if( IFG2 & UCA0RXIFG ) {
-      uart_rx_buffer[0] = UCA0RXBUF;
+      P1DIR |= BIT0;
+      P1OUT |= BIT0;
+      g_uart_rx_buffer[g_uart_rx_buffer_end++] = UCA0RXBUF;
+      if( UART_RX_BUFFER_LENGTH <= g_uart_rx_buffer_end ) {
+         g_uart_rx_buffer_end = 0;
+      }
+      if( g_uart_rx_buffer_end == g_uart_rx_buffer_start ) {
+         g_uart_rx_buffer_start++;
+         if( UART_RX_BUFFER_LENGTH <= g_uart_rx_buffer_start ) {
+            g_uart_rx_buffer_start = 0;
+         }
+      }
    } else {
       IFG2 &= ~UCB0RXIFG;
    }
@@ -52,8 +67,8 @@ __interrupt void USCI0RX_ISR( void ) {
 #pragma vector = USCIAB0TX_VECTOR
 __interrupt void USCI0TX_ISR( void ) {
    if( IFG2 & UCA0TXIFG ) {
-      if( '\0' != uart_tx_buffer[1] ) {
-         UCA0TXBUF = uart_tx_buffer[1];
+      if( '\0' != g_uart_tx_buffer[1] ) {
+         UCA0TXBUF = g_uart_tx_buffer[1];
          UCA0TXBUF = 'U';
       } else {
          IE2 &= ~UCA0TXIE;
@@ -74,7 +89,7 @@ uint8_t uart_init() {
    }
    g_uart_init = 1;
 
-      IE2 &= ~(UCA0TXIE | UCA0RXBUF | UCB0TXIE | UCB0RXIE );
+      IE2 &= ~(UCA0TXIE | UCA0RXIE | UCB0TXIE | UCB0RXIE );
 
       /* (1) Set state machine to the reset state. */
       UCA0CTL1 |= UCSWRST;
@@ -101,10 +116,10 @@ uint8_t uart_init() {
 #ifdef IE2_
       IE2 |= UCA0RXIE; /* Enable USCI_A0 RX interrupt. */
 #else /* IE2_ */
-      UCA0IE |= UCTXIE;
+      UCA0IE |= UCRXIE;
 #endif /* IE2_ */
 
-      IFG2 |= UCA0TXIFG;
+      //IFG2 |= UCA0TXIFG | UCA0RXIE;
 
    /* Enable the STATUS_UART_READY bit, even if not using soft UART. */
    //io_flag_on( dev_index, UART_READY );
@@ -123,7 +138,8 @@ uint8_t uart_init() {
 }
 
 uint8_t uart_hit() {
-   if( '\0' != uart_rx_buffer[0] ) {
+   if( g_uart_rx_buffer_start != g_uart_rx_buffer_end ) {
+      P1OUT &= ~BIT0;
       return 1;
    }
    return 0;
@@ -132,16 +148,20 @@ uint8_t uart_hit() {
 char uart_getc() {
 //#ifdef UART_RX_BUFFER_DISABLED
    char out;
-   //while( '\0' == uart_rx_buffer[dev_index] ) {
+   //while( '\0' == g_uart_rx_buffer[dev_index] ) {
       //irqal_call_handlers();
       /* Suspend. */
       //__bis_SR_register( GIE + LPM0_bits )
   // }
-   //out = uart_rx_buffer[dev_index];
-   //uart_rx_buffer[dev_index] = '\0';
-   //return out;
-   out = uart_rx_buffer[0];
-   uart_rx_buffer[0] = '\0';
+   if( g_uart_rx_buffer_start == g_uart_rx_buffer_end ) {
+      return '\0';
+   }
+
+   out = g_uart_rx_buffer[g_uart_rx_buffer_start++];
+   if( UART_RX_BUFFER_LENGTH <= g_uart_rx_buffer_start ) {
+      g_uart_rx_buffer_start = 0;
+   }
+
    return out;
 //#else
    /* Wait until an actual character is present. */
@@ -158,6 +178,6 @@ void uart_putc( const char c ) {
    while( !(UCA0IFG & UCTXIFG) );
 #endif /* IFG2_ */
    UCA0TXBUF = c;
-   IE2 |= UCA0TXIE + UCA0RXIE;
+   IE2 |= UCA0TXIE;
 }
 
