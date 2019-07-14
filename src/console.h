@@ -7,6 +7,10 @@
 #include <stdarg.h>
 
 #include "alpha.h"
+#include "display.h"
+
+#define PPCONCAT_I( a, b ) a##b
+#define PPCONCAT( a, b ) PPCONCAT_I( a, b )
 
 /*! \addtogroup console_output Console Output
  *  \brief These functions pipe output and input through a "general" set of
@@ -27,31 +31,11 @@
 #endif /* CONSOLE_NEWLINE */
 
 /*! \brief This is a convenience macro for quickly outputting a string to the
- *         screen.
+ *         console device set at compile time.
  */
 #define tputs( str ) tprintf( "%a", str )
 
-/*! \brief Set the device with the given index as the active console input
- *         device.
- */
-#define tsetin( idx ) g_console_in_dev_index = idx
-
-/*! \brief Set the device with the given index as the active console output
- *         device.
- */
-#define tsetout( idx ) g_console_out_dev_index = idx
-
-/*! \brief Print the given character to the active console.
- */
-void tputc( char c );
-
-/*! \brief Return the latest key code pressed, or 0 if no key has been pressed.
- *
- *  This function will signal the underlying driver to remove the returned key
- *  from the input queue. If this is not the desired behavior, use twaitc()
- *  instead.
- */
-char tgetc();
+#ifndef CONSOLE_IN
 
 /*! \brief Wait for a key input as part of a loop without blocking.
  *  
@@ -59,7 +43,36 @@ char tgetc();
  *
  *  @return 0 if no key has been pressed yet, or the key code otherwise.
  */
-char twaitc();
+#define twaitc() keyboard_hit()
+
+/*! \brief Return the latest key code pressed, or 0 if no key has been pressed.
+ *
+ *  This function will signal the underlying driver to remove the returned key
+ *  from the input queue. If this is not the desired behavior, use twaitc()
+ *  instead.
+ */
+#define tgetc() keyboard_getc()
+
+#define tinput_init() keyboard_init()
+
+#else
+#define twaitc() PPCONCAT( CONSOLE_IN, _hit() )
+#define tgetc() PPCONCAT( CONSOLE_IN, _getc() )
+#define tinput_init() PPCONCAT( CONSOLE_IN, _init() )
+#endif /* CONSOLE_IN */
+
+#ifndef CONSOLE_OUT
+
+/*! \brief Print the given character to the console device set at compile time.
+ */
+#define tputc( c ) display_putc( c )
+
+#define toutput_init() display_init()
+
+#else
+#define tputc( c ) PPCONCAT( CONSOLE_OUT, _putc( c ) )
+#define toutput_init() PPCONCAT( CONSOLE_OUT, _init() )
+#endif /* !CONSOLE_OUT */
 
 /*! \brief A fairly standard implementation of printf with some adaptations for
  *         this environment.

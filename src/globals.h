@@ -28,48 +28,6 @@ uint8_t g_system_state
 
 /* @} */
 
-/*! \addtogroup con_dev Console Device
- *  \brief (2 bytes) These globals handle which hardware device prints and
- *         receives user output/input.
- *  @{
- */
-
-#ifndef QD_CONSOLE_IN_IDX
-/*! \brief The default console input device index, if none defined in CFLAGS.
- */
-#define QD_CONSOLE_IN_IDX 0
-#endif /* QD_CONSOLE_IN_IDX */
-
-#ifndef QD_CONSOLE_OUT_IDX
-/*! \brief The default console output device index, if none defined in CFLAGS.
- */
-#define QD_CONSOLE_OUT_IDX 0
-#endif /* QD_CONSOLE_OUT_IDX */
-
-#ifndef CONSOLE_C
-extern
-#endif /* !CONSOLE_C */
-/*! \brief (1 byte) The currently selected console input device index.
- */
-uint8_t g_console_in_dev_index
-#ifdef CONSOLE_C
-= QD_CONSOLE_IN_IDX
-#endif /* CONSOLE_C */
-;
-
-#ifndef CONSOLE_C
-extern
-#endif /* !CONSOLE_C */
-/*! \brief (1 byte) The currently selected console output device index.
- */
-uint8_t g_console_out_dev_index
-#ifdef CONSOLE_C
-= QD_CONSOLE_OUT_IDX
-#endif /* CONSOLE_C */
-;
-
-/*! @} */
-
 /*! \addtogroup con_share Console Sharing
  *  \brief (<10 bytes) These globals handle how the console subsystem is shared.
  *  @{
@@ -113,48 +71,10 @@ uint8_t g_console_apps_top
 
 /*! @} */
 
-#define IO_CBS_MAX 5
-
 #ifndef IO_C
 extern
 #endif /* !IO_C */
 volatile uint8_t g_io_flags
-#ifdef IO_C
-= 0
-#endif /* IO_C */
-;
-
-#ifndef IO_C
-extern
-#endif /* !IO_C */
-INPUT_CB g_io_input_cbs[IO_CBS_MAX]
-#ifdef IO_C
-= { 0 }
-#endif /* IO_C */
-;
-
-#ifndef IO_C
-extern
-#endif /* !IO_C */
-uint8_t g_io_input_idx
-#ifdef IO_C
-= 0
-#endif /* IO_C */
-;
-
-#ifndef IO_C
-extern
-#endif /* !IO_C */
-OUTPUT_CB g_io_output_cbs[IO_CBS_MAX]
-#ifdef IO_C
-= { 0 }
-#endif /* IO_C */
-;
-
-#ifndef IO_C
-extern
-#endif /* !IO_C */
-uint8_t g_io_output_idx
 #ifdef IO_C
 = 0
 #endif /* IO_C */

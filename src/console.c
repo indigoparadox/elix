@@ -11,41 +11,6 @@
 #define TPRINT_PAD_ZERO 0
 #define TPRINT_PAD_SPACE 1
 
-void tputc( char c ) {
-   /* ifdef for troubleshooting. Can be removed when console dev selection
-    * works for sure.
-    */
-#ifdef CONSOLE_UART_WO
-   uart_putc( 1, c );
-#else
-   g_io_output_cbs[g_console_out_dev_index]( g_console_out_dev_index, c );
-#endif /* CONSOLE_UART_WO */
-}
-
-char tgetc() {
-   /* ifdef for troubleshooting. Can be removed when console dev selection
-    * works for sure.
-    */
-#ifdef CONSOLE_UART_WO
-   return 0;
-#else
-   return 
-      g_io_input_cbs[g_console_in_dev_index]( g_console_in_dev_index, false );
-#endif /* CONSOLE_UART_WO */
-}
-
-char twaitc() {
-   /* ifdef for troubleshooting. Can be removed when console dev selection
-    * works for sure.
-    */
-#ifdef CONSOLE_UART_WO
-   return 0;
-#else
-   return
-      g_io_input_cbs[g_console_in_dev_index]( g_console_in_dev_index, true );
-#endif /* CONSOLE_UART_WO */
-}
-
 static void tpad( char pad, STRLEN_T len ) {
    uint8_t i = 0;
 
