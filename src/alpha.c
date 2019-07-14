@@ -61,40 +61,40 @@ STRLEN_T alpha_udigits( UTOA_T num, uint8_t base ) {
    return digits;
 }
 
-STRLEN_T alpha_utoa(
-   UTOA_T num, struct astring* dest, STRLEN_T dest_idx,
-   STRLEN_T zero_pad_spaces, uint8_t base
+STRLEN_T alpha_utoa( UTOA_T num, struct astring* dest, uint8_t base ) {
+   STRLEN_T len_out = 0;
+   assert( NULL != dest );
+   assert( 0 < dest->mem.sz );
+   len_out = alpha_utoa_c(
+      num, dest->data, dest->mem.sz - sizeof( struct astring ), base );
+   assert( (0 == num && 0 == len_out) || (0 < num && 0 < len_out) );
+   dest->len = len_out;
+   return len_out;
+}
+
+STRLEN_T alpha_utoa_c(
+   UTOA_T num, char* dest, STRLEN_T dest_sz, uint8_t base
 ) {
    uint8_t rem;
    STRLEN_T digits;
    STRLEN_T digits_done = 0;
-   int16_t places_diff = 0;
+   STRLEN_T dest_idx = 0;
 
    digits = alpha_udigits( num, base );
-   if( digits < zero_pad_spaces ) {
-      digits = zero_pad_spaces;
-   }
-   if( digits >= (dest_idx + sizeof( struct astring ) + dest->mem.sz) ) {
-      /* Not enough space in dest to hold the number. */
-      return -1;
-   }
-
-   /* If the string length is less than number of digits, bump it up. */
-   places_diff = digits - (dest_idx + dest->len);
-   if( 0 < places_diff ) {
-      dest->len += places_diff;
-   }
+   assert( (0 == num && 0 == digits) || (0 < num && 0 < digits) );
+   assert( digits < dest_sz );
 
    /* Handle 0 explicitly, otherwise empty string is printed for 0. */
    if( 0 == num ) {
-      dest->data[dest_idx] = '0';
+      dest[0] = '0';
+      digits_done++;
    }
 
    dest_idx += digits;
    while( 0 != num ) {
       /* Get the 1's place. */
       rem = num % base;
-      dest->data[--dest_idx] = (9 < rem) ? 
+      dest[--dest_idx] = (9 < rem) ? 
          /* > 10, so it's a letter. */
          (rem - 10) + 'a' :
          /* < 10, so it's a number. */
@@ -104,9 +104,10 @@ STRLEN_T alpha_utoa(
       digits_done++;
    }
    while( digits_done < digits ) {
-      dest->data[--dest_idx] = '0';
+      dest[--dest_idx] = '0';
       digits_done++;
    }
+   dest[digits] = '\0';
 
    return digits;
 }

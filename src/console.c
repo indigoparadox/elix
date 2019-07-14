@@ -30,13 +30,10 @@ void tprintf( const char* pattern, ... ) {
    char last = '\0';
    union mvalue spec;
    struct astring* astr_spec = NULL;
-   struct astring* num_buffer = NULL;
+   struct astring* buffer = NULL;
    STRLEN_T pad_len = 0;
    char c;
    uint8_t pad_char = ' ';
-
-   num_buffer =
-      alpha_astring( PID_MAIN, MID_PRINTF_NUMBUF, UTOA_DIGITS_MAX, NULL );
 
    va_start( args, pattern );
 
@@ -46,7 +43,10 @@ void tprintf( const char* pattern, ... ) {
       if( '%' == last ) {
          /* Conversion specifier encountered. */
          mzero( &spec, sizeof( union mvalue ) );
-         alpha_astring_clear( num_buffer );
+         buffer =
+            alpha_astring( PID_MAIN, MID_PRINTF_NUMBUF, UTOA_DIGITS_MAX, NULL );
+         assert( NULL != buffer );
+         alpha_astring_clear( buffer );
          switch( pattern[i] ) {
             case 'a':
                astr_spec = va_arg( args, struct astring* );
@@ -83,10 +83,8 @@ void tprintf( const char* pattern, ... ) {
                tpad( pad_char, pad_len );
 
                /* Print number. */
-               if( 0 <
-                  alpha_utoa( spec.d, (struct astring*)&num_buffer, 0, 0, 10 )
-               ) {
-                  tputs( (struct astring*)&num_buffer );
+               if( 0 < alpha_utoa( spec.d, buffer, 10 ) ) {
+                  tputs( (struct astring*)buffer );
                }
                break;
 
@@ -98,12 +96,10 @@ void tprintf( const char* pattern, ... ) {
                tpad( pad_char, pad_len );
 
                /* Print number. */
-               if( 0 <
-                  alpha_utoa( spec.d, (struct astring*)&num_buffer, 0, 0, 16 )
-               ) {
+               if( 0 < alpha_utoa( spec.d, buffer, 16 ) ) {
                   tputc( '0' );
                   tputc( 'x' );
-                  tputs( (struct astring*)&num_buffer );
+                  tputs( (struct astring*)&buffer );
                }
                break;
 
@@ -128,9 +124,9 @@ void tprintf( const char* pattern, ... ) {
                /* Print pointer as number. */
                if( 0 <
                   alpha_utoa(
-                     (uintptr_t)spec.p, (struct astring*)&num_buffer, 0, 0, 16 )
+                     (uintptr_t)spec.p, buffer, 16 )
                ) {
-                  tputs( (struct astring*)&num_buffer );
+                  tputs( (struct astring*)buffer );
                }
                break;
 #endif /* !CONSOLE_NO_PRINTF_PTR */
