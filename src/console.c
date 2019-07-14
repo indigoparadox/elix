@@ -35,7 +35,8 @@ void tprintf( const char* pattern, ... ) {
    char c;
    uint8_t pad_char = ' ';
 
-   alpha_astring( PID_MAIN, MID_PRINTF_NUMBUF, UTOA_DIGITS_MAX, NULL );
+   num_buffer =
+      alpha_astring( PID_MAIN, MID_PRINTF_NUMBUF, UTOA_DIGITS_MAX, NULL );
 
    va_start( args, pattern );
 
@@ -45,6 +46,7 @@ void tprintf( const char* pattern, ... ) {
       if( '%' == last ) {
          /* Conversion specifier encountered. */
          mzero( &spec, sizeof( union mvalue ) );
+         alpha_astring_clear( num_buffer );
          switch( pattern[i] ) {
             case 'a':
                astr_spec = va_arg( args, struct astring* );
@@ -81,8 +83,11 @@ void tprintf( const char* pattern, ... ) {
                tpad( pad_char, pad_len );
 
                /* Print number. */
-               alpha_utoa( spec.d, (struct astring*)&num_buffer, 0, 0, 10 );
-               tputs( (struct astring*)&num_buffer );
+               if( 0 <
+                  alpha_utoa( spec.d, (struct astring*)&num_buffer, 0, 0, 10 )
+               ) {
+                  tputs( (struct astring*)&num_buffer );
+               }
                break;
 
             case 'x':
@@ -93,8 +98,13 @@ void tprintf( const char* pattern, ... ) {
                tpad( pad_char, pad_len );
 
                /* Print number. */
-               alpha_utoa( spec.d, (struct astring*)&num_buffer, 0, 0, 16 );
-               tputs( (struct astring*)&num_buffer );
+               if( 0 <
+                  alpha_utoa( spec.d, (struct astring*)&num_buffer, 0, 0, 16 )
+               ) {
+                  tputc( '0' );
+                  tputc( 'x' );
+                  tputs( (struct astring*)&num_buffer );
+               }
                break;
 
             case 'c':
@@ -107,6 +117,7 @@ void tprintf( const char* pattern, ... ) {
                tputc( spec.c );
                break;
 
+#ifndef CONSOLE_NO_PRINTF_PTR
             case 'p':
                spec.p = va_arg( args, void* );
 
@@ -115,10 +126,14 @@ void tprintf( const char* pattern, ... ) {
                tpad( pad_char, pad_len );
 
                /* Print pointer as number. */
-               alpha_utoa(
-                  (uintptr_t)spec.p, (struct astring*)&num_buffer, 0, 0, 16 );
-               tputs( (struct astring*)&num_buffer );
+               if( 0 <
+                  alpha_utoa(
+                     (uintptr_t)spec.p, (struct astring*)&num_buffer, 0, 0, 16 )
+               ) {
+                  tputs( (struct astring*)&num_buffer );
+               }
                break;
+#endif /* !CONSOLE_NO_PRINTF_PTR */
 
             case '%':
                last = '\0';
@@ -156,7 +171,18 @@ void tprintf( const char* pattern, ... ) {
          pad_char = ' '; /* Reset padding. */
          pad_len = 0; /* Reset padding. */
          /* Print non-escape characters verbatim. */
-         tputc( c );
+         switch( c ) {
+         case '\n':
+#if CONSOLE_NEWLINE_R_N == CONSOLE_NEWLINE
+            tputc( '\r' );
+#endif /* CONSOLE_NEWLINE */
+            tputc( '\n' );
+            break;
+
+         default:
+            tputc( c );
+            break;
+         }
       }
 
       last = c;

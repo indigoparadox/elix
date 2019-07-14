@@ -97,7 +97,7 @@ static TASK_RETVAL tsys_proc( const struct astring* cli ) {
    for( i = 0 ; ADHD_TASKS_MAX > i ; i++ ) {
       task_gid = adhd_get_gid_by_pid( i );
       if( NULL != task_gid ) {
-         tprintf( "%d\t%a" CONSOLE_NEWLINE, i, task_gid );
+         tprintf( "%d\t%a\n", i, task_gid );
       }
    }
    
@@ -445,11 +445,13 @@ TASK_RETVAL trepl_task() {
    if( !(*flags & CONSOLE_FLAG_INITIALIZED) ) {
       for( i = 0 ; 8 > i ; i++ ) {
          tprintf( qd_logo[i] );
-         tprintf( CONSOLE_NEWLINE );
+         tprintf( "\n" );
       }
-      tprintf( "ELix console v" VERSION CONSOLE_NEWLINE );
-      tprintf( "ptr %d bytes" CONSOLE_NEWLINE, sizeof( void* ) );
-      tprintf( "ready" CONSOLE_NEWLINE );
+      tprintf( "ELix console v" VERSION "\n" );
+#ifndef CONSOLE_NO_PRINTF_PTR
+      tprintf( "ptr %d bytes\n", sizeof( void* ) );
+#endif /* CONSOLE_NO_PRINTF_PTR */
+      tprintf( "ready\n" );
       *flags |= CONSOLE_FLAG_INITIALIZED;
    }
 
@@ -470,8 +472,8 @@ TASK_RETVAL trepl_task() {
       (('\r' == c || '\n' == c) && 0 == line->len)
    ) {
       /* Line would be too long if we accepted this char. */
-      tprintf( CONSOLE_NEWLINE );
-      tprintf( "invalid" CONSOLE_NEWLINE );
+      tprintf( "\n" );
+      tprintf( "invalid\n" );
       alpha_astring_clear( line );
       adhd_yield();
       adhd_continue_loop();
@@ -483,15 +485,15 @@ TASK_RETVAL trepl_task() {
          /* Reset any pending ANSI flag. */
          *flags &= ~CONSOLE_FLAG_ANSI_SEQ;
 
-         tprintf( CONSOLE_NEWLINE );
+         tprintf( "\n" );
          retval = repl_command( line );
 
          if( RETVAL_NOT_FOUND == retval ) {
-            tprintf( "invalid" CONSOLE_NEWLINE );
+            tprintf( "invalid\n" );
          } else if( RETVAL_BAD_ARGS == retval ) {
-            tprintf( "bad arguments" CONSOLE_NEWLINE );
+            tprintf( "bad arguments\n" );
          } else {
-            tprintf( "ready" CONSOLE_NEWLINE );
+            tprintf( "ready\n" );
          }
          alpha_astring_clear( line );
          break;

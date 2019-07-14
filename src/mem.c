@@ -56,7 +56,7 @@ void mprint() {
 
    for( i = 0 ; MEM_HEAP_SIZE > i ; i++ ) {
       if( 0 == i % 20 ) {
-         tprintf( CONSOLE_NEWLINE );
+         tprintf( "\n" );
       }
       if( i == g_mheap_top ) {
          tprintf( "** " );
@@ -65,7 +65,7 @@ void mprint() {
          tprintf( "%2X ", g_mheap[i] );
       }
    }
-   tprintf( CONSOLE_NEWLINE );
+   tprintf( "\n" );
 }
 #endif /* MPRINT || CHECK */
 
