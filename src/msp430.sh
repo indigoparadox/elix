@@ -5,8 +5,11 @@ case $1 in
       mspdebug rf2500 "prog qd430.bin"
       ;;
 
-   "debug")
-      mspdebug rf2500 gdb &
+   "debugs")
+      mspdebug rf2500 gdb
+      ;;
+
+   "debugc")
       msp430-gdb --command=mspgdb qd430.bin
       ;;
 

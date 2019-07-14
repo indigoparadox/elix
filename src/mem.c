@@ -12,8 +12,7 @@ uint8_t g_mheap[MEM_HEAP_SIZE];
 MEMLEN_T g_mheap_top = 0;
 
 /* Setup the heap. */
-__attribute__( (constructor(CTOR_PRIO_MEM)) )
-static void minit() {
+void minit() {
    mzero( g_mheap, MEM_HEAP_SIZE );
    g_mheap_top = 0;
 }

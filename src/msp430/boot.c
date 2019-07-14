@@ -48,11 +48,11 @@ static void crystal_set_dco( unsigned int delta ) {
 int main() {
 
 	/* wdt_init(); */
-   WDTCTL = WDTPW + WDTHOLD;
+   //WDTCTL = WDTPW + WDTHOLD;
 
    DCOCTL = 0;
-   BCSCTL1 = CALBC1_1MHZ;
-   DCOCTL = CALDCO_1MHZ;
+   BCSCTL1 = CALBC1_8MHZ;
+   DCOCTL = CALDCO_8MHZ;
 
 #if 0
    while( 1 ) {

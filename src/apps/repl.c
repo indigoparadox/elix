@@ -1,6 +1,4 @@
 
-#ifdef USE_REPL
-
 #include "../code16.h"
 
 #include "../kernel.h"
@@ -537,6 +535,4 @@ TASK_RETVAL trepl_task() {
    adhd_yield();
    adhd_end_loop();
 }
-
-#endif /* USE_REPL */
 

@@ -166,6 +166,8 @@ uint8_t uart_init( uint8_t dev_index ) {
       UCA0MCTL = UCBRS_1;
 #elif QD_CPU_MHZ == 8
       /* TODO */
+      UCA0BR0 = 0x41;
+      UCA0BR1 = 0x03;
       UCA0MCTL = UCBRS_3 + UCBRF_0;
 #elif QD_CPU_MHZ == 16
       /* TODO */
