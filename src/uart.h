@@ -8,14 +8,6 @@
 #define UART_BAUD_RATE  9600
 #endif /* !UART_BAUD_RATE */
 
-#ifndef UART_RX_BUFFER_LENGTH
-#define UART_RX_BUFFER_LENGTH 60
-#endif /* !UART_RX_BUFFER_LENGTH */
-
-#ifndef UART_TX_BUFFER_LENGTH
-#define UART_TX_BUFFER_LENGTH 20
-#endif /* !UART_TX_BUFFER_LENGTH */
-
 #define UART_PRESENT  0x1
 #define _UART_2_PRESENT  0x2
 #define _UART_3_PRESENT  0x4

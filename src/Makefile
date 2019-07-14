@@ -171,7 +171,9 @@ $(BIN_MSP430): CFLAGS += \
 	-gdwarf-2 \
 	-Wall \
 	-Werror \
-	-DMEM_HEAP_SIZE=220 \
+	-DMEM_HEAP_SIZE=300 \
+	-DUART_TX_BUFFER_LENGTH=0 \
+	-DUART_RX_BUFFER_LENGTH=20 \
 	-DINIT_TASK="trepl_task" \
 	-DQD_PLATFORM=QD_PLATFORM_MSP430 \
 	-mmcu=msp430g2553 \

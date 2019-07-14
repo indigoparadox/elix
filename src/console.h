@@ -88,6 +88,7 @@
  * | %p     | void\*             | Hexidecimal number | 0x40      |
  * | %s     | char\*             | String             | Test      |
  * | %x     | int                | Hexidecimal number | 0xf       |
+ * | %%     | literal %          | Literal            | %         |
  *
  * Tokens can be modified by placing a number in front of them, indicating
  * that they should be left-padded by that number of spaces. A zero can be

@@ -52,7 +52,7 @@ TASK_PID g_console_pid
 extern
 #endif /* !CONSOLE_C */
 /*! \brief (ptr bytes * CONSOLE_CMDS_MAX#) Callbacks to proc unknown commands.
- * These callbacks should be registered by their apps in the app's constructor.
+ *  These callbacks should be registered by their apps in the app's constructor.
  */
 CONSOLE_CMD g_console_apps[CONSOLE_CMDS_MAX]
 #ifdef CONSOLE_C
@@ -74,11 +74,86 @@ uint8_t g_console_apps_top
 #ifndef IO_C
 extern
 #endif /* !IO_C */
+/*!
+ */
 volatile uint8_t g_io_flags
 #ifdef IO_C
 = 0
 #endif /* IO_C */
 ;
+
+/*! \addtogroup uart Serial UART
+ *  @{
+ */
+
+#ifndef UART_C
+extern
+#endif /* !UART_C */
+/*! \brief UART receiving buffer.
+ *
+ *  A ring buffer that collects incoming characters from the UART.
+ */
+unsigned char g_uart_rx_buffer[UART_RX_BUFFER_LENGTH]
+#ifdef UART_C
+= { '\0' }
+#endif /* UART_C */
+;
+
+#ifndef UART_NO_TX_BUFFER
+
+#ifndef UART_C
+extern
+#endif /* !UART_C */
+/*! \brief UART sending buffer.
+ *
+ *  A ring buffer that collects sent characters until they can be transmitted
+ *  on the UART by the appropriate interrupt handler.
+ */
+unsigned char g_uart_tx_buffer[UART_TX_BUFFER_LENGTH]
+#ifdef UART_C
+= { '\0' }
+#endif /* UART_C */
+;
+
+#ifndef UART_C
+extern
+#endif /* !UART_C */
+int8_t g_uart_tx_buffer_start
+#ifdef UART_C
+= 0
+#endif /* UART_C */
+;
+
+#ifndef UART_C
+extern
+#endif /* !UART_C */
+uint8_t g_uart_tx_buffer_end 
+#ifdef UART_C
+= 0
+#endif /* UART_C */
+;
+
+#endif /* !UART_NO_TX_BUFFER */
+
+#ifndef UART_C
+extern
+#endif /* UART_C */
+uint8_t g_uart_rx_buffer_start
+#ifdef UART_C
+= 0
+#endif /* UART_C */
+;
+
+#ifndef UART_C
+extern
+#endif /* UART_C */
+uint8_t g_uart_rx_buffer_end
+#ifdef UART_C
+= 0
+#endif /* UART_C */
+;
+
+/*! @} */
 
 #endif /* GLOBALS_H */
 
