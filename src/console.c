@@ -30,7 +30,7 @@ void tprintf( const char* pattern, ... ) {
    char last = '\0';
    union mvalue spec;
    struct astring* astr_spec = NULL;
-   struct astring* buffer = NULL;
+   char buffer[UTOA_DIGITS_MAX + 1];
    STRLEN_T pad_len = 0;
    char c;
    uint8_t pad_char = ' ';
@@ -43,10 +43,7 @@ void tprintf( const char* pattern, ... ) {
       if( '%' == last ) {
          /* Conversion specifier encountered. */
          mzero( &spec, sizeof( union mvalue ) );
-         buffer =
-            alpha_astring( PID_MAIN, MID_PRINTF_NUMBUF, UTOA_DIGITS_MAX, NULL );
-         assert( NULL != buffer );
-         alpha_astring_clear( buffer );
+         mzero( buffer, UTOA_DIGITS_MAX + 1 );
          switch( pattern[i] ) {
             case 'a':
                astr_spec = va_arg( args, struct astring* );
@@ -83,8 +80,14 @@ void tprintf( const char* pattern, ... ) {
                tpad( pad_char, pad_len );
 
                /* Print number. */
-               if( 0 < alpha_utoa( spec.d, buffer, 10 ) ) {
-                  tputs( (struct astring*)buffer );
+               if(
+                  0 < alpha_utoa_c( spec.d, buffer, UTOA_DIGITS_MAX + 1, 10 )
+               ) {
+                  j = 0;
+                  while( '\0' != buffer[j] && j <= UTOA_DIGITS_MAX ) {
+                     tputc( buffer[j] );
+                     j++;
+                  }
                }
                break;
 
@@ -96,10 +99,16 @@ void tprintf( const char* pattern, ... ) {
                tpad( pad_char, pad_len );
 
                /* Print number. */
-               if( 0 < alpha_utoa( spec.d, buffer, 16 ) ) {
+               if(
+                  0 < alpha_utoa_c( spec.d, buffer, UTOA_DIGITS_MAX + 1, 16 )
+               ) {
                   tputc( '0' );
                   tputc( 'x' );
-                  tputs( (struct astring*)&buffer );
+                  j = 0;
+                  while( '\0' != buffer[j] && j <= UTOA_DIGITS_MAX ) {
+                     tputc( buffer[j] );
+                     j++;
+                  }
                }
                break;
 
@@ -123,10 +132,14 @@ void tprintf( const char* pattern, ... ) {
 
                /* Print pointer as number. */
                if( 0 <
-                  alpha_utoa(
-                     (uintptr_t)spec.p, buffer, 16 )
+                  alpha_utoa_c(
+                     (uintptr_t)spec.p, buffer, UTOA_DIGITS_MAX + 1, 16 )
                ) {
-                  tputs( (struct astring*)buffer );
+                  j = 0;
+                  while( '\0' != buffer[j] && j <= UTOA_DIGITS_MAX ) {
+                     tputc( buffer[j] );
+                     j++;
+                  }
                }
                break;
 #endif /* !CONSOLE_NO_PRINTF_PTR */
