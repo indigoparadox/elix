@@ -6,9 +6,7 @@
 #include "../kernel.h"
 #include "../io.h"
 #include "../platform.h"
-
-/* TEMP */
-uint8_t g_uart_init = 0;
+#include "../irqal.h"
 
 #include <msp430.h>
 
@@ -58,6 +56,7 @@ __interrupt void USCI0RX_ISR( void ) {
    }
 }
 
+#if 0
 #pragma vector = USCIAB0TX_VECTOR
 __interrupt void USCI0TX_ISR( void ) {
    if( IFG2 & UCA0TXIFG ) {
@@ -67,6 +66,17 @@ __interrupt void USCI0TX_ISR( void ) {
       IFG2 &= ~UCB0TXIFG;
    }
 }
+#endif
+
+void uart_tx_handler( uint8_t index, struct irqal_handler* handler ) { 
+   if( IFG2 & UCA0TXIFG && !(IFG2 & UCB0TXIFG) ) {
+      /* Done transmitting, so turn off the ISR. */
+      IE2 &= ~UCA0TXIE;
+   }
+   /*} else {
+      IFG2 &= ~UCB0TXIFG;
+   }*/
+}
 
 /* Exposed utility functions. */
 
@@ -75,10 +85,10 @@ uint8_t uart_init() {
 	uint8_t retval = 0;
    uint8_t i = 0;
 
-   if( g_uart_init ) {
+   if( g_uart_status & UART_STATUS_UART1_READY ) {
       return 0;
    }
-   g_uart_init = 1;
+   g_uart_status |= UART_STATUS_UART1_READY;
 
    /* Disable UART-related interrupts during init. */
    IE2 &= ~(UCA0TXIE | UCA0RXIE | UCB0TXIE | UCB0RXIE );
@@ -104,6 +114,10 @@ uint8_t uart_init() {
 #else /* P3SEL */
    P3SEL |= BIT3 | BIT4;
 #endif /* P3SEL */
+
+   /* Register this driver to handle TX events. */
+   irqal_add_handler(
+      IRQAL_TYPE_UART_TX, uart_tx_handler, IRQAL_REPEAT_INDEFINITE );
 
 #ifdef IE2_
    IE2 |= UCA0RXIE; /* Enable USCI_A0 RX interrupt. */

@@ -3,6 +3,7 @@
 
 #include "../kernel.h"
 #include "../uart.h"
+#include "../i2c.h"
 #include "../console.h"
 
 #ifdef DRIVER_CRYSTAL
@@ -44,6 +45,8 @@ static void crystal_set_dco( unsigned int delta ) {
 	BCSCTL1 &= ~DIVA_3;
 }
 #endif /* DRIVER_CRYSTAL */
+
+void ssd1306_init();
 
 int main() {
 
@@ -101,7 +104,11 @@ int main() {
 #endif
 #endif
 
+   i2c_init();
+
    __enable_interrupt();
+
+   ssd1306_init();
 
    kmain();
    return 0;

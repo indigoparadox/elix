@@ -54,3 +54,17 @@ void irqal_call_handlers( IRQALTYPE_T type ) {
 	}
 }
 
+#pragma vector = USCIAB0TX_VECTOR
+__interrupt void USCI0TX_ISR( void ) {
+   irqal_call_handlers( IRQAL_TYPE_UART_TX );
+   //__bic_SR_register_on_exit( LPM3_bits );
+}
+
+void irqal_interrupts_off() {
+   //__disable_interrupt();
+}
+
+void irqal_interrupts_on() {
+   //__bis_SR_register( LPM3_bits + GIE );
+}
+
