@@ -34,6 +34,7 @@ CFLAGS=\
 	-I../../chiipy/src \
 	-I../../mfat/src \
 	-I../../mbmp/src \
+	-I../../msign/src \
 	-DVERSION=\"$(shell date +'%Y.%m.%d.%H.%M.%S')\"
 
 SOURCES= \
@@ -44,7 +45,8 @@ SOURCES= \
 
 SOURCES_APPS_COLINUX= \
 	apps/repl.c \
-	apps/microd.c
+	apps/microd.c \
+	apps/xmodem.c
 
 SOURCES_APPS_X86=$(SOURCES_APPS_COLINUX)
 
@@ -119,7 +121,9 @@ $(BIN_LIN): LDFLAGS += \
 	-L../../mfat/bin/linux \
 	-lmfat \
 	-L../../mbmp/bin/linux \
-	-lmbmp
+	-lmbmp \
+	-L../../msign/bin/linux \
+	-lmsign
 #	-L../../chiipy/bin/linux/ \
 #	-lchiipy
 $(BIN_LIN): OBJDIR := ../obj/linux/
@@ -164,7 +168,9 @@ $(BIN_LIN_MIN): OBJDIR := ../obj/colinux-min/
 $(BIN_LIN_MIN): LDFLAGS += \
 	-lpcap \
 	-L../../mfat/bin/linux \
-	-lmfat
+	-lmfat \
+	-L../../msign/bin/linux \
+	-lmsign
 
 $(BIN_MSP430): CFLAGS += \
 	-g3 \
