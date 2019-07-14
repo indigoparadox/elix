@@ -109,7 +109,7 @@ int kmain() {
    }
 #endif /* !SCHEDULE_COOP */
 
-   tprintf( "stopping..." CONSOLE_NEWLINE );
+   tprintf( "stopping...\n" );
 
 #if 0
    /* Create an ARP request. */

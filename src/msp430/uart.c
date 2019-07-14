@@ -37,8 +37,8 @@ uint8_t g_uart_init = 0;
 
 static unsigned char g_uart_rx_buffer[UART_RX_BUFFER_LENGTH] = { '\0' };
 static unsigned char g_uart_tx_buffer[UART_TX_BUFFER_LENGTH] = { '\0' };
-static uint8_t g_uart_tx_buffer_start = 0;
-static uint8_t g_uart_tx_buffer_end = 0;
+//static uint8_t g_uart_tx_buffer_start = 0;
+//static uint8_t g_uart_tx_buffer_end = 0;
 static uint8_t g_uart_rx_buffer_start = 0;
 static uint8_t g_uart_rx_buffer_end = 0;
 

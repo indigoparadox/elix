@@ -8,6 +8,7 @@
 
 #include "alpha.h"
 #include "display.h"
+#include "uart.h"
 
 #define PPCONCAT_I( a, b ) a##b
 #define PPCONCAT( a, b ) PPCONCAT_I( a, b )
@@ -27,7 +28,7 @@
 /*! The default newline string, if none is defined in the CFLAGS.
  *  Some platforms may require e.g. '\\r' or '\\r\\n' or something else.
  */
-#define CONSOLE_NEWLINE "\n"
+#define CONSOLE_NEWLINE CONSOLE_NEWLINE_N
 #endif /* CONSOLE_NEWLINE */
 
 /*! \brief This is a convenience macro for quickly outputting a string to the

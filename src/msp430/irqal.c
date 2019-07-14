@@ -2,6 +2,7 @@
 #include <stddef.h>
 
 #include "../irqal.h"
+#include "../mem.h"
 
 struct irqal_handler {
    IRQAL_CALLBACK callback;
@@ -13,7 +14,7 @@ static struct irqal_handler g_irqal_handlers[IRQAL_HANDLERS_COUNT_MAX];
 
 __attribute__((critical))
 void irqal_handler_deregister( uint8_t handler_index ) {
-	mzero( g_irqal_handlers[handler_index], sizeof( struct irqal_handler ) );
+	mzero( &(g_irqal_handlers[handler_index]), sizeof( struct irqal_handler ) );
 }
 
 __attribute__((critical))

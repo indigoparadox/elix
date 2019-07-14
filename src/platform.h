@@ -2,6 +2,9 @@
 #ifndef PLATFORM_H
 #define PLATFORM_H
 
+#define CONSOLE_NEWLINE_N 0
+#define CONSOLE_NEWLINE_R_N 1
+
 /* = Display Stuff = */
 
 #define MAIN_PID 1

@@ -169,10 +169,13 @@ $(BIN_MSP430): CFLAGS += \
 	-O0 \
 	-ggdb \
 	-gdwarf-2 \
+	-Wall \
+	-Werror \
 	-DMEM_HEAP_SIZE=220 \
 	-DINIT_TASK="trepl_task" \
 	-DQD_PLATFORM=QD_PLATFORM_MSP430 \
 	-mmcu=msp430g2553 \
+	-DUTOA_BITS=32 \
 	-DCONSOLE_IN="uart" \
 	-DCONSOLE_OUT="uart" \
 	-DUSE_DISK_RO \
