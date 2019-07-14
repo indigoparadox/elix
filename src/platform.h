@@ -5,6 +5,18 @@
 #define CONSOLE_NEWLINE_N 0
 #define CONSOLE_NEWLINE_R_N 1
 
+#ifndef UART_RX_BUFFER_LENGTH
+#define UART_RX_BUFFER_LENGTH 60
+#endif /* !UART_RX_BUFFER_LENGTH */
+
+#ifndef UART_TX_BUFFER_LENGTH
+#define UART_TX_BUFFER_LENGTH 0
+#endif /* !UART_TX_BUFFER_LENGTH */
+
+#if UART_TX_BUFFER_LENGTH == 0
+#define UART_NO_TX_BUFFER
+#endif /* !UART_TX_BUFFER_LENGTH */
+
 /* = Display Stuff = */
 
 #define MAIN_PID 1
