@@ -81,7 +81,7 @@ uint8_t uart_init() {
    g_uart_init = 1;
 
    /* Disable UART-related interrupts during init. */
-      IE2 &= ~(UCA0TXIE | UCA0RXIE | UCB0TXIE | UCB0RXIE );
+   IE2 &= ~(UCA0TXIE | UCA0RXIE | UCB0TXIE | UCB0RXIE );
 
    /* (1) Set state machine to the reset state. */
    UCA0CTL1 |= UCSWRST;

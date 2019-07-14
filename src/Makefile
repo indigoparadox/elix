@@ -48,7 +48,9 @@ SOURCES_APPS_COLINUX= \
 
 SOURCES_APPS_X86=$(SOURCES_APPS_COLINUX)
 
-SOURCES_APPS_MSP430=apps/repl.c
+SOURCES_APPS_MSP430=\
+	apps/repl.c
+#	apps/xmodem.c
 
 SOURCES_TESTED_NET= \
 	net/tcp.c \
@@ -190,7 +192,9 @@ $(BIN_MSP430): CC := msp430-gcc
 $(BIN_MSP430): OBJDIR := ../obj/msp430/
 $(BIN_MSP430): LDFLAGS += \
 	-L../../mfat/bin/msp430g2553 \
-	-lmfat
+	-lmfat \
+	-L../../msign/bin/msp430g2553 \
+	-lmsign
 
 tests: LDFLAGS += -lpcap $(shell pkg-config --libs check)
 tests: CFLAGS += \
