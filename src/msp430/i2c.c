@@ -54,6 +54,8 @@ void i2c_stop() {
 	}
 	g_uart_status &= UART_STATUS_I2C_READY;
 
+	//while( !(IFG2 & UCB0TXIFG) );
+
 	/* Shut off the connection. */
 	UCB0CTL1 |= UCTXSTP;
 	IE2 &= ~UCB0TXIE;
@@ -64,7 +66,7 @@ void i2c_send_byte( uint8_t byte ) {
 		return;
 	}
 
-	/* Wait for previous bytes to go through.
+	/* Wait for previous bytes to go through. */
 #ifdef IFG2_
 	while( !(IFG2 & UCB0TXIFG) );
 #else /* IFG2_ */
