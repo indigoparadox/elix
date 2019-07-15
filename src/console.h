@@ -4,11 +4,11 @@
 
 /*! \file console.h */
 
-#include <stdarg.h>
-
 #include "alpha.h"
 #include "display.h"
 #include "uart.h"
+
+#include <stdarg.h>
 
 #define PPCONCAT_I( a, b ) a##b
 #define PPCONCAT( a, b ) PPCONCAT_I( a, b )
