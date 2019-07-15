@@ -1,6 +1,4 @@
 
-#include "code16.h"
-
 #define CONSOLE_C
 #include "console.h"
 #include "display.h"

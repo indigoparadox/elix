@@ -4,9 +4,40 @@
 
 /*! \file etypes.h */
 
+#ifdef __GNUC__
+
+#  define struct_packed( name, def ) \
+      struct name { def } __attribute__((packed))
+
+#  else
+
+#  define struct_packed( name, def ) \
+      struct name { def }
+
+#endif /* __GNUC__ */
+
+#ifdef NO_STD_HEADERS
+
+typedef uint8_t unsigned char;
+
+typedef bool uint8_t;
+#ifndef true
+#define true 1
+#endif
+#ifndef false
+#define false 0
+#endif
+
+#define size_t uint16_t
+#define ssize_t int16_t
+
+#else
+
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+
+#endif /* NO_STD_HEADERS */
 
 #ifdef DEBUG
 #include <assert.h>
@@ -28,12 +59,12 @@ typedef uint8_t MEM_ID;
 
 /*! \brief The header attached to a dynamic memory allocation block.
  */
-struct mvar {
+struct_packed( mvar,
    uint8_t pid;      /*!< \brief Process ID of owner. */
    MEM_ID mid;       /*!< \brief Memory ID of owner. */
    MEMLEN_T sz;      /*!< \brief Bytes allocated. */
    uint8_t data[0];  /*!< \brief Dummy pointer to memory block contents. */
-} __attribute__((packed));
+);
 
 /*! @} */
 
@@ -50,11 +81,11 @@ struct mvar {
  */
 typedef MEMLEN_T STRLEN_T;
 
-struct astring {
+struct_packed( astring,
    struct mvar mem; /*!< \brief Piggyback off of memory block for alloc size. */
    STRLEN_T len;    /*!< \brief Length of actual string data. */
    char data[];     /*!< \brief Dummy pointer to string start. */
-} __attribute__( (packed) );
+);
 
 #define UINT8_DIGITS_MAX 8
 #define UINT32_DIGITS_MAX 10
@@ -114,10 +145,10 @@ typedef char (*INPUT_CB)( uint8_t, bool );
 
 #define CMD_MAX_LEN 10
 
-struct api_command {
+struct_packed( api_command,
    char command[CMD_MAX_LEN]; /*!< Command entered into repl to invoke. */
    CONSOLE_CMD callback;      /*!< Callback to be executed on invocation. */
-} __attribute__( (packed) );
+);
 
 #endif /* ETYPES_H */
 

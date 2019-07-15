@@ -2,8 +2,7 @@
 #ifndef DISPLAY_H
 #define DISPLAY_H
 
-#include <stdint.h>
-#include <stddef.h>
+#include "etypes.h"
 
 #include "platform.h"
 

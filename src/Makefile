@@ -140,17 +140,13 @@ $(BIN_WIN): CFLAGS += \
 $(BIN_WIN): LDFLAGS += -lwpcap
 $(BIN_WIN): OBJDIR := ../obj/windows/
 
-$(BIN_X86): CC := ia16-elf-gcc
-$(BIN_X86): AS := ia16-elf-as
+$(BIN_X86): CC := bcc
+$(BIN_X86): AS := nasm
 $(BIN_X86): CFLAGS += \
-	-Os \
-	-ffreestanding \
-	-nostdlib \
+	-ansi \
+	-DNO_STD_HEADERS \
 	-DQD_PLATFORM=QD_PLATFORM_X86 \
-	-DINIT_TASK="trepl_task" \
-	-DGCC_REALMODE \
-	-nodefaultlibs \
-	-nostartfiles
+	-DINIT_TASK="trepl_task"
 $(BIN_X86): OBJDIR := ../obj/os/
 $(BIN_X86): LDFLAGS := -T x86/linker.ld -lgcc
 
