@@ -2,9 +2,7 @@
 #ifndef NET_H
 #define NET_H
 
-#include <stddef.h>
-#include <stdint.h>
-
+#include "../etypes.h"
 #include "ether.h"
 #include "../adhd.h"
 

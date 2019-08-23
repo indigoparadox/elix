@@ -2,7 +2,7 @@
 #ifndef ETHER_H
 #define ETHER_H
 
-#include <stdint.h>
+#include "../etypes.h"
 
 #define ETHER_BUFFER_SIZE 1024
 
@@ -28,28 +28,28 @@ enum ether_type {
    ETHER_TYPE_IPV6  = 0x86dd
 };
 
-struct ether_header {
+struct_packed( ether_header,
    uint8_t dest_mac[6];
    uint8_t src_mac[6];
    uint16_t type;
    /* ? */
-} __attribute__((packed));
+);
 
-struct ether_frame {
+struct_packed( ether_frame,
    struct ether_header header;
    char data[ETHER_FRAME_DATA_SIZE_MAX];
-} __attribute__((packed));
+);
 
 #define ether_htons( input ) ether_ntohs( input )
 #define ether_htonl( input ) ether_ntohl( input )
 
 int ether_new_frame(
    struct ether_frame* frame_out, int frame_out_sz,
-   const uint8_t src_mac[6], const uint8_t dest_mac[6],
+   const_uint8_t src_mac[6], const_uint8_t dest_mac[6],
    enum ether_type type, void* packet, int packet_len );
 int ether_get_header_len( struct ether_frame* frame, int frame_len );
-uint16_t ether_ntohs( const uint16_t input );
-uint32_t ether_ntohl( const uint32_t input );
+uint16_t ether_ntohs( const_uint16_t input );
+uint32_t ether_ntohl( const_uint32_t input );
 
 #endif /* ETHER_H */
 

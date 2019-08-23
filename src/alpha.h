@@ -41,7 +41,10 @@
  *  @{
  */
 uint16_t alpha_atou( const struct astring* src, uint8_t base );
-const char* alpha_tok( const struct astring* src, char sep, uint8_t idx );
+#ifdef __GNUC__
+const
+#endif /* __GNUC__ */
+char* alpha_tok( const struct astring* src, char sep, uint8_t idx );
 STRLEN_T alpha_utoa( UTOA_T num, struct astring* dest, uint8_t base );
 STRLEN_T alpha_charinstr( char c, const struct astring* string );
 void alpha_astring_append( struct astring* str, char c );

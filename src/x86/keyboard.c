@@ -3,21 +3,17 @@
 
 #include "../kernel.h"
 
-__attribute__( (constructor( CTOR_PRIO_DISPLAY )) )
-static void keyboard_init() {
+void keyboard_init() {
 }
 
 void keyboard_shutdown() {
 }
 
-static int keyboard_hit( uint8_t dev_index ) {
+int keyboard_hit() {
    return 0;
 }
 
-char keyboard_getc( uint8_t dev_index, bool wait ) {
-   if( wait ) {
-      return keyboard_hit( dev_index );
-   }
+char keyboard_getc() {
    return 0;
 }
 

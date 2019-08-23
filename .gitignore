@@ -3,3 +3,5 @@ obj
 bochsout.txt
 floppy.img
 *.bin
+qdlx
+tests

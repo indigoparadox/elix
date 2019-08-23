@@ -6,16 +6,19 @@
 
 #include "alpha.h"
 
-#include <stddef.h>
-
-const struct astring g_str_none = astring_l( "none" );
+#if 0
+#ifdef __GNUC__
+const
+#endif /* __GNUC__ */
+struct astring g_str_none = astring_l( "none" );
+#endif
 
 #ifdef SCHEDULE_COOP
 
 static struct adhd_task* g_head_env = NULL;
 static uint8_t g_next_pid = ADHD_PID_FIRST;
 
-TASK_PID adhd_get_pid_by_gid( char* gid ) {
+TASK_PID adhd_get_pid_by_gid( const_char* gid ) {
    /* TODO */
 }
 
@@ -107,7 +110,7 @@ void adhd_kill_task( TASK_PID pid ) {
    g_tasks[pid].callback = NULL;
 }
 
-const struct astring* adhd_get_gid_by_pid( TASK_PID pid ) {
+const_char* adhd_get_gid_by_pid( TASK_PID pid ) {
    TASK_PID i = 0;
    
    for( i = 0 ; ADHD_TASKS_MAX > i ; i++ ) {
@@ -116,7 +119,7 @@ const struct astring* adhd_get_gid_by_pid( TASK_PID pid ) {
          g_tasks[i].pid == pid
       ) {
          if( NULL == g_tasks[i].gid ) {
-            return &g_str_none;
+            return "none";
          } else {
             return g_tasks[i].gid;
          }
@@ -126,14 +129,14 @@ const struct astring* adhd_get_gid_by_pid( TASK_PID pid ) {
    return NULL;
 }
 
-TASK_PID adhd_get_pid_by_gid( struct astring* gid ) {
+TASK_PID adhd_get_pid_by_gid( const_char* gid ) {
    TASK_PID i = 0;
    
    for( i = 0 ; ADHD_TASKS_MAX > i ; i++ ) {
       if(
          NULL != g_tasks[i].callback &&
          NULL != g_tasks[i].gid &&
-         0 == alpha_cmp( gid, g_tasks[i].gid, ' ', true, true )
+         0 == alpha_cmp_cc( gid, 4, g_tasks[i].gid, 4, ' ', true, true )
       ) {
          return i;
       }

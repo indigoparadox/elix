@@ -1,6 +1,8 @@
 
 #include "../code16.h"
 
+#include "x86bios.h"
+
 #include "../display.h"
 #include "../kernel.h"
 #include "../io.h"
@@ -16,20 +18,20 @@ void display_set_colors( uint8_t fg, uint8_t bg ) {
    display_color = fg;
 }
 
-__attribute__( (constructor( CTOR_PRIO_DISPLAY )) )
-static void display_init() {
-   int x, y, index;
+void display_init() {
+   /*int x, y, index;
    display_set_colors( COLOR_WHITE, COLOR_BLACK );
-   display_buffer = (uint16_t*)0xb8000;
+   display_buffer = (uint16_t*)0xb800;
    for( y = 0 ; DISPLAY_HEIGHT > y ; y++ ) {
       for( x = 0 ; DISPLAY_WIDTH > x ; x++ ) {
          index = y * DISPLAY_WIDTH + x;
          display_buffer[index] = ' ' | (display_color << 8);
       }
-   }
+   }*/
 }
 
 void display_putc_at( char c, int x, int y ) {
+#if 0
    int index = 0;
    index = y * DISPLAY_WIDTH + x;
    if( 0 > index || DISPLAY_INDEX_MAX < index ) {
@@ -37,9 +39,14 @@ void display_putc_at( char c, int x, int y ) {
       return;
    }
    display_buffer[index] = c | (display_color << 8);
+#endif
 }
 
-void display_putc( uint8_t dev_index, char c ) {
+//__NOINLINE
+//__REGPARM
+void display_putc( char c ) {
+   __asm__ __volatile__ ("int  $0x10" : : "a"(0x0E00 | c), "b"(7));
+#if 0
    display_putc_at( c, display_cursor_col, display_cursor_row );
    if( DISPLAY_WIDTH == ++display_cursor_col ) {
       /* Overflow to the left and move to next row. */
@@ -48,9 +55,9 @@ void display_putc( uint8_t dev_index, char c ) {
          display_cursor_row = 0;
       }
    }
+#endif
 }
 
-__attribute__( (destructor( CTOR_PRIO_DISPLAY )) )
-static void display_shutdown() {
+void display_shutdown() {
 }
 

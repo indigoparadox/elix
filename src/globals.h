@@ -76,7 +76,10 @@ extern
 #endif /* !IO_C */
 /*!
  */
-volatile uint8_t g_io_flags
+#ifdef __GNUC__
+volatile 
+#endif /* __GNUC__ */
+uint8_t g_io_flags
 #ifdef IO_C
 = 0
 #endif /* IO_C */

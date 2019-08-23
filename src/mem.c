@@ -1,10 +1,10 @@
 
+#include "code16.h"
+
 #define MEM_C
 #include "mem.h"
 #include "console.h"
 #include "adhd.h"
-
-#include <stddef.h>
 
 extern uint8_t* heap;
 
@@ -171,7 +171,9 @@ static struct mvar* mcreate( MEMLEN_T sz ) {
 
    /* Move to the next free spot and reset convenience ptr. */
    out = (struct mvar*)&(g_mheap[g_mheap_top]);
+#ifdef __GNUC__
    mzero( &(out->data), sz );
+#endif /* __GNUC__ */
 
    /* Advance the heap top. */
    g_mheap_top += sizeof( struct mvar ) + sz;

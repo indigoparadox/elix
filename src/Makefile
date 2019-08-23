@@ -30,7 +30,6 @@ PROFILE_FLAGS=$(DEBUG_FLAGS) -pg
 
 CFLAGS=\
 	-DUSE_CONSOLE \
-	-DUSE_DISK \
 	-I../../chiipy/src \
 	-I../../mfat/src \
 	-I../../mbmp/src \
@@ -48,7 +47,8 @@ SOURCES_APPS_COLINUX= \
 	apps/microd.c \
 	apps/xmodem.c
 
-SOURCES_APPS_X86=$(SOURCES_APPS_COLINUX)
+SOURCES_APPS_X86=\
+	apps/repl.c
 
 SOURCES_APPS_MSP430=\
 	apps/repl.c
@@ -99,7 +99,6 @@ DRIVERS_MSP430=\
 
 DRIVERS_X86=\
 	x86/display.o \
-	x86/net.o \
 	x86/keyboard.o \
 	x86/disk.o \
 
@@ -110,6 +109,7 @@ $(BIN_LIN): CFLAGS += \
 	-DUSE_EXT_CLI \
 	-DUSE_NET \
 	-DUSE_BMP \
+	-DUSE_DISK \
 	-DINIT_TASK="trepl_task" \
 	-DQD_PLATFORM=QD_PLATFORM_COLINUX \
 	-DDEBUG \
@@ -134,21 +134,39 @@ $(BIN_WIN): CC := i686-w64-mingw32-g
 $(BIN_WIN): CFLAGS += \
 	-DNET_CON_ECHO \
 	-DUSE_EXT_CLI \
+	-DUSE_DISK \
 	-DUSE_NET \
 	-DQD_PLATFORM=QD_PLATFORM_COLINUX \
 	-DCOMMANDS_NET
 $(BIN_WIN): LDFLAGS += -lwpcap
 $(BIN_WIN): OBJDIR := ../obj/windows/
 
-$(BIN_X86): CC := bcc
-$(BIN_X86): AS := nasm
+#$(BIN_X86): CC := bcc
+$(BIN_X86): CC := i586-elf-gcc
+$(BIN_X86): AS := i586-elf-gcc
+$(BIN_X86): LD := i586-elf-ld
+#$(BIN_X86): AS := nasm
+#$(BIN_X86): ASFLAGS := -f coff
+$(BIN_X86): ASFLAGS := -c
 $(BIN_X86): CFLAGS += \
-	-ansi \
+	-march=i686 \
 	-DNO_STD_HEADERS \
 	-DQD_PLATFORM=QD_PLATFORM_X86 \
-	-DINIT_TASK="trepl_task"
+	-DCONSOLE_NO_PRINTF_PTR \
+	-DGCC_REALMODE \
+	-DUTOA_BITS=32 \
+	-DINIT_TASK="trepl_task" \
+	-ffreestanding \
+	-nostdlib \
+	-nostartfiles \
+	-nodefaultlibs
 $(BIN_X86): OBJDIR := ../obj/os/
-$(BIN_X86): LDFLAGS := -T x86/linker.ld -lgcc
+$(BIN_X86): LDFLAGS := \
+	-static \
+	-Tx86/linker.ld \
+	-nostdlib \
+	--nmagic
+	#--nmagic
 
 # Try to match the MSP430 target as closely as possible in test env.
 $(BIN_LIN_MIN): CFLAGS += \
@@ -161,6 +179,7 @@ $(BIN_LIN_MIN): CFLAGS += \
 	-DMEM_HEAP_SIZE=320 \
 	-DINIT_TASK="uartping_task" \
 	-DQD_PLATFORM=QD_PLATFORM_COLINUX \
+	-DUSE_DISK \
 	-DUSE_DISK_RO
 $(BIN_LIN_MIN): OBJDIR := ../obj/colinux-min/
 $(BIN_LIN_MIN): LDFLAGS += \
@@ -186,6 +205,7 @@ $(BIN_MSP430): CFLAGS += \
 	-DUTOA_BITS=32 \
 	-DCONSOLE_IN="uart" \
 	-DCONSOLE_OUT="uart" \
+	-DUSE_DISK \
 	-DUSE_DISK_RO \
 	-DQD_UART_HW \
 	-DQD_CPU_MHZ=16 \
@@ -232,9 +252,10 @@ $(ISODIRX86)/$(BIN_X86): $(BIN_X86)
 	$(MD) $(ISODIRX86)/boot
 	cp -v $(BIN_X86) $(ISODIRX86)/boot/$(BIN_X86)
 
-$(BIN_X86): $(OBJECTS) $(OBJECTS_NET) $(OBJECTS_APPS_X86) $(DRIVERS_X86) kernel.o
-	$(AS) x86/boot.s -o $(OBJDIR)boot.o
-	$(CC) -o $@ $(addprefix $(OBJDIR),$^) $(OBJDIR)boot.o $(LDFLAGS) $(CFLAGS)
+$(BIN_X86): $(OBJECTS) $(OBJECTS_APPS_X86) $(DRIVERS_X86) kernel.o x86/boot.o
+	#$(AS) x86/boot.s -o $(OBJDIR)boot.o $(ASFLAGS)
+	$(LD) -o $@ $(addprefix $(OBJDIR),$^) $(OBJDIR)boot.o $(LDFLAGS)
+	i586-elf-objcopy -O binary $(BIN_X86) x86-raw.bin
 
 $(BIN_MSP430): $(OBJECTS) $(DRIVERS_MSP430) $(OBJECTS_APPS_MSP430) kernel.o
 	$(CC) -o $@ $(addprefix $(OBJDIR),$^) $(CFLAGS) $(LDFLAGS)

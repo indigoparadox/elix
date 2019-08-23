@@ -9,18 +9,37 @@
 #  define struct_packed( name, def ) \
       struct name { def } __attribute__((packed))
 
+#define const_char const char
+#define const_uint8_t const uint8_t
+#define const_uint16_t const uint16_t
+#define const_uint32_t const uint32_t
+
 #  else
 
 #  define struct_packed( name, def ) \
       struct name { def }
 
+#define const_char char
+#define const_uint8_t uint8_t
+#define const_uint16_t uint16_t
+#define const_uint32_t uint32_t
+
 #endif /* __GNUC__ */
 
 #ifdef NO_STD_HEADERS
 
-typedef uint8_t unsigned char;
+typedef unsigned char      uint8_t;
+typedef char               int8_t;
+typedef unsigned short int uint16_t;
+typedef short int          int16_t;
+typedef unsigned long int  uint32_t;
+typedef long int           int32_t;
 
-typedef bool uint8_t;
+#ifndef NULL
+#define NULL (void*)0x00
+#endif /* NULL */
+
+typedef unsigned char bool;
 #ifndef true
 #define true 1
 #endif

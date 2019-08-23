@@ -81,7 +81,7 @@ STRLEN_T alpha_utoa_c(
    STRLEN_T dest_idx = 0;
 
    digits = alpha_udigits( num, base );
-   assert( (0 == num && 0 == digits) || (0 < num && 0 < digits) );
+   assert( (0 == num && 1 == digits) || (0 < num && 0 < digits) );
    assert( digits < dest_sz );
 
    /* Handle 0 explicitly, otherwise empty string is printed for 0. */

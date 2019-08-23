@@ -23,8 +23,6 @@
 
 extern uint8_t* g_mheap;
 
-const struct astring g_str_repl = astring_l( "repl" );
-
 const char qd_logo[8][16] = {
    "     _____     ",
    "   .`_| |_`.   ",
@@ -42,8 +40,6 @@ TASK_RETVAL trepl_task();
 
 #ifdef USE_NET
 
-extern struct astring g_str_netp;
-
 static TASK_RETVAL tnet_start( const struct astring* cli ) {
    tprintf( "start?\n" );
    adhd_launch_task( net_respond_task );
@@ -54,7 +50,7 @@ static TASK_RETVAL tnet_rcvd( const struct astring* cli ) {
    const int* received = NULL;
    TASK_PID pid;
 
-   pid = adhd_get_pid_by_gid( &g_str_netp );
+   pid = adhd_get_pid_by_gid( "netp" );
    received = mget( pid, NET_MID_RECEIVED, sizeof( int ) );
    tprintf( "frames rcvd: %d\n", *received );
 
@@ -91,7 +87,7 @@ static TASK_RETVAL trepl_net( const struct astring* cli ) {
 #endif /* USE_NET */
 
 static TASK_RETVAL tsys_proc( const struct astring* cli ) {
-   const struct astring* task_gid = NULL;
+   const char* task_gid = NULL;
    TASK_PID i = 0;
 
    for( i = 0 ; ADHD_TASKS_MAX > i ; i++ ) {
@@ -111,9 +107,8 @@ static TASK_RETVAL tsys_exit( const struct astring* cli ) {
 
 static TASK_RETVAL tsys_mem( const struct astring* cli ) {
    tprintf(
-      "mem:\nused: %d\ntotal: %d\nfree: %d\nstart: %p\n",
-      get_mem_used(), MEM_HEAP_SIZE, MEM_HEAP_SIZE - get_mem_used(),
-      g_mheap
+      "mem:\nused: %d\ntotal: %d\nfree: %d\n",
+      get_mem_used(), MEM_HEAP_SIZE, MEM_HEAP_SIZE - get_mem_used()
    );
    return RETVAL_OK;
 }
@@ -393,7 +388,9 @@ static const struct api_command g_commands[COMMANDS_COUNT] = {
 #ifdef USE_NET
    { "net", trepl_net },
 #endif /* USE_NET */
+#ifdef USE_DISK
    { "dsk", trepl_disk }
+#endif /* USE_DISK */
 };
 
 TASK_RETVAL repl_command( const struct astring* cli ) {
@@ -429,7 +426,7 @@ TASK_RETVAL trepl_task() {
 
    adhd_task_setup();
 
-   adhd_set_gid( &g_str_repl );
+   adhd_set_gid( "repl" );
 
    flags = mget( adhd_get_pid(), REPL_MID_FLAGS, 1 );
 

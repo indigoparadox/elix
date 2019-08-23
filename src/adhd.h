@@ -37,7 +37,7 @@ struct adhd_task {
    uint8_t status;
 #endif /* SCHEDULE_COOP */
    TASK_PID pid;
-   const struct astring* gid;
+   char gid[4];
    ADHD_TASK callback;
    struct adhd_task* next;
 };
@@ -45,7 +45,7 @@ struct adhd_task {
 #define adhd_get_pid() \
    (g_curr_env->pid)
 
-#define adhd_set_gid( str ) g_curr_env->gid = str
+#define adhd_set_gid( str ) mcopy( g_curr_env->gid, str, 4 )
 
 #ifdef SCHEDULE_COOP
 
@@ -106,8 +106,8 @@ TASK_RETVAL adhd_call_task( TASK_PID pid );
 #endif /* SCHEDULE_COOP */
 
 void adhd_start();
-const struct astring* adhd_get_gid_by_pid( TASK_PID pid );
-TASK_PID adhd_get_pid_by_gid( struct astring* gid );
+const_char* adhd_get_gid_by_pid( TASK_PID pid );
+TASK_PID adhd_get_pid_by_gid( const_char* gid );
 void adhd_step();
 struct adhd_task* adhd_new_task();
 void adhd_kill_task( TASK_PID pid );

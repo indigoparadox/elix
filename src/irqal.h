@@ -4,7 +4,7 @@
 
 /*! \file irqal.h */
 
-#include <stdint.h>
+#include "etypes.h"
 
 #ifndef IRQAL_HANDLERS_COUNT_MAX
 #define IRQAL_HANDLERS_COUNT_MAX 5

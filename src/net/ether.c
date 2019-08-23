@@ -7,7 +7,7 @@
 
 int ether_new_frame(
    struct ether_frame* frame_out, int frame_out_sz,
-   const uint8_t src_mac[6], const uint8_t dest_mac[6],
+   const_uint8_t src_mac[6], const_uint8_t dest_mac[6],
    enum ether_type type, void* packet, int packet_len
 ) {
    struct ether_header* header_out = NULL;
@@ -41,7 +41,7 @@ int ether_get_header_len( struct ether_frame* frame, int frame_len ) {
    return frame_len - sizeof( struct ether_header );
 }
 
-uint16_t ether_ntohs( const uint16_t input ) {
+uint16_t ether_ntohs( const_uint16_t input ) {
    uint8_t output[2] = { 0 };
 
    mcopy( &output, &input, sizeof( output ) );
@@ -51,7 +51,7 @@ uint16_t ether_ntohs( const uint16_t input ) {
       ((uint16_t) output[0] << 8);
 }
 
-uint32_t ether_ntohl( const uint32_t input ) {
+uint32_t ether_ntohl( const_uint32_t input ) {
    uint8_t output[4] = {};
    mcopy( &output, &input, sizeof( output ) );
 
