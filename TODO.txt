@@ -1,4 +1,0 @@
-
-  - Get rid of mset and just pass mget a size indicator, so it can create a
-    buffer if one does not exist.
-
