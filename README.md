@@ -1,5 +1,7 @@
 
-More documentation is available by running "make docs" in src/ and then checking out docs/html/index.html.
+![Code Grade](https://www.code-inspector.com/project/579/status/svg)
+
+Current documentation is available at: https://indigoparadox.github.io/elix/
 
 # Defines
 
