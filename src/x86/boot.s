@@ -25,11 +25,40 @@ stack_top:
 .global _start
 _start:
 
-movl  $stack_top, %esp
-call kmain
+lgdt %cs:gdtr16
+lidt %cs:idtr16
+ljmp $8, $cont
+cont:
+.code16
+movw $0x10, %ax
+movw %ax, %ds
+movw %ax, %es
+movw %ax, %ss
+movw $stack_top, %sp
+movl %cr0, %eax
+andb $~1, %al
+movl %eax, %cr0
+jmp cont2
+cont2:
+xorw %ax, %ax
+movw %ax, %ds
+movw %ax, %es
+movw %ax, %ss
+ljmp $0, $kmain
 
-# If the kernel returns, disable interrupts (cli) and spin forever.
-cli
-hang:
-hlt
-jmp hang
+.balign 8
+# 16-bit GDTR
+gdtr16:
+.hword gdt16end-gdt16
+.long gdt16
+
+# GDT with 16-bit code segment and data segment descriptor
+.set gdt16, .-8
+.quad 0x008f9b000000ffff
+.quad 0x008f93000000ffff
+gdt16end:
+
+# Real mode IDTR
+idtr16:
+.hword 0x3ff
+.long 0

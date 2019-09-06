@@ -252,8 +252,8 @@ $(ISODIRX86)/$(BIN_X86): $(BIN_X86)
 	$(MD) $(ISODIRX86)/boot
 	cp -v $(BIN_X86) $(ISODIRX86)/boot/$(BIN_X86)
 
-$(BIN_X86): $(OBJECTS) $(OBJECTS_APPS_X86) $(DRIVERS_X86) kernel.o x86/boot.o
-	#$(AS) x86/boot.s -o $(OBJDIR)boot.o $(ASFLAGS)
+$(BIN_X86): $(OBJECTS) $(OBJECTS_APPS_X86) $(DRIVERS_X86) kernel.o
+	$(AS) x86/boot.s -o $(OBJDIR)boot.o $(ASFLAGS)
 	$(LD) -o $@ $(addprefix $(OBJDIR),$^) $(OBJDIR)boot.o $(LDFLAGS)
 	i586-elf-objcopy -O binary $(BIN_X86) x86-raw.bin
 
