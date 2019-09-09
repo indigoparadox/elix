@@ -19,7 +19,7 @@ void display_set_colors( uint8_t fg, uint8_t bg ) {
 }
 
 void display_init() {
-   /*int x, y, index;
+   int x, y, index;
    display_set_colors( COLOR_WHITE, COLOR_BLACK );
    display_buffer = (uint16_t*)0xb800;
    for( y = 0 ; DISPLAY_HEIGHT > y ; y++ ) {
@@ -27,27 +27,17 @@ void display_init() {
          index = y * DISPLAY_WIDTH + x;
          display_buffer[index] = ' ' | (display_color << 8);
       }
-   }*/
-}
-
-void display_putc_at( char c, int x, int y ) {
-#if 0
-   int index = 0;
-   index = y * DISPLAY_WIDTH + x;
-   if( 0 > index || DISPLAY_INDEX_MAX < index ) {
-      /* Overflow. */
-      return;
    }
-   display_buffer[index] = c | (display_color << 8);
-#endif
 }
 
 //__NOINLINE
 //__REGPARM
 void display_putc( char c ) {
    __asm__ __volatile__ ("int  $0x10" : : "a"(0x0E00 | c), "b"(7));
-#if 0
-   display_putc_at( c, display_cursor_col, display_cursor_row );
+   if( '\n' == c ) {
+      __asm__ __volatile__ ("int  $0x10" : : "a"(0x0E00 | '\r'), "b"(7));
+   }
+   //display_putc_at( c, display_cursor_col, display_cursor_row );
    if( DISPLAY_WIDTH == ++display_cursor_col ) {
       /* Overflow to the left and move to next row. */
       display_cursor_col = 0;
@@ -55,7 +45,6 @@ void display_putc( char c ) {
          display_cursor_row = 0;
       }
    }
-#endif
 }
 
 void display_shutdown() {

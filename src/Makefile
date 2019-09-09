@@ -141,12 +141,9 @@ $(BIN_WIN): CFLAGS += \
 $(BIN_WIN): LDFLAGS += -lwpcap
 $(BIN_WIN): OBJDIR := ../obj/windows/
 
-#$(BIN_X86): CC := bcc
 $(BIN_X86): CC := i586-elf-gcc
 $(BIN_X86): AS := i586-elf-gcc
 $(BIN_X86): LD := i586-elf-ld
-#$(BIN_X86): AS := nasm
-#$(BIN_X86): ASFLAGS := -f coff
 $(BIN_X86): ASFLAGS := -c
 $(BIN_X86): CFLAGS += \
 	-march=i686 \
@@ -166,7 +163,6 @@ $(BIN_X86): LDFLAGS := \
 	-Tx86/linker.ld \
 	-nostdlib \
 	--nmagic
-	#--nmagic
 
 # Try to match the MSP430 target as closely as possible in test env.
 $(BIN_LIN_MIN): CFLAGS += \
