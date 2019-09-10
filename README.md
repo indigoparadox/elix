@@ -1,6 +1,8 @@
 
 ![Code Grade](https://www.code-inspector.com/project/579/status/svg)
 
+Code inspector static analysis results available at: https://www.code-inspector.com/project/dashboard/579
+
 Current documentation is available at: https://indigoparadox.github.io/elix/
 
 # Defines
