@@ -28,9 +28,9 @@ void mshift( MEMLEN_T start, MEMLEN_T offset );
 int mget_pos( int pid, int mid );
 #endif /* CHECK */
 
-#if defined( MPRINT ) || defined( CHECK )
+#if defined( MPRINT )
 void mprint();
-#endif /* MPRINT || CHECK */
+#endif /* MPRINT */
 
 //void minit();
 MEMLEN_T get_mem_used();

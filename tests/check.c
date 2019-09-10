@@ -15,8 +15,6 @@
    number_failed += srunner_ntests_failed( sr_ ## suite_name ); \
    srunner_free( sr_ ## suite_name );
 
-main_add_test_proto( ether )
-main_add_test_proto( net )
 main_add_test_proto( mem )
 main_add_test_proto( console )
 main_add_test_proto( alpha )
@@ -27,8 +25,6 @@ uint8_t g_system_state = SYSTEM_RUNNING;
 int main( void ) {
    int number_failed = 0;
 
-   main_add_test( ether );
-   main_add_test( net );
    main_add_test( mem );
    /*main_add_test( console );
    main_add_test( alpha );*/

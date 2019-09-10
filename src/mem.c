@@ -49,7 +49,7 @@ int mcompare( const void* c1, const void* c2, int sz ) {
    return 0;
 }
 
-#if defined( MPRINT ) || defined( CHECK )
+#if defined( MPRINT )
 #include <stdio.h>
 void mprint() {
    int i = 0;
@@ -67,7 +67,7 @@ void mprint() {
    }
    tprintf( "\n" );
 }
-#endif /* MPRINT || CHECK */
+#endif /* MPRINT */
 
 /* Get the heap position for a variable. Used in public functions below. */
 #ifndef CHECK
