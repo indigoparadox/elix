@@ -26,8 +26,8 @@ int main( void ) {
    int number_failed = 0;
 
    main_add_test( mem );
-   /*main_add_test( console );
-   main_add_test( alpha );*/
+   /*main_add_test( console );*/
+   main_add_test( alpha );
 
    return( number_failed == 0 ) ? 0 : 1;
 }

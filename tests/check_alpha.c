@@ -30,7 +30,9 @@ static const int g_str_list_szs[4] = {
    6, 6, 4, 5
 };
 
+#ifdef CHECK_ALPHA_VERBOSE
 #include <stdio.h>
+#endif /* CHECK_ALPHA_VERBOSE */
 
 START_TEST( test_alpha_astr_len ) {
    int i = 0;
@@ -40,9 +42,11 @@ START_TEST( test_alpha_astr_len ) {
       uint8_t* cp = (uint8_t*)test;
       int j = 0;
       int max = sizeof( struct astring ) + test->len;
+#ifdef CHECK_ALPHA_VERBOSE
       for( j = 0 ; max > j ; j++ ) {
          printf( "%d - %c\n", j, cp[j] );
       }
+#endif /* CHECK_ALPHA_VERBOSE */
 
       test = alpha_astring_list_next( test );
    }
@@ -54,38 +58,55 @@ END_TEST
 START_TEST( test_alpha_tok_cmp_c ) {
    const char* c = NULL;
    c = alpha_tok( &g_str_sentence, ' ', _i );
-   ck_assert_int_eq( 0, alpha_cmp_c( "The", 3, &g_str_sentence, ' ' ) );
+   ck_assert_int_eq(
+      0, alpha_cmp_c( "The", 3, &g_str_sentence, ' ', true, true ) );
    switch( _i ) {
       case 0:
-         ck_assert_int_eq( 0, alpha_cmp_c( c, 3, &g_str_the, ' ' ) );
-         ck_assert_int_ne( 0, alpha_cmp_c( c, 5, &g_str_quick, ' ' ) );
+         ck_assert_int_eq(
+            0, alpha_cmp_c( c, 3, &g_str_the, ' ', true, true ) );
+         ck_assert_int_ne(
+            0, alpha_cmp_c( c, 5, &g_str_quick, ' ', true, true ) );
          break;
       case 1:
-         ck_assert_int_ne( 0, alpha_cmp_c( c, 3, &g_str_the, ' ' ) );
-         ck_assert_int_eq( 0, alpha_cmp_c( c, 5, &g_str_quick, ' ' ) );
-         ck_assert_int_ne( 0, alpha_cmp_c( c, 5, &g_str_brown, ' ' ) );
+         ck_assert_int_ne(
+            0, alpha_cmp_c( c, 3, &g_str_the, ' ', true, true ) );
+         ck_assert_int_eq(
+            0, alpha_cmp_c( c, 5, &g_str_quick, ' ', true, true ) );
+         ck_assert_int_ne(
+            0, alpha_cmp_c( c, 5, &g_str_brown, ' ', true, true ) );
          break;
       case 2:
-         ck_assert_int_ne( 0, alpha_cmp_c( c, 5, &g_str_quick, ' ' ) );
-         ck_assert_int_eq( 0, alpha_cmp_c( c, 5, &g_str_brown, ' ' ) );
-         ck_assert_int_ne( 0, alpha_cmp_c( c, 3, &g_str_fox, ' ' ) );
+         ck_assert_int_ne(
+            0, alpha_cmp_c( c, 5, &g_str_quick, ' ', true, true ) );
+         ck_assert_int_eq(
+            0, alpha_cmp_c( c, 5, &g_str_brown, ' ', true, true ) );
+         ck_assert_int_ne(
+            0, alpha_cmp_c( c, 3, &g_str_fox, ' ', true, true ) );
          break;
       case 3:
-         ck_assert_int_ne( 0, alpha_cmp_c( c, 5, &g_str_brown, ' ' ) );
-         ck_assert_int_eq( 0, alpha_cmp_c( c, 3, &g_str_fox, ' ' ) );
-         ck_assert_int_ne( 0, alpha_cmp_c( c, 6, &g_str_jumped, ' ' ) );
+         ck_assert_int_ne(
+            0, alpha_cmp_c( c, 5, &g_str_brown, ' ', true, true ) );
+         ck_assert_int_eq(
+            0, alpha_cmp_c( c, 3, &g_str_fox, ' ', true, true ) );
+         ck_assert_int_ne(
+            0, alpha_cmp_c( c, 6, &g_str_jumped, ' ', true, true ) );
          break;
       case 4:
-         ck_assert_int_ne( 0, alpha_cmp_c( c, 3, &g_str_fox, ' ' ) );
-         ck_assert_int_eq( 0, alpha_cmp_c( c, 6, &g_str_jumped, ' ' ) );
-         ck_assert_int_ne( 0, alpha_cmp_c( c, 4, &g_str_over, ' ' ) );
+         ck_assert_int_ne(
+            0, alpha_cmp_c( c, 3, &g_str_fox, ' ', true, true ) );
+         ck_assert_int_eq(
+            0, alpha_cmp_c( c, 6, &g_str_jumped, ' ', true, true ) );
+         ck_assert_int_ne(
+            0, alpha_cmp_c( c, 4, &g_str_over, ' ', true, true ) );
          break;
    }
 }
 END_TEST
 
 START_TEST( test_alpha_cmp_c ) {
-   ck_assert_int_eq( 0, alpha_cmp_c( "The", 3, &g_str_sentence, ' ' ) );
+   STRLEN_T res = 0;
+   res = alpha_cmp_c( "The", 3, &g_str_sentence, ' ', true, 3 );
+   ck_assert_int_eq( 0, res );
 }
 END_TEST
 
@@ -134,9 +155,9 @@ START_TEST( test_alpha_utoa ) {
    int16_t len = 0;
 
    buffer = calloc( 1, sizeof( struct astring ) + INT_DIGITS_MAX );
-   buffer->sz = INT_DIGITS_MAX;
+   buffer->mem.sz = INT_DIGITS_MAX;
 
-   len = alpha_utoa( test_int, buffer, 0, 0, 10 );
+   len = alpha_utoa( test_int, buffer, 10 );
 
    ck_assert_int_eq( len, alpha_udigits( test_int, 10 ) );
    ck_assert_str_eq( buffer->data, "12345" );
@@ -151,9 +172,9 @@ START_TEST( test_alpha_utoa_hex ) {
    int16_t len = 0;
 
    buffer = calloc( 1, sizeof( struct astring ) + INT_DIGITS_MAX );
-   buffer->sz = INT_DIGITS_MAX;
+   buffer->mem.sz = INT_DIGITS_MAX;
 
-   len = alpha_utoa( test_int, buffer, 0, 0, 16 );
+   len = alpha_utoa( test_int, buffer, 16 );
 
    ck_assert_int_eq( len, alpha_udigits( test_int, 16 ) );
    ck_assert_str_eq( buffer->data, "2345" );

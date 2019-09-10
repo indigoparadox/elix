@@ -63,9 +63,9 @@ SOURCES_NET=$(SOURCES_TESTED_NET) \
 
 CHECKOBJ=\
 	check.o \
-	check_mem.o
+	check_mem.o \
+	check_alpha.o
 #	check_console.o \
-#	check_alpha.o \
 
 OBJECTS=$(subst .c,.o,$(SOURCES))
 OBJECTS_APPS_X86=$(subst .c,.o,$(SOURCES_APPS_X86))
@@ -254,7 +254,7 @@ $(BIN_X86): $(OBJECTS) $(OBJECTS_APPS_X86) $(DRIVERS_X86) kernel.o
 $(BIN_MSP430): $(OBJECTS) $(DRIVERS_MSP430) $(OBJECTS_APPS_MSP430) kernel.o
 	$(CC) -o $@ $(addprefix $(OBJDIR),$^) $(CFLAGS) $(LDFLAGS)
 
-tests: $(OBJECTS_TESTED) $(OBJECTS_TESTED_NET) $(DRIVERS_TESTS) $(addprefix $(CHECKSDIR)/,$(CHECKOBJ)) mem.o
+tests: $(OBJECTS_TESTED) $(OBJECTS_TESTED_NET) $(DRIVERS_TESTS) $(addprefix $(CHECKSDIR)/,$(CHECKOBJ)) mem.o alpha.o
 	$(CC) -o $@ $(addprefix $(OBJDIR),$(subst $(CHECKSDIR),,$^)) $(LDFLAGS)
 
 docs:

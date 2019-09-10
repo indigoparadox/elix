@@ -267,7 +267,9 @@ STRLEN_T alpha_cmp_cc(
       i++;
    }
 
+#ifdef ALPHA_CMP_DEBUG
    tprintf( "de facto match\n" );
+#endif /* ALPHA_CMP_DEBUG */
    return 0;
 }
 
