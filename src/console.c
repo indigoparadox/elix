@@ -11,6 +11,9 @@
 #define TPRINT_PAD_ZERO 0
 #define TPRINT_PAD_SPACE 1
 
+void abort() {
+}
+
 static void tpad( char pad, STRLEN_T len ) {
    uint8_t i = 0;
 

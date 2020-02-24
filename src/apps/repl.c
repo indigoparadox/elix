@@ -36,6 +36,38 @@ const char qd_logo[8][16] = {
 
 TASK_RETVAL trepl_task();
 
+static const char* trepl_tok( const struct astring* cli, uint8_t idx ) {
+   const char* tok = NULL;
+   uint8_t sigil = 0;
+   STRLEN_T i = 0;
+   STRLEN_T len = 0;
+
+   tok = alpha_tok( cli, ' ', idx );
+   tprintf( "$s\n", tok );
+   len = alpha_strlen_c( tok, CMD_MAX_LEN );
+   for( i = 0 ; len > i ; i++ ) {
+      switch( tok[i] ) {
+      case '$':
+         if( sigil ) {
+            /* TODO: This will double-sigil, so fix? */
+            sigil = 0;
+         } else {
+            sigil = 1;
+         }
+         break;
+
+      default:
+         if( sigil ) {
+            tok = mget( adhd_get_pid_by_gid( "repl" ), 2, len );
+         }
+         sigil = 0;
+         break;
+      }
+   }
+   
+   return tok;
+}
+
 /* = Command Callbacks */
 
 #ifdef USE_NET
@@ -67,7 +99,7 @@ static TASK_RETVAL trepl_net( const struct astring* cli ) {
    const char* tok;
    uint8_t i = 0;
 
-   tok = alpha_tok( cli, ' ', 1 );
+   tok = trepl_tok( cli, 1 );
    if( NULL == tok ) {
       return 1;
    }
@@ -124,7 +156,7 @@ static TASK_RETVAL trepl_sys( const struct astring* cli ) {
    const char* tok;
    uint8_t i = 0;
 
-   tok = alpha_tok( cli, ' ', 1 );
+   tok = trepl_tok( cli, 1 );
    if( NULL == tok ) {
       return 1;
    }
@@ -154,7 +186,7 @@ static TASK_RETVAL tdisk_dir( const struct astring* cli ) {
    offset = mfat_get_root_dir_offset( 0, 0 );
    offset = mfat_get_dir_entry_first_offset( offset, 0, 0 );
 
-   tok = alpha_tok( cli, ' ', 2 );
+   tok = trepl_tok( cli, 2 );
 
    mzero( filename, 13 );
    mzero( attrib_str, 5 );
@@ -200,7 +232,7 @@ static TASK_RETVAL tdisk_fat( const struct astring* cli ) {
    uint8_t display_dec = 0;
 
    i = 2;
-   tok = alpha_tok( cli, ' ', i );
+   tok = trepl_tok( cli, i );
    while( NULL != tok ) {
       /* Determine display mode. */
       if( !alpha_cmp_cc( "d", 1, tok, 1, ' ', false, false ) ) {
@@ -221,7 +253,7 @@ static TASK_RETVAL tdisk_fat( const struct astring* cli ) {
          }
       }
       i++;
-      tok = alpha_tok( cli, ' ', i );
+      tok = trepl_tok( cli, i );
    }
 
    entries_count = mfat_get_entries_count( 0, 0 );
@@ -296,7 +328,7 @@ static TASK_RETVAL tdisk_cat( const struct astring* cli ) {
 
    mzero( buffer, MFAT_FILENAME_LEN );
 
-   tok = alpha_tok( cli, ' ', 2 );
+   tok = trepl_tok( cli, 2 );
    if( NULL == tok ) {
       return RETVAL_BAD_ARGS;
    }
@@ -325,7 +357,7 @@ static TASK_RETVAL tdisk_bmp( const struct astring* cli ) {
    const char* tok;
    FILEPTR_T offset = 0;
 
-   tok = alpha_tok( cli, ' ', 2 );
+   tok = trepl_tok( cli, 2 );
    if( NULL == tok ) {
       return RETVAL_BAD_ARGS;
    }
@@ -360,7 +392,7 @@ static TASK_RETVAL trepl_disk( const struct astring* cli ) {
    const char* tok;
    uint8_t i = 0;
 
-   tok = alpha_tok( cli, ' ', 1 );
+   tok = trepl_tok( cli, 1 );
    if( NULL == tok ) {
       return 1;
    }
@@ -379,12 +411,59 @@ static TASK_RETVAL trepl_disk( const struct astring* cli ) {
 
 #endif /* USE_DISK */
 
+TASK_RETVAL trepl_let( const struct astring* cli ) {
+   uint8_t idx = 0;
+   STRLEN_T len = 0;
+   const char* tok = NULL;
+   char* memstr = NULL;
+   STRLEN_T i = 0;
+
+   tok = trepl_tok( cli, 1 );
+   if( NULL == tok ) {
+      return RETVAL_BAD_ARGS;
+   }
+   idx = alpha_atou_c( tok, CMD_MAX_LEN, 10 );
+   tprintf( "%s\n%d\n", tok, idx );
+
+   tok = trepl_tok( cli, 2 );
+   if( NULL == tok ) {
+      return RETVAL_BAD_ARGS;
+   }
+   len = alpha_strlen_c( tok, CMD_MAX_LEN ) + 1;
+   memstr = mget( adhd_get_pid_by_gid( "repl" ), idx, len );
+
+   for( i = 0 ; len > i ; i++ ) {
+      tprintf( "%c", tok[i] );
+      memstr[i] = tok[i];
+   }
+   memstr[i] = '\0';
+
+   return RETVAL_OK;
+}
+
+TASK_RETVAL trepl_print( const struct astring* cli ) {
+   const char* tok = NULL;
+
+   tok = trepl_tok( cli, 1 );
+   if( NULL == tok ) {
+      return RETVAL_BAD_ARGS;
+   }
+
+   tprintf( "%s\n", tok );  
+
+   return RETVAL_OK;
+}
+
 /**
  * Map typed commands to callbacks.
  */
-#define COMMANDS_COUNT 3
+#define COMMANDS_COUNT 5
 static const struct api_command g_commands[COMMANDS_COUNT] = {
    { "sys", trepl_sys },
+   { "print", trepl_print },
+   { "let", trepl_let },
+   /* { "for", trepl_for },
+   { "if", trepl_if }, */
 #ifdef USE_NET
    { "net", trepl_net },
 #endif /* USE_NET */

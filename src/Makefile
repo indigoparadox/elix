@@ -139,17 +139,16 @@ $(BIN_WIN): CFLAGS += \
 $(BIN_WIN): LDFLAGS += -lwpcap
 $(BIN_WIN): OBJDIR := ../obj/windows/
 
-$(BIN_X86): CC := i586-elf-gcc
-$(BIN_X86): AS := i586-elf-gcc
-$(BIN_X86): LD := i586-elf-ld
+$(BIN_X86): CC := ia16-elf-gcc
+$(BIN_X86): AS := ia16-elf-gcc
+$(BIN_X86): LD := ia16-elf-ld
 $(BIN_X86): ASFLAGS := -c
 $(BIN_X86): CFLAGS += \
-	-march=i686 \
 	-DNO_STD_HEADERS \
 	-DQD_PLATFORM=QD_PLATFORM_X86 \
 	-DCONSOLE_NO_PRINTF_PTR \
 	-DGCC_REALMODE \
-	-DUTOA_BITS=32 \
+	-DUTOA_BITS=16 \
 	-DINIT_TASK="trepl_task" \
 	-ffreestanding \
 	-nostdlib \
@@ -249,7 +248,7 @@ $(ISODIRX86)/$(BIN_X86): $(BIN_X86)
 $(BIN_X86): $(OBJECTS) $(OBJECTS_APPS_X86) $(DRIVERS_X86) kernel.o
 	$(AS) x86/boot.s -o $(OBJDIR)boot.o $(ASFLAGS)
 	$(LD) -o $@ $(addprefix $(OBJDIR),$^) $(OBJDIR)boot.o $(LDFLAGS)
-	i586-elf-objcopy -O binary $(BIN_X86) x86-raw.bin
+	ia16-elf-objcopy -O binary $(BIN_X86) x86-raw.bin
 
 $(BIN_MSP430): $(OBJECTS) $(DRIVERS_MSP430) $(OBJECTS_APPS_MSP430) kernel.o
 	$(CC) -o $@ $(addprefix $(OBJDIR),$^) $(CFLAGS) $(LDFLAGS)
