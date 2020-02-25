@@ -221,6 +221,10 @@ struct mvar* mget_meta( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
    return var;
 }
 
+void mfree_all( TASK_PID pid ) {
+   /* TODO */
+}
+
 void mfree( TASK_PID pid, MEM_ID mid ) {
    MEMLEN_T mheap_addr_iter = 0;
    struct mvar* var = NULL;

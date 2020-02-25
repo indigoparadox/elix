@@ -106,6 +106,7 @@ void adhd_kill_task( TASK_PID pid ) {
    }
 
    /* TODO: Go through memory and remove any allocated blocks for this PID. */
+   mfree_all( pid );
    
    g_tasks[pid].callback = NULL;
 }

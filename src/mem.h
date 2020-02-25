@@ -54,6 +54,7 @@ struct mvar* mget_meta( TASK_PID pid, MEM_ID mid, MEMLEN_T sz );
 void mzero( void* dest, int sz );
 int mcopy( void* dest, const void* src, int sz );
 int mcompare( const void* c1, const void* c2, int sz );
+void mfree_all( TASK_PID pid );
 void mfree( TASK_PID pid, MEM_ID mid );
 
 /*! @} */

@@ -1,26 +1,10 @@
 
 #include "../code16.h"
 
-#include "../kernel.h"
-#include "../console.h"
-#include "../adhd.h"
+#include "repl.h"
 #include <mfat.h>
 #include <mbmp.h>
 #include "../net/net.h"
-
-#define CONSOLE_FLAG_INITIALIZED    0x01
-#define CONSOLE_FLAG_ANSI_SEQ       0x02
-
-/* Memory IDs for console tasks. */
-#define REPL_MID_LINE      101
-#define REPL_MID_CUR_POS   102
-#define REPL_MID_FLAGS     103
-
-#define REPL_LINE_SIZE_MAX 20
-
-TASK_RETVAL repl_command( struct astring* cli );
-
-extern uint8_t* g_mheap;
 
 const char qd_logo[8][16] = {
    "     _____     ",
@@ -33,9 +17,9 @@ const char qd_logo[8][16] = {
    "               "
 };
 
-TASK_RETVAL trepl_task();
+/* Utility Functions */
 
-static const char* trepl_tok( struct astring* cli, uint8_t idx ) {
+const char* trepl_tok( struct astring* cli, uint8_t idx ) {
    const char* tok = NULL;
    STRLEN_T sigil_start = 0;
    STRLEN_T i = 0;
@@ -89,13 +73,13 @@ static const char* trepl_tok( struct astring* cli, uint8_t idx ) {
 
 #ifdef USE_NET
 
-static TASK_RETVAL tnet_start( struct astring* cli ) {
+static TASK_RETVAL tnet_start( struct astring* cli, TASK_PID repl_pid ) {
    tprintf( "start?\n" );
    adhd_launch_task( net_respond_task );
    return RETVAL_OK;
 }
 
-static TASK_RETVAL tnet_rcvd( struct astring* cli ) {
+static TASK_RETVAL tnet_rcvd( struct astring* cli, TASK_PID repl_pid ) {
    const int* received = NULL;
    TASK_PID pid;
 
@@ -112,7 +96,7 @@ const struct api_command g_net_commands[NET_COMMANDS_COUNT] = {
    { "start", tnet_start },
 };
 
-static TASK_RETVAL trepl_net( struct astring* cli ) {
+static TASK_RETVAL trepl_net( struct astring* cli, TASK_PID repl_pid ) {
    const char* tok;
    uint8_t i = 0;
 
@@ -126,7 +110,7 @@ static TASK_RETVAL trepl_net( struct astring* cli ) {
          tok, CMD_MAX_LEN, g_net_commands[i].command, CMD_MAX_LEN, '\0',
          false, false
       ) ) {
-         return g_net_commands[i].callback( cli );
+         return g_net_commands[i].callback( cli, repl_pid );
       }
    }
 
@@ -135,26 +119,26 @@ static TASK_RETVAL trepl_net( struct astring* cli ) {
 
 #endif /* USE_NET */
 
-static TASK_RETVAL tsys_proc( struct astring* cli ) {
+static TASK_RETVAL tsys_proc( struct astring* cli, TASK_PID repl_pid ) {
    const char* task_gid = NULL;
    TASK_PID i = 0;
 
    for( i = 0 ; ADHD_TASKS_MAX > i ; i++ ) {
       task_gid = adhd_get_gid_by_pid( i );
       if( NULL != task_gid ) {
-         tprintf( "%d\t%a\n", i, task_gid );
+         tprintf( "%d\t\"%s\"\n", i, task_gid );
       }
    }
    
    return RETVAL_OK;
 }
 
-static TASK_RETVAL tsys_exit( struct astring* cli ) {
+static TASK_RETVAL tsys_exit( struct astring* cli, TASK_PID repl_pid ) {
    g_system_state = SYSTEM_SHUTDOWN;
    return RETVAL_OK;
 }
 
-static TASK_RETVAL tsys_mem( struct astring* cli ) {
+static TASK_RETVAL tsys_mem( struct astring* cli, TASK_PID repl_pid ) {
    tprintf(
       "mem:\nused: %d\ntotal: %d\nfree: %d\n",
       get_mem_used(), MEM_HEAP_SIZE, MEM_HEAP_SIZE - get_mem_used()
@@ -164,7 +148,7 @@ static TASK_RETVAL tsys_mem( struct astring* cli ) {
 
 #ifdef USE_DISK
 
-static TASK_RETVAL tdisk_dir( struct astring* cli ) {
+static TASK_RETVAL tdisk_dir( struct astring* cli, TASK_PID repl_pid ) {
    const char* tok;
    uint16_t offset = 0;
    char filename[13];
@@ -214,7 +198,7 @@ static TASK_RETVAL tdisk_dir( struct astring* cli ) {
 }
 
 #if 0
-static TASK_RETVAL tdisk_fat( struct astring* cli ) {
+static TASK_RETVAL tdisk_fat( struct astring* cli, TASK_PID repl_pid ) {
    uint16_t i = 0;
    uint16_t entries_count = 0;
    uint16_t fat_entry = 0;
@@ -274,7 +258,7 @@ static TASK_RETVAL tdisk_fat( struct astring* cli ) {
 
 #ifndef USE_DISK_RO
 
-static TASK_RETVAL tdisk_touch( struct astring* cli ) {
+static TASK_RETVAL tdisk_touch( struct astring* cli, TASK_PID repl_pid ) {
    const char* tok;
    uint32_t offset = 0;
 
@@ -310,7 +294,7 @@ static TASK_RETVAL tdisk_touch( struct astring* cli ) {
 
 #endif /* !USE_DISK_RO */
 
-static TASK_RETVAL tdisk_cat( struct astring* cli ) {
+static TASK_RETVAL tdisk_cat( struct astring* cli, TASK_PID repl_pid ) {
    const char* tok;
    uint32_t offset = 0;
    char buffer[MFAT_FILENAME_LEN + 1];
@@ -345,7 +329,7 @@ static TASK_RETVAL tdisk_cat( struct astring* cli ) {
 #if 0
 #ifdef USE_BMP
 
-static TASK_RETVAL tdisk_bmp( struct astring* cli ) {
+static TASK_RETVAL tdisk_bmp( struct astring* cli, TASK_PID repl_pid ) {
    const char* tok;
    FILEPTR_T offset = 0;
 
@@ -370,7 +354,7 @@ static TASK_RETVAL tdisk_bmp( struct astring* cli ) {
 
 #endif /* USE_DISK */
 
-TASK_RETVAL trepl_let( struct astring* cli ) {
+TASK_RETVAL trepl_let( struct astring* cli, TASK_PID repl_pid ) {
    uint8_t idx = 0;
    STRLEN_T len = 0;
    const char* tok = NULL;
@@ -405,7 +389,7 @@ TASK_RETVAL trepl_let( struct astring* cli ) {
    return RETVAL_OK;
 }
 
-TASK_RETVAL trepl_print( struct astring* cli ) {
+TASK_RETVAL trepl_print( struct astring* cli, TASK_PID repl_pid ) {
    const char* tok = NULL;
 
    tok = trepl_tok( cli, 1 );
@@ -418,7 +402,7 @@ TASK_RETVAL trepl_print( struct astring* cli ) {
    return RETVAL_OK;
 }
 
-TASK_RETVAL trepl_if( struct astring* cli ) {
+TASK_RETVAL trepl_if( struct astring* cli, TASK_PID repl_pid ) {
    const char* tok1 = NULL;
    const char* tok2 = NULL;
    STRLEN_T i = 0;
@@ -453,7 +437,7 @@ TASK_RETVAL trepl_if( struct astring* cli ) {
    alpha_replace( '\0', ' ', cli );
    alpha_astring_rtrunc( cli, (len1 + len2 + 3 /* Spaces */ + 3 /* ife */) );
 
-   repl_command( cli );
+   repl_command( cli, repl_pid );
 
 #if DEBUG_REPL
    tprintf( "true\n" );
@@ -488,7 +472,7 @@ static const struct api_command g_commands[COMMANDS_COUNT] = {
 #endif /* USE_DISK */
 };
 
-TASK_RETVAL repl_command( struct astring* cli ) {
+TASK_RETVAL repl_command( struct astring* cli, TASK_PID repl_pid ) {
    uint8_t i = 0;
    TASK_RETVAL retval = 0;
 
@@ -499,13 +483,13 @@ TASK_RETVAL repl_command( struct astring* cli ) {
          0 == alpha_cmp_c( g_commands[i].command, CMD_MAX_LEN, cli, '\0',
             false, 3 )
       ) {
-         return g_commands[i].callback( cli );
+         return g_commands[i].callback( cli, repl_pid );
       }
    }
 
    /* Could not find an internal command. Try installed apps. */
    for( i = 0 ; g_console_apps_top > i ; i++ ) {
-      retval = g_console_apps[i]( cli );
+      retval = g_console_apps[i]( cli, repl_pid );
       if( RETVAL_NOT_FOUND != retval ) {
          return retval;
       }
@@ -531,22 +515,22 @@ TASK_RETVAL trepl_task() {
     * we will reinitialize once whatever other app is done with it.
     */
    if( g_console_pid != 0 && g_console_pid != adhd_get_pid() ) {
-      *flags &= ~CONSOLE_FLAG_INITIALIZED;
+      *flags &= ~REPL_FLAG_INITIALIZED;
       mfree( adhd_get_pid(), REPL_MID_LINE );
       adhd_yield();
    }
 
-   if( !(*flags & CONSOLE_FLAG_INITIALIZED) ) {
+   if( !(*flags & REPL_FLAG_INITIALIZED) ) {
       for( i = 0 ; 8 > i ; i++ ) {
          tprintf( qd_logo[i] );
          tprintf( "\n" );
       }
       tprintf( "ELix console v" VERSION "\n" );
-#ifndef CONSOLE_NO_PRINTF_PTR
+#ifndef REPL_NO_PRINTF_PTR
       tprintf( "ptr %d bytes\n", sizeof( void* ) );
-#endif /* CONSOLE_NO_PRINTF_PTR */
+#endif /* REPL_NO_PRINTF_PTR */
       tprintf( "ready\n" );
-      *flags |= CONSOLE_FLAG_INITIALIZED;
+      *flags |= REPL_FLAG_INITIALIZED;
    }
 
    if( !twaitc() ) {
@@ -577,10 +561,10 @@ TASK_RETVAL trepl_task() {
       case '\r':
       case '\n':
          /* Reset any pending ANSI flag. */
-         *flags &= ~CONSOLE_FLAG_ANSI_SEQ;
+         *flags &= ~REPL_FLAG_ANSI_SEQ;
 
          tprintf( "\n" );
-         retval = repl_command( line );
+         retval = repl_command( line, adhd_get_pid() );
 
          if( RETVAL_NOT_FOUND == retval ) {
             tprintf( "invalid\n" );
@@ -599,11 +583,11 @@ TASK_RETVAL trepl_task() {
          break;
 
       case 27:
-         *flags |= CONSOLE_FLAG_ANSI_SEQ;
+         *flags |= REPL_FLAG_ANSI_SEQ;
          break;
 
       default:
-         if( *flags & CONSOLE_FLAG_ANSI_SEQ ) {
+         if( *flags & REPL_FLAG_ANSI_SEQ ) {
             if( 'A' == c ) {
                /* Up */
             } else if( 'B' == c ) {
@@ -619,7 +603,7 @@ TASK_RETVAL trepl_task() {
             }
 
             /* Reset pending ANSI flag. */
-            *flags &= ~CONSOLE_FLAG_ANSI_SEQ;
+            *flags &= ~REPL_FLAG_ANSI_SEQ;
             break;
          }
 

@@ -45,6 +45,7 @@ SOURCES= \
 
 SOURCES_APPS_COLINUX= \
 	apps/repl.c \
+	apps/medlin.c \
 	apps/microd.c \
 	apps/xmodem.c
 
@@ -161,7 +162,7 @@ $(BIN_X86): ASFLAGS := -c
 $(BIN_X86): CFLAGS += \
 	-DNO_STD_HEADERS \
 	-DQD_PLATFORM=QD_PLATFORM_X86 \
-	-DCONSOLE_NO_PRINTF_PTR \
+	-DREPL_NO_PRINTF_PTR \
 	-DGCC_REALMODE \
 	-DUTOA_BITS=16 \
 	-DINIT_TASK="trepl_task" \
