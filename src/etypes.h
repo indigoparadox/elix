@@ -138,7 +138,7 @@ typedef TASK_RETVAL (*ADHD_TASK)();
 
 /*! \brief Callback, process console cmds and decide if their app handles them.
  */
-typedef TASK_RETVAL (*CONSOLE_CMD)( const struct astring* );
+typedef TASK_RETVAL (*CONSOLE_CMD)( struct astring* );
 
 #define PID_MAIN 1
 #define PID_FIRST 1

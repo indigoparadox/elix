@@ -13,6 +13,8 @@
 #define TASK_PID_INVALID -1
 
 #define RETVAL_OK 0
+#define RETVAL_FALSE 0
+#define RETVAL_TRUE 1
 #define RETVAL_INVALID_PID 0
 #define RETVAL_YIELD 254
 #define RETVAL_NOT_FOUND 253

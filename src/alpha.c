@@ -163,6 +163,18 @@ void alpha_astring_trunc( struct astring* str, STRLEN_T diff ) {
    }
 }
 
+void alpha_astring_rtrunc( struct astring* str, STRLEN_T diff ) {
+   STRLEN_T i = 0;
+   STRLEN_T new_len = str->len - diff;
+   assert( NULL != str );
+   if( str->len - diff >= 0 ) {
+      for( i = 0 ; new_len > i ; i++ ) {
+         str->data[i] = str->data[i + diff];
+      }
+      str->data[new_len] = '\0';
+   }
+}
+
 struct astring*
 alpha_astring( uint8_t pid, MEM_ID mid, STRLEN_T len, const char* str ) {
    struct astring* str_out = NULL;

@@ -49,6 +49,7 @@ STRLEN_T alpha_utoa( UTOA_T num, struct astring* dest, uint8_t base );
 STRLEN_T alpha_charinstr( char c, const struct astring* string );
 void alpha_astring_append( struct astring* str, char c );
 void alpha_astring_trunc( struct astring* str, STRLEN_T diff );
+void alpha_astring_rtrunc( struct astring* str, STRLEN_T diff );
 
 /*! \brief Clear the contents of an astring without reducing its allocation.
  */
