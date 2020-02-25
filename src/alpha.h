@@ -56,6 +56,7 @@ void alpha_astring_clear( struct astring* str );
 struct astring* alpha_astring(
    uint8_t pid, MEM_ID mid, STRLEN_T len, const char* str );
 struct astring* alpha_astring_list_next( const struct astring* );
+void alpha_replace( char c, char r, struct astring* string );
 STRLEN_T alpha_cmp(
    const struct astring* str1, const struct astring* str2, char sep,
    bool case_match, uint8_t len_match );

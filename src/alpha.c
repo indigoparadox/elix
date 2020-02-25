@@ -112,6 +112,16 @@ STRLEN_T alpha_utoa_c(
    return digits;
 }
 
+void alpha_replace( char c, char r, struct astring* string ) {
+   STRLEN_T idx = 0;
+
+   idx = alpha_charinstr_c( c, string->data, string->len );
+   while( ASTR_NOT_FOUND != idx ) {
+      string->data[idx] = r;
+      idx = alpha_charinstr_c( c, string->data, string->len );
+   }
+}
+
 STRLEN_T alpha_charinstr( char c, const struct astring* string ) {
    return alpha_charinstr_c( c, string->data, string->len );
 }

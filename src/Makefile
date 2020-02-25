@@ -8,6 +8,7 @@ BIN_MSP430=qd430.bin
 BIN_X86=qd86.bin
 ISO_X86=qd86.iso
 IMG_X86=qd86.img
+ASM_LIN=qdlxs
 
 define SYSLINUXCFG =
 DEFAULT $(BIN_X86)
@@ -128,6 +129,20 @@ $(BIN_LIN): LDFLAGS += \
 #	-lchiipy
 $(BIN_LIN): OBJDIR := ../obj/linux/
 
+$(ASM_LIN): CFLAGS += \
+	-DUSE_EXT_CLI \
+	-DUSE_NET \
+	-DUSE_BMP \
+	-DUSE_DISK \
+	-DINIT_TASK="trepl_task" \
+	-DQD_PLATFORM=QD_PLATFORM_COLINUX \
+	-DDEBUG \
+	-DMBMP_AGGRESSIVE_VALIDATE \
+	-DCOLINUX_TERMIOS \
+	$(DEBUG_FLAGS)
+#	-DALPHA_CMP_DEBUG
+$(ASM_LIN): ASMDIR := ../asm/linux/
+
 $(BIN_WIN): CC := i686-w64-mingw32-g
 $(BIN_WIN): CFLAGS += \
 	-DNET_CON_ECHO \
@@ -221,7 +236,15 @@ tests: CFLAGS += \
 	-DMEM_SAVE
 tests: OBJDIR := ../obj/tests/
 
+ASMS=$(subst .c,.s,$(SOURCES))
+ASMS_APPS_X86=$(subst .c,.s,$(SOURCES_APPS_X86))
+ASMS_APPS_COLINUX=$(subst .c,.s,$(SOURCES_APPS_COLINUX))
+ASMS_NET=$(subst .c,.s,$(SOURCES_NET))
+ASMS_DRIVERS_COLINUX=$(subst .c,.s,$(DRIVERS_COLINUX))
+
 all:
+
+$(ASM_LIN): $(ASMS) $(ASMS_NET) $(ASMS_APPS_COLINUX) $(ASMS_DRIVERS_COLINUX) colinux/boot.s kernel.s
 
 $(BIN_LIN): $(OBJECTS) $(OBJECTS_NET) $(OBJECTS_APPS_COLINUX) $(DRIVERS_COLINUX) colinux/boot.o kernel.o
 	$(CC) -o $@ $(addprefix $(OBJDIR),$^) $(LDFLAGS)
@@ -263,6 +286,11 @@ docs:
 	$(MD) $(OBJDIR)$(dir $@)
 	$(CC) -c -o $(OBJDIR)$@ $< $(CFLAGS)
 
+%.s: %.c
+	$(MD) $(ASMDIR)$(dir $@)
+	$(CC) -s -o $(ASMDIR)$@ $< $(CFLAGS)
+
+.PHONY: clean
 .PHONY: clean
 
 clean:

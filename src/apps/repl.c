@@ -38,30 +38,48 @@ TASK_RETVAL trepl_task();
 
 static const char* trepl_tok( const struct astring* cli, uint8_t idx ) {
    const char* tok = NULL;
-   uint8_t sigil = 0;
+   STRLEN_T sigil_start = 0;
    STRLEN_T i = 0;
    STRLEN_T len = 0;
+   STRLEN_T sigil_val = 0;
+   STRLEN_T sigil_len = 0;
 
-   tok = alpha_tok( cli, ' ', idx );
-   tprintf( "$s\n", tok );
+   tok = alpha_tok( cli, '\0', idx );
+   if( NULL == tok ) {
+      return tok;
+   }
    len = alpha_strlen_c( tok, CMD_MAX_LEN );
+#ifdef DEBUG_REPL
+   tprintf( "tok: %s (%d)\n", tok, len );
+#endif /* DEBUG_REPL */
    for( i = 0 ; len > i ; i++ ) {
-      switch( tok[i] ) {
-      case '$':
-         if( sigil ) {
-            /* TODO: This will double-sigil, so fix? */
-            sigil = 0;
-         } else {
-            sigil = 1;
-         }
-         break;
+      /* TODO: Deal with double sigil/replace var in buffer. */
+      if( '$' == tok[i] && 0 >= sigil_start ) {
+         /* Start grabbing the variable index. */
+         sigil_start = i + 1;
+         sigil_len = 0;
 
-      default:
-         if( sigil ) {
-            tok = mget( adhd_get_pid_by_gid( "repl" ), 2, len );
+      } else if( alpha_isdigit( tok[i] ) && sigil_start > 0 ) {
+         /* Continue grabbing the variable index. */
+         sigil_len++;
+
+         if( i + 1 >= len || !alpha_isdigit( tok[i + 1] ) ) {
+            /* Stop grabbing the variable index. */
+#ifdef DEBUG_REPL
+            tprintf( "sigil capture ends at: %d\n", i );
+            tprintf( "sigil start: %d len: %d\n", sigil_start, sigil_len );
+#endif /* DEBUG_REPL */
+            sigil_val = alpha_atou_c( &(tok[sigil_start]), sigil_len, 10 );
+            sigil_start = 0;
+#ifdef DEBUG_REPL
+            tprintf( "getting cell #%d\n", sigil_val );
+#endif /* DEBUG_REPL */
+            tok = mget( adhd_get_pid_by_gid( "repl" ), sigil_val, len + 1 );
+            if( NULL != tok ) {
+               return tok;
+            }
+
          }
-         sigil = 0;
-         break;
       }
    }
    
@@ -106,7 +124,7 @@ static TASK_RETVAL trepl_net( const struct astring* cli ) {
 
    for( i = 0 ; NET_COMMANDS_COUNT > i ; i++ ) {
       if( 0 == alpha_cmp_cc(
-         tok, CMD_MAX_LEN, g_net_commands[i].command, CMD_MAX_LEN, ' ',
+         tok, CMD_MAX_LEN, g_net_commands[i].command, CMD_MAX_LEN, '\0',
          false, false
       ) ) {
          return g_net_commands[i].callback( cli );
@@ -145,34 +163,6 @@ static TASK_RETVAL tsys_mem( const struct astring* cli ) {
    return RETVAL_OK;
 }
 
-#define SYS_COMMANDS_COUNT 3
-const struct api_command g_sys_commands[SYS_COMMANDS_COUNT] = {
-   { "exit", tsys_exit },
-   { "mem", tsys_mem },
-   { "proc", tsys_proc }
-};
-
-static TASK_RETVAL trepl_sys( const struct astring* cli ) {
-   const char* tok;
-   uint8_t i = 0;
-
-   tok = trepl_tok( cli, 1 );
-   if( NULL == tok ) {
-      return 1;
-   }
-
-   for( i = 0 ; SYS_COMMANDS_COUNT > i ; i++ ) {
-      if( 0 == alpha_cmp_cc(
-         tok, CMD_MAX_LEN, g_sys_commands[i].command, CMD_MAX_LEN, ' ',
-         false, false
-      ) ) {
-         return g_sys_commands[i].callback( cli );
-      }
-   }
-
-   return RETVAL_BAD_ARGS;
-}
-
 #ifdef USE_DISK
 
 static TASK_RETVAL tdisk_dir( const struct astring* cli ) {
@@ -186,7 +176,7 @@ static TASK_RETVAL tdisk_dir( const struct astring* cli ) {
    offset = mfat_get_root_dir_offset( 0, 0 );
    offset = mfat_get_dir_entry_first_offset( offset, 0, 0 );
 
-   tok = trepl_tok( cli, 2 );
+   tok = trepl_tok( cli, 1 );
 
    mzero( filename, 13 );
    mzero( attrib_str, 5 );
@@ -224,6 +214,7 @@ static TASK_RETVAL tdisk_dir( const struct astring* cli ) {
    return RETVAL_OK;
 }
 
+#if 0
 static TASK_RETVAL tdisk_fat( const struct astring* cli ) {
    uint16_t i = 0;
    uint16_t entries_count = 0;
@@ -280,6 +271,7 @@ static TASK_RETVAL tdisk_fat( const struct astring* cli ) {
 
    return RETVAL_OK;
 }
+#endif
 
 #ifndef USE_DISK_RO
 
@@ -287,7 +279,7 @@ static TASK_RETVAL tdisk_touch( const struct astring* cli ) {
    const char* tok;
    uint32_t offset = 0;
 
-   tok = alpha_tok( cli, ' ', 2 );
+   tok = trepl_tok( cli, 1 );
    if( NULL == tok ) {
       return RETVAL_BAD_ARGS;
    }
@@ -328,7 +320,7 @@ static TASK_RETVAL tdisk_cat( const struct astring* cli ) {
 
    mzero( buffer, MFAT_FILENAME_LEN );
 
-   tok = trepl_tok( cli, 2 );
+   tok = trepl_tok( cli, 1 );
    if( NULL == tok ) {
       return RETVAL_BAD_ARGS;
    }
@@ -351,13 +343,14 @@ static TASK_RETVAL tdisk_cat( const struct astring* cli ) {
    return RETVAL_OK;
 }
 
+#if 0
 #ifdef USE_BMP
 
 static TASK_RETVAL tdisk_bmp( const struct astring* cli ) {
    const char* tok;
    FILEPTR_T offset = 0;
 
-   tok = trepl_tok( cli, 2 );
+   tok = trepl_tok( cli, 1 );
    if( NULL == tok ) {
       return RETVAL_BAD_ARGS;
    }
@@ -374,40 +367,7 @@ static TASK_RETVAL tdisk_bmp( const struct astring* cli ) {
 }
 
 #endif /* USE_BMP */
-
-#define DISK_COMMANDS_COUNT 5
-const struct api_command g_disk_commands[DISK_COMMANDS_COUNT] = {
-#ifdef USE_BMP
-   { "bmp", tdisk_bmp },
-#endif /* USE_BMP */
-   { "dir", tdisk_dir },
-#ifndef USE_DISK_RO
-   { "touch", tdisk_touch },
-#endif /* !USE_DISK_RO */
-   { "fat", tdisk_fat },
-   { "cat", tdisk_cat }
-};
-
-static TASK_RETVAL trepl_disk( const struct astring* cli ) {
-   const char* tok;
-   uint8_t i = 0;
-
-   tok = trepl_tok( cli, 1 );
-   if( NULL == tok ) {
-      return 1;
-   }
-
-   for( i = 0 ; DISK_COMMANDS_COUNT > i ; i++ ) {
-      if( 0 == alpha_cmp_cc(
-         tok, CMD_MAX_LEN, g_disk_commands[i].command, CMD_MAX_LEN, ' ',
-         false, false
-      ) ) {
-         return g_disk_commands[i].callback( cli );
-      }
-   }
-
-   return RETVAL_BAD_ARGS;
-}
+#endif
 
 #endif /* USE_DISK */
 
@@ -423,7 +383,6 @@ TASK_RETVAL trepl_let( const struct astring* cli ) {
       return RETVAL_BAD_ARGS;
    }
    idx = alpha_atou_c( tok, CMD_MAX_LEN, 10 );
-   tprintf( "%s\n%d\n", tok, idx );
 
    tok = trepl_tok( cli, 2 );
    if( NULL == tok ) {
@@ -433,10 +392,13 @@ TASK_RETVAL trepl_let( const struct astring* cli ) {
    memstr = mget( adhd_get_pid_by_gid( "repl" ), idx, len );
 
    for( i = 0 ; len > i ; i++ ) {
-      tprintf( "%c", tok[i] );
       memstr[i] = tok[i];
    }
    memstr[i] = '\0';
+
+#ifdef DEBUG_REPL
+   tprintf( "set $%d to %s\n", idx, memstr );
+#endif /* DEBUG_REPL */
 
    return RETVAL_OK;
 }
@@ -457,28 +419,38 @@ TASK_RETVAL trepl_print( const struct astring* cli ) {
 /**
  * Map typed commands to callbacks.
  */
-#define COMMANDS_COUNT 5
+#define COMMANDS_COUNT 10
 static const struct api_command g_commands[COMMANDS_COUNT] = {
-   { "sys", trepl_sys },
-   { "print", trepl_print },
+#ifdef USE_DISK
+   { "cat", tdisk_cat },
+   { "dir", tdisk_dir },
+#endif /* USE_DISK */
+   { "exit", tsys_exit },
    { "let", trepl_let },
    /* { "for", trepl_for },
    { "if", trepl_if }, */
+   { "mem", tsys_mem },
 #ifdef USE_NET
    { "net", trepl_net },
 #endif /* USE_NET */
+   { "print", trepl_print },
+   { "proc", tsys_proc }
 #ifdef USE_DISK
-   { "dsk", trepl_disk }
+#ifndef USE_DISK_RO
+   , { "touch", tdisk_touch }
+#endif /* !USE_DISK_RO */
 #endif /* USE_DISK */
 };
 
-TASK_RETVAL repl_command( const struct astring* cli ) {
+TASK_RETVAL repl_command( struct astring* cli ) {
    uint8_t i = 0;
    TASK_RETVAL retval = 0;
 
+   alpha_replace( ' ', '\0', cli );
+
    for( i = 0 ; COMMANDS_COUNT > i ; i++ ) {
       if(
-         0 == alpha_cmp_c( g_commands[i].command, CMD_MAX_LEN, cli, ' ',
+         0 == alpha_cmp_c( g_commands[i].command, CMD_MAX_LEN, cli, '\0',
             false, 3 )
       ) {
          return g_commands[i].callback( cli );
