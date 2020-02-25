@@ -3,12 +3,45 @@
 #include <stdlib.h>
 #include <string.h>
 
+int total_mem = 0;
+
 struct replex {
    char c;
    struct replex* peer_up;
    struct replex* peer_down;
    struct replex* next;
+   /* func ptr */
 };
+
+char* print_tree( struct replex* root, int depth, char* chainstr ) {
+   char* retstr = NULL;
+   char* peerupstr = NULL;
+   char* peerdnstr = NULL;
+   char* childstr = NULL;
+
+   retstr = calloc( 256, 1 );
+
+   if( NULL == root || '\0' == root->c ) {
+      snprintf( retstr, 255, "NULL" );
+      return retstr;
+   }
+
+   strncat( chainstr, &(root->c), 1 );
+
+   peerupstr = print_tree( root->peer_up, depth );
+   peerdnstr = print_tree( root->peer_down, depth );
+   childstr = print_tree( root->next, depth + 1 );
+
+   printf( "const struct replex %s = { '%c', %s, %s, %s };\n",
+      chainstr, root->c, peerupstr, peerdnstr, childstr );
+   free( peerupstr );
+   free( peerdnstr );
+   free( childstr );
+
+   total_mem = 1 + 2 + 2 + 2 + 2;
+
+   return retstr;
+}
 
 struct replex* add_char( struct replex* branch, char c ) {
    if( '\0' == branch->c ) {
@@ -45,6 +78,7 @@ int main( void ) {
    while( NULL != fgets( buffer, 4096, f ) ) {
 
       printf( "\nline: %s", buffer );
+      last_char = &root;
  
       for( pos = 0 ; strlen( buffer ) > pos ; pos++ ) {
          if( '\n' == buffer[pos] ) {
@@ -105,6 +139,10 @@ int main( void ) {
          #endif
       }
    }
+
+   print_tree( &root, 0 );
+
+   printf( "total storage: %d\n", total_mem );
 
    fclose( f );
 
