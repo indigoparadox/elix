@@ -5,4 +5,3 @@ let
 mem
 net
 print
-sys
