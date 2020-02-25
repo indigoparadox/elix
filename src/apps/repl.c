@@ -73,13 +73,13 @@ const char* trepl_tok( struct astring* cli, uint8_t idx ) {
 
 #ifdef USE_NET
 
-static TASK_RETVAL tnet_start( struct astring* cli, TASK_PID repl_pid ) {
+static TASK_RETVAL tnet_start( struct astring* cli ) {
    tprintf( "start?\n" );
    adhd_launch_task( net_respond_task );
    return RETVAL_OK;
 }
 
-static TASK_RETVAL tnet_rcvd( struct astring* cli, TASK_PID repl_pid ) {
+static TASK_RETVAL tnet_rcvd( struct astring* cli ) {
    const int* received = NULL;
    TASK_PID pid;
 
@@ -96,7 +96,7 @@ const struct api_command g_net_commands[NET_COMMANDS_COUNT] = {
    { "start", tnet_start },
 };
 
-static TASK_RETVAL trepl_net( struct astring* cli, TASK_PID repl_pid ) {
+static TASK_RETVAL trepl_net( struct astring* cli ) {
    const char* tok;
    uint8_t i = 0;
 
@@ -110,7 +110,7 @@ static TASK_RETVAL trepl_net( struct astring* cli, TASK_PID repl_pid ) {
          tok, CMD_MAX_LEN, g_net_commands[i].command, CMD_MAX_LEN, '\0',
          false, false
       ) ) {
-         return g_net_commands[i].callback( cli, repl_pid );
+         return g_net_commands[i].callback( cli );
       }
    }
 
@@ -119,7 +119,7 @@ static TASK_RETVAL trepl_net( struct astring* cli, TASK_PID repl_pid ) {
 
 #endif /* USE_NET */
 
-static TASK_RETVAL tsys_proc( struct astring* cli, TASK_PID repl_pid ) {
+static TASK_RETVAL tsys_proc( struct astring* cli ) {
    const char* task_gid = NULL;
    TASK_PID i = 0;
 
@@ -133,12 +133,12 @@ static TASK_RETVAL tsys_proc( struct astring* cli, TASK_PID repl_pid ) {
    return RETVAL_OK;
 }
 
-static TASK_RETVAL tsys_exit( struct astring* cli, TASK_PID repl_pid ) {
+static TASK_RETVAL tsys_exit( struct astring* cli ) {
    g_system_state = SYSTEM_SHUTDOWN;
    return RETVAL_OK;
 }
 
-static TASK_RETVAL tsys_mem( struct astring* cli, TASK_PID repl_pid ) {
+static TASK_RETVAL tsys_mem( struct astring* cli ) {
    tprintf(
       "mem:\nused: %d\ntotal: %d\nfree: %d\n",
       get_mem_used(), MEM_HEAP_SIZE, MEM_HEAP_SIZE - get_mem_used()
@@ -148,7 +148,7 @@ static TASK_RETVAL tsys_mem( struct astring* cli, TASK_PID repl_pid ) {
 
 #ifdef USE_DISK
 
-static TASK_RETVAL tdisk_dir( struct astring* cli, TASK_PID repl_pid ) {
+static TASK_RETVAL tdisk_dir( struct astring* cli ) {
    const char* tok;
    uint16_t offset = 0;
    char filename[13];
@@ -198,7 +198,7 @@ static TASK_RETVAL tdisk_dir( struct astring* cli, TASK_PID repl_pid ) {
 }
 
 #if 0
-static TASK_RETVAL tdisk_fat( struct astring* cli, TASK_PID repl_pid ) {
+static TASK_RETVAL tdisk_fat( struct astring* cli ) {
    uint16_t i = 0;
    uint16_t entries_count = 0;
    uint16_t fat_entry = 0;
@@ -258,7 +258,7 @@ static TASK_RETVAL tdisk_fat( struct astring* cli, TASK_PID repl_pid ) {
 
 #ifndef USE_DISK_RO
 
-static TASK_RETVAL tdisk_touch( struct astring* cli, TASK_PID repl_pid ) {
+static TASK_RETVAL tdisk_touch( struct astring* cli ) {
    const char* tok;
    uint32_t offset = 0;
 
@@ -294,7 +294,7 @@ static TASK_RETVAL tdisk_touch( struct astring* cli, TASK_PID repl_pid ) {
 
 #endif /* !USE_DISK_RO */
 
-static TASK_RETVAL tdisk_cat( struct astring* cli, TASK_PID repl_pid ) {
+static TASK_RETVAL tdisk_cat( struct astring* cli ) {
    const char* tok;
    uint32_t offset = 0;
    char buffer[MFAT_FILENAME_LEN + 1];
@@ -329,7 +329,7 @@ static TASK_RETVAL tdisk_cat( struct astring* cli, TASK_PID repl_pid ) {
 #if 0
 #ifdef USE_BMP
 
-static TASK_RETVAL tdisk_bmp( struct astring* cli, TASK_PID repl_pid ) {
+static TASK_RETVAL tdisk_bmp( struct astring* cli ) {
    const char* tok;
    FILEPTR_T offset = 0;
 
@@ -354,7 +354,7 @@ static TASK_RETVAL tdisk_bmp( struct astring* cli, TASK_PID repl_pid ) {
 
 #endif /* USE_DISK */
 
-TASK_RETVAL trepl_let( struct astring* cli, TASK_PID repl_pid ) {
+TASK_RETVAL trepl_let( struct astring* cli ) {
    uint8_t idx = 0;
    STRLEN_T len = 0;
    const char* tok = NULL;
@@ -389,7 +389,7 @@ TASK_RETVAL trepl_let( struct astring* cli, TASK_PID repl_pid ) {
    return RETVAL_OK;
 }
 
-TASK_RETVAL trepl_print( struct astring* cli, TASK_PID repl_pid ) {
+TASK_RETVAL trepl_print( struct astring* cli ) {
    const char* tok = NULL;
 
    tok = trepl_tok( cli, 1 );
@@ -402,7 +402,7 @@ TASK_RETVAL trepl_print( struct astring* cli, TASK_PID repl_pid ) {
    return RETVAL_OK;
 }
 
-TASK_RETVAL trepl_if( struct astring* cli, TASK_PID repl_pid ) {
+TASK_RETVAL trepl_if( struct astring* cli ) {
    const char* tok1 = NULL;
    const char* tok2 = NULL;
    STRLEN_T i = 0;
@@ -437,7 +437,7 @@ TASK_RETVAL trepl_if( struct astring* cli, TASK_PID repl_pid ) {
    alpha_replace( '\0', ' ', cli );
    alpha_astring_rtrunc( cli, (len1 + len2 + 3 /* Spaces */ + 3 /* ife */) );
 
-   repl_command( cli, repl_pid );
+   repl_command( cli );
 
 #if DEBUG_REPL
    tprintf( "true\n" );
@@ -472,7 +472,7 @@ static const struct api_command g_commands[COMMANDS_COUNT] = {
 #endif /* USE_DISK */
 };
 
-TASK_RETVAL repl_command( struct astring* cli, TASK_PID repl_pid ) {
+TASK_RETVAL repl_command( struct astring* cli ) {
    uint8_t i = 0;
    TASK_RETVAL retval = 0;
 
@@ -483,13 +483,13 @@ TASK_RETVAL repl_command( struct astring* cli, TASK_PID repl_pid ) {
          0 == alpha_cmp_c( g_commands[i].command, CMD_MAX_LEN, cli, '\0',
             false, 3 )
       ) {
-         return g_commands[i].callback( cli, repl_pid );
+         return g_commands[i].callback( cli );
       }
    }
 
    /* Could not find an internal command. Try installed apps. */
    for( i = 0 ; g_console_apps_top > i ; i++ ) {
-      retval = g_console_apps[i]( cli, repl_pid );
+      retval = g_console_apps[i]( cli );
       if( RETVAL_NOT_FOUND != retval ) {
          return retval;
       }
@@ -564,7 +564,7 @@ TASK_RETVAL trepl_task() {
          *flags &= ~REPL_FLAG_ANSI_SEQ;
 
          tprintf( "\n" );
-         retval = repl_command( line, adhd_get_pid() );
+         retval = repl_command( line );
 
          if( RETVAL_NOT_FOUND == retval ) {
             tprintf( "invalid\n" );

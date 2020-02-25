@@ -18,7 +18,7 @@
 
 TASK_RETVAL trepl_task();
 const char* trepl_tok( struct astring* cli, uint8_t idx );
-TASK_RETVAL repl_command( struct astring* cli, TASK_PID repl_pid );
+TASK_RETVAL repl_command( struct astring* cli );
 
 #endif /* REPL_H */
 

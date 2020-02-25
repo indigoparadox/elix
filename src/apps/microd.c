@@ -13,11 +13,11 @@ TASK_RETVAL microd_task() {
    adhd_end_loop();
 }
 
-TASK_RETVAL microd_launch( struct astring* cli, TASK_PID repl_pid ) {
+TASK_RETVAL microd_launch( struct astring* cli ) {
    if( 0 == alpha_cmp_c( "microd", 5, cli, ' ', false, true ) ) {
-      tprintf( "killing repl (%d) and starting...\n", repl_pid );
+      tprintf( "starting...\n" );
       adhd_launch_task( microd_task );
-      adhd_kill_task( repl_pid );
+      /* adhd_kill_task( repl_pid ); */
       return RETVAL_OK;
    }
 

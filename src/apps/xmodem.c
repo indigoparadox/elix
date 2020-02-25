@@ -15,7 +15,7 @@ TASK_RETVAL xmodem_task() {
    adhd_end_loop();
 }
 
-TASK_RETVAL xmodem_launch( struct astring* cli, TASK_PID repl_pid ) {
+TASK_RETVAL xmodem_launch( struct astring* cli ) {
    tprintf( "trying xmodem: %a / %d / %d\n", cli, g_str_xmdm.len, alpha_wordlen( cli ) );
    if( 0 == alpha_cmp( cli, &g_str_xmdm, ' ', false, true ) ) {
       tprintf( "starting...\n" );
