@@ -19,6 +19,13 @@ const char qd_logo[8][16] = {
 
 /* Utility Functions */
 
+CONSOLE_CMD g_repl_line_handler = NULL;
+
+void repl_set_line_handler( CONSOLE_CMD new_handler ) {
+   tprintf( "setting\n" );
+   g_repl_line_handler = new_handler;
+}
+
 const char* trepl_tok( struct astring* cli, uint8_t idx ) {
    const char* tok = NULL;
    STRLEN_T sigil_start = 0;
@@ -483,7 +490,11 @@ TASK_RETVAL repl_command( struct astring* cli ) {
          0 == alpha_cmp_c( g_commands[i].command, CMD_MAX_LEN, cli, '\0',
             false, 3 )
       ) {
-         return g_commands[i].callback( cli );
+         retval = g_commands[i].callback( cli );
+         if( RETVAL_OK == retval ) {
+            tprintf( "ready\n" );
+            return retval;
+         }
       }
    }
 
@@ -510,6 +521,10 @@ TASK_RETVAL trepl_task() {
    adhd_set_gid( "repl" );
 
    flags = mget( adhd_get_pid(), REPL_MID_FLAGS, 1 );
+
+   if( NULL == g_repl_line_handler ) {
+      g_repl_line_handler = repl_command;
+   }
 
    /* If we're not the current app using the console, uninitialize so that
     * we will reinitialize once whatever other app is done with it.
@@ -549,9 +564,13 @@ TASK_RETVAL trepl_task() {
       line->len + 1 >= (line->mem.sz - sizeof( struct astring )) ||
       (('\r' == c || '\n' == c) && 0 == line->len)
    ) {
-      /* Line would be too long if we accepted this char. */
-      tprintf( "\n" );
-      tprintf( "invalid\n" );
+      if( line->len + 1 >= (line->mem.sz - sizeof( struct astring )) ) {
+         /* Line would be too long if we accepted this char. */
+         tprintf( "\n" );
+         tprintf( "linebuf\n" );
+      }
+
+      /* Reset line. */
       alpha_astring_clear( line );
       adhd_yield();
       adhd_continue_loop();
@@ -564,14 +583,12 @@ TASK_RETVAL trepl_task() {
          *flags &= ~REPL_FLAG_ANSI_SEQ;
 
          tprintf( "\n" );
-         retval = repl_command( line );
+         retval = g_repl_line_handler( line );
 
          if( RETVAL_NOT_FOUND == retval ) {
             tprintf( "invalid\n" );
          } else if( RETVAL_BAD_ARGS == retval ) {
             tprintf( "bad arguments\n" );
-         } else {
-            tprintf( "ready\n" );
          }
          alpha_astring_clear( line );
          break;

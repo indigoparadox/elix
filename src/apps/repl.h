@@ -17,6 +17,7 @@
 #define REPL_FLAG_ANSI_SEQ       0x02
 
 TASK_RETVAL trepl_task();
+void repl_set_line_handler( CONSOLE_CMD new_handler );
 const char* trepl_tok( struct astring* cli, uint8_t idx );
 TASK_RETVAL repl_command( struct astring* cli );
 
