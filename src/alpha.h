@@ -12,6 +12,12 @@
 #define astring_sizeof( str ) \
    (sizeof( struct astring ) + sizeof( str ))
 
+#define astring_char( str, idx ) (str->data[idx])
+
+/* This is a bit overengineered... */
+#define astring_len( str ) (0 < alpha_charinstr( '\0', str ) ? \
+   alpha_charinstr( '\0', str ) : str->len )
+
 #define alpha_isprintable( c ) (' ' <= c && '~' >= c)
 #define alpha_isdigit( c ) ('0' <= (c) && '9' >= (c))
 #define alpha_islower( c ) ('a' <= (c) && 'z' >= (c))

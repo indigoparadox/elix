@@ -6,8 +6,6 @@
 TASK_RETVAL microd_task() {
    adhd_task_setup();
 
-   adhd_set_gid( "micd" );
-   
    adhd_yield();
 
    adhd_end_loop();
@@ -16,7 +14,7 @@ TASK_RETVAL microd_task() {
 TASK_RETVAL microd_launch( struct astring* cli ) {
    if( 0 == alpha_cmp_c( "microd", 5, cli, ' ', false, true ) ) {
       tprintf( "starting...\n" );
-      adhd_launch_task( microd_task );
+      adhd_launch_task( microd_task, "micd" );
       /* adhd_kill_task( repl_pid ); */
       return RETVAL_OK;
    }

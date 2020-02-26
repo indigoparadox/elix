@@ -15,6 +15,8 @@
 #define RETVAL_OK 0
 #define RETVAL_FALSE 0
 #define RETVAL_TRUE 1
+#define RETVAL_TOO_MANY_TASKS 2
+#define RETVAL_TASK_EXISTS 4
 #define RETVAL_INVALID_PID 0
 #define RETVAL_YIELD 254
 #define RETVAL_NOT_FOUND 253
@@ -46,8 +48,6 @@ struct adhd_task {
 
 #define adhd_get_pid() \
    (g_curr_env->pid)
-
-#define adhd_set_gid( str ) mcopy( g_curr_env->gid, str, 4 )
 
 #ifdef SCHEDULE_COOP
 
@@ -103,7 +103,7 @@ struct adhd_task {
 
 #define adhd_exit_task() return RETVAL_KILL
 
-void adhd_launch_task( ADHD_TASK callback );
+TASK_RETVAL adhd_launch_task( ADHD_TASK callback, const char* gid );
 TASK_RETVAL adhd_call_task( TASK_PID pid );
 #endif /* SCHEDULE_COOP */
 

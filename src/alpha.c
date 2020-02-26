@@ -123,6 +123,9 @@ void alpha_replace( char c, char r, struct astring* string ) {
 }
 
 STRLEN_T alpha_charinstr( char c, const struct astring* string ) {
+   if( NULL == string ) {
+      return 0;
+   }
    return alpha_charinstr_c( c, string->data, string->len );
 }
 

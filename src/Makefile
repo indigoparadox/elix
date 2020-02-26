@@ -53,7 +53,8 @@ SOURCES_APPS_X86=\
 	apps/repl.c
 
 SOURCES_APPS_MSP430=\
-	apps/repl.c
+	apps/repl.c \
+	apps/medlin.c
 #	apps/xmodem.c
 
 SOURCES_TESTED_NET= \
@@ -111,6 +112,7 @@ $(BIN_LIN): CFLAGS += \
 	-DUSE_BMP \
 	-DUSE_DISK \
 	-DINIT_TASK="trepl_task" \
+	-DINIT_TASK_GID="repl" \
 	-DQD_PLATFORM=QD_PLATFORM_COLINUX \
 	-DDEBUG \
 	-DMBMP_AGGRESSIVE_VALIDATE \
@@ -136,6 +138,7 @@ $(ASM_LIN): CFLAGS += \
 	-DUSE_BMP \
 	-DUSE_DISK \
 	-DINIT_TASK="trepl_task" \
+	-DINIT_TASK_GID="repl" \
 	-DQD_PLATFORM=QD_PLATFORM_COLINUX \
 	-DDEBUG \
 	-DMBMP_AGGRESSIVE_VALIDATE \
@@ -166,6 +169,7 @@ $(BIN_X86): CFLAGS += \
 	-DGCC_REALMODE \
 	-DUTOA_BITS=16 \
 	-DINIT_TASK="trepl_task" \
+	-DINIT_TASK_GID="repl" \
 	-ffreestanding \
 	-nostdlib \
 	-nostartfiles \
@@ -187,6 +191,7 @@ $(BIN_LIN_MIN): CFLAGS += \
 	-DCOLINUX_TERMIOS \
 	-DMEM_HEAP_SIZE=320 \
 	-DINIT_TASK="uartping_task" \
+	-DINIT_TASK_GID="uarp" \
 	-DQD_PLATFORM=QD_PLATFORM_COLINUX \
 	-DUSE_DISK \
 	-DUSE_DISK_RO
@@ -209,6 +214,7 @@ $(BIN_MSP430): CFLAGS += \
 	-DUART_TX_BUFFER_LENGTH=0 \
 	-DUART_RX_BUFFER_LENGTH=20 \
 	-DINIT_TASK="trepl_task" \
+	-DINIT_TASK_GID="repl" \
 	-DQD_PLATFORM=QD_PLATFORM_MSP430 \
 	-mmcu=msp430g2553 \
 	-DUTOA_BITS=32 \

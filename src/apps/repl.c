@@ -1,6 +1,7 @@
 
 #include "../code16.h"
 
+#define REPL_C
 #include "repl.h"
 #include <mfat.h>
 #include <mbmp.h>
@@ -17,13 +18,31 @@ const char qd_logo[8][16] = {
    "               "
 };
 
+const char gid_repl[5] = "repl";
+
 /* Utility Functions */
 
 CONSOLE_CMD g_repl_line_handler = NULL;
 
+static void repl_show_logo() {
+   uint8_t i = 0;
+   for( i = 0 ; 8 > i ; i++ ) {
+      tprintf( qd_logo[i] );
+      tprintf( "\n" );
+   }
+   tprintf( "ELix console v" VERSION "\n" );
+#ifndef REPL_NO_PRINTF_PTR
+   tprintf( "ptr %d bytes\n", sizeof( void* ) );
+#endif /* REPL_NO_PRINTF_PTR */
+}
+
 void repl_set_line_handler( CONSOLE_CMD new_handler ) {
-   tprintf( "setting\n" );
+   /* Reset the repl flags so the new console app can use them. */
+   g_repl_flags = 0;
    g_repl_line_handler = new_handler;
+   if( repl_command == new_handler ) {
+      repl_show_logo();
+   }
 }
 
 const char* trepl_tok( struct astring* cli, uint8_t idx ) {
@@ -64,7 +83,7 @@ const char* trepl_tok( struct astring* cli, uint8_t idx ) {
 #ifdef DEBUG_REPL
             tprintf( "getting cell #%d\n", sigil_val );
 #endif /* DEBUG_REPL */
-            tok = mget( adhd_get_pid_by_gid( "repl" ), sigil_val, len + 1 );
+            tok = mget( adhd_get_pid_by_gid( gid_repl ), sigil_val, len + 1 );
             if( NULL != tok ) {
                return tok;
             }
@@ -82,7 +101,7 @@ const char* trepl_tok( struct astring* cli, uint8_t idx ) {
 
 static TASK_RETVAL tnet_start( struct astring* cli ) {
    tprintf( "start?\n" );
-   adhd_launch_task( net_respond_task );
+   adhd_launch_task( net_respond_task, "netp" );
    return RETVAL_OK;
 }
 
@@ -381,7 +400,7 @@ TASK_RETVAL trepl_let( struct astring* cli ) {
       return RETVAL_BAD_ARGS;
    }
    len = alpha_strlen_c( tok, CMD_MAX_LEN ) + 1;
-   memstr = mget( adhd_get_pid_by_gid( "repl" ), idx, len );
+   memstr = mget( adhd_get_pid_by_gid( gid_repl ), idx, len );
 
    /* Copy value. */
    for( i = 0 ; len > i ; i++ ) {
@@ -512,43 +531,15 @@ TASK_RETVAL repl_command( struct astring* cli ) {
 TASK_RETVAL trepl_task() {
    char c = '\0';
    struct astring* line;
-   uint8_t i = 0;
    uint8_t retval = 0;
-   uint8_t* flags = NULL;
 
    adhd_task_setup();
 
-   adhd_set_gid( "repl" );
-
-   flags = mget( adhd_get_pid(), REPL_MID_FLAGS, 1 );
-
    if( NULL == g_repl_line_handler ) {
-      g_repl_line_handler = repl_command;
+      repl_set_line_handler( repl_command );
    }
 
-   /* If we're not the current app using the console, uninitialize so that
-    * we will reinitialize once whatever other app is done with it.
-    */
-   if( g_console_pid != 0 && g_console_pid != adhd_get_pid() ) {
-      *flags &= ~REPL_FLAG_INITIALIZED;
-      mfree( adhd_get_pid(), REPL_MID_LINE );
-      adhd_yield();
-   }
-
-   if( !(*flags & REPL_FLAG_INITIALIZED) ) {
-      for( i = 0 ; 8 > i ; i++ ) {
-         tprintf( qd_logo[i] );
-         tprintf( "\n" );
-      }
-      tprintf( "ELix console v" VERSION "\n" );
-#ifndef REPL_NO_PRINTF_PTR
-      tprintf( "ptr %d bytes\n", sizeof( void* ) );
-#endif /* REPL_NO_PRINTF_PTR */
-      tprintf( "ready\n" );
-      *flags |= REPL_FLAG_INITIALIZED;
-   }
-
-   if( !twaitc() ) {
+  if( !twaitc() ) {
       adhd_yield();
    }
 
@@ -564,10 +555,13 @@ TASK_RETVAL trepl_task() {
       line->len + 1 >= (line->mem.sz - sizeof( struct astring )) ||
       (('\r' == c || '\n' == c) && 0 == line->len)
    ) {
+      tprintf( "\n" );
+
       if( line->len + 1 >= (line->mem.sz - sizeof( struct astring )) ) {
          /* Line would be too long if we accepted this char. */
-         tprintf( "\n" );
          tprintf( "linebuf\n" );
+      } else {
+         tprintf( "linezero\n" );
       }
 
       /* Reset line. */
@@ -580,7 +574,7 @@ TASK_RETVAL trepl_task() {
       case '\r':
       case '\n':
          /* Reset any pending ANSI flag. */
-         *flags &= ~REPL_FLAG_ANSI_SEQ;
+         repl_unset_flag( REPL_FLAG_ANSI_SEQ );
 
          tprintf( "\n" );
          retval = g_repl_line_handler( line );
@@ -600,11 +594,11 @@ TASK_RETVAL trepl_task() {
          break;
 
       case 27:
-         *flags |= REPL_FLAG_ANSI_SEQ;
+         repl_set_flag( REPL_FLAG_ANSI_SEQ );
          break;
 
       default:
-         if( *flags & REPL_FLAG_ANSI_SEQ ) {
+         if( repl_flag( REPL_FLAG_ANSI_SEQ ) ) {
             if( 'A' == c ) {
                /* Up */
             } else if( 'B' == c ) {
@@ -620,7 +614,7 @@ TASK_RETVAL trepl_task() {
             }
 
             /* Reset pending ANSI flag. */
-            *flags &= ~REPL_FLAG_ANSI_SEQ;
+            repl_unset_flag( REPL_FLAG_ANSI_SEQ );
             break;
          }
 

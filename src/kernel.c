@@ -3,10 +3,6 @@
 
 #include "etypes.h"
 
-#if defined( USE_EXT_CLI ) && INIT_TASK != trepl_task
-#error "repl app is required to enable external CLI!"
-#endif /* USE_EXT_CLI && !USE_REPL */
-
 #define KERNEL_C
 #define IO_C
 #include "kernel.h"
@@ -17,7 +13,12 @@
 #include "adhd.h"
 #include "alpha.h"
 
-TASK_RETVAL repl_command( const struct astring* cli );
+#if defined( USE_EXT_CLI ) && INIT_TASK != trepl_task
+#error "repl app is required to enable external CLI!"
+#elif defined( USE_EXT_CLI )
+#include "apps/repl.h"
+#endif /* USE_EXT_CLI && !USE_REPL */
+
 TASK_RETVAL INIT_TASK();
 
 #define TASKS_MAX 5
@@ -81,10 +82,14 @@ int kmain() {
 
 #ifdef USE_NET
    net_init();
-#endif /* USE_NET */
+#endif /* USE_NET */ 
+
+   #define quote_me( str ) #str
+   #define string_me( str ) quote_me( str )
+   #define INIT_TASK_GID_STR string_me( INIT_TASK_GID )
 
    adhd_start();
-   adhd_launch_task( INIT_TASK );
+   adhd_launch_task( INIT_TASK, INIT_TASK_GID_STR );
 
 #ifdef USE_EXT_CLI
    }

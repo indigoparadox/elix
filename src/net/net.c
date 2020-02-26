@@ -82,8 +82,6 @@ TASK_RETVAL net_respond_task() {
 
    adhd_task_setup();
 
-   adhd_set_gid( "netp" );
-
    socket = mget( adhd_get_pid(), NET_MID_SOCKET, sizeof( NET_SOCK ) );
    if( NULL == *socket ) {
       *socket = net_open_socket( g_ifname );

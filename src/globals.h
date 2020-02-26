@@ -40,17 +40,6 @@ uint8_t g_system_state
 #ifndef CONSOLE_C
 extern
 #endif /* !CONSOLE_C */
-/*! \brief (2 bytes) the PID of the app currently using the console.
- */
-TASK_PID g_console_pid
-#ifdef CONSOLE_C
-= 0
-#endif /* CONSOLE_C */
-;
-
-#ifndef CONSOLE_C
-extern
-#endif /* !CONSOLE_C */
 /*! \brief (ptr bytes * CONSOLE_CMDS_MAX#) Callbacks to proc unknown commands.
  *  These callbacks should be registered by their apps in the app's constructor.
  */
