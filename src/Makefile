@@ -115,6 +115,7 @@ $(BIN_LIN): CFLAGS += \
 	-DDEBUG \
 	-DMBMP_AGGRESSIVE_VALIDATE \
 	-DCOLINUX_TERMIOS \
+	-DMEM_HEAP_SIZE=320 \
 	-Wno-builtin-declaration-mismatch \
 	$(DEBUG_FLAGS)
 #	-DALPHA_CMP_DEBUG

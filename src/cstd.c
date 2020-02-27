@@ -3,7 +3,26 @@
 
 #include "etypes.h"
 
+/* Memory table is 32 bits long. */
+#define MEM_BLOCK_SZ (MEM_HEAP_SIZE / 32)
+static uint32_t g_mem_table = 0;
+static uint8_t g_heap[MEM_HEAP_SIZE] = { 0 };
+
 void* malloc( size_t sz ) {
+   uint8_t bit_cmp = 1;
+   uint8_t page = 0;
+   uint8_t* mem_table = (uint8_t*)&g_mem_table;
+   uint16_t addr = 0;
+   
+   do {
+      if( !(bit_cmp & *mem_table) ) {
+         /* See if there are enough free blocks to fill the request. */
+
+         return &(g_heap[addr]);
+      }
+      addr++;
+   } while( page < 4 ); /* 4 * 8 = 32 bits */
+
    return NULL;
 }
 
@@ -12,6 +31,28 @@ void free( void* ptr ) {
 }
 
 void* memset( void* s, int c, size_t n ) {
+   return NULL;
+}
+
+char* strtok( char* str, size_t sz, const char* delim ) {
+   size_t i, j, m, idx = 0;
+
+   m = strlen( delim );
+
+   /* Iterate tokenized string. */
+   for( i = 0 ; sz > i ; i++ ) {
+      /* Iterate delims. */
+      for( j = 0 ; m > j ; j++ ) {
+         if( '\0' == str[i] ) {
+            idx = i + 1;
+         } if( str[i] == delim[j] ) {
+            /* Set a NULL and return the address of this token. */
+            str[i] = '\0';
+            return &(str[idx]);
+         }
+      }
+   }
+
    return NULL;
 }
 

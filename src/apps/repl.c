@@ -29,12 +29,12 @@ CONSOLE_CMD g_repl_line_handler = NULL;
 static void repl_show_logo() {
    uint8_t i = 0;
    for( i = 0 ; 8 > i ; i++ ) {
-      tprintf( qd_logo[i] );
-      tprintf( "\n" );
+      printf( "%c", qd_logo[i] );
+      printf( "\n" );
    }
-   tprintf( "ELix console v" VERSION "\n" );
+   printf( "ELix console v" VERSION "\n" );
 #ifndef REPL_NO_PRINTF_PTR
-   tprintf( "ptr %d bytes\n", sizeof( void* ) );
+   printf( "ptr %d bytes\n", sizeof( void* ) );
 #endif /* REPL_NO_PRINTF_PTR */
 }
 
@@ -47,21 +47,21 @@ void repl_set_line_handler( CONSOLE_CMD new_handler ) {
    }
 }
 
-const char* trepl_tok( struct astring* cli, uint8_t idx ) {
-   const char* tok = NULL;
+char* repl_tok( char* cli, uint8_t idx ) {
+   char* tok = NULL;
    STRLEN_T sigil_start = 0;
    STRLEN_T i = 0;
    STRLEN_T len = 0;
    STRLEN_T sigil_val = 0;
    STRLEN_T sigil_len = 0;
 
-   tok = alpha_tok( cli, '\0', idx );
+   tok = strtok( cli, REPL_LINE_SIZE_MAX, " " );
    if( NULL == tok ) {
       return tok;
    }
-   len = alpha_strlen_c( tok, REPL_LINE_SIZE_MAX );
+   len = strlen( tok );
 #ifdef DEBUG_REPL
-   tprintf( "tok: %s (%d)\n", tok, len );
+   printf( "tok: %s (%d)\n", tok, len );
 #endif /* DEBUG_REPL */
    for( i = 0 ; len > i ; i++ ) {
       /* TODO: Deal with double sigil/replace var in buffer. */
@@ -70,20 +70,20 @@ const char* trepl_tok( struct astring* cli, uint8_t idx ) {
          sigil_start = i + 1;
          sigil_len = 0;
 
-      } else if( alpha_isdigit( tok[i] ) && sigil_start > 0 ) {
+      } else if( isdigit( tok[i] ) && sigil_start > 0 ) {
          /* Continue grabbing the variable index. */
          sigil_len++;
 
-         if( i + 1 >= len || !alpha_isdigit( tok[i + 1] ) ) {
+         if( i + 1 >= len || !isdigit( tok[i + 1] ) ) {
             /* Stop grabbing the variable index. */
 #ifdef DEBUG_REPL
-            tprintf( "sigil capture ends at: %d\n", i );
-            tprintf( "sigil start: %d len: %d\n", sigil_start, sigil_len );
+            printf( "sigil capture ends at: %d\n", i );
+            printf( "sigil start: %d len: %d\n", sigil_start, sigil_len );
 #endif /* DEBUG_REPL */
-            sigil_val = alpha_atou_c( &(tok[sigil_start]), sigil_len, 10 );
+            sigil_val = atou( &(tok[sigil_start]), 10 );
             sigil_start = 0;
 #ifdef DEBUG_REPL
-            tprintf( "getting cell #%d\n", sigil_val );
+            printf( "getting cell #%d\n", sigil_val );
 #endif /* DEBUG_REPL */
             tok = mget( adhd_get_pid_by_gid( gid_repl ), sigil_val, len + 1 );
             if( NULL != tok ) {
@@ -99,21 +99,21 @@ const char* trepl_tok( struct astring* cli, uint8_t idx ) {
 
 /* = Command Callbacks */
 
-#ifdef USE_NET
+#ifdef REPL_CMD_NET
 
-static TASK_RETVAL tnet_start( struct astring* cli ) {
-   tprintf( "start?\n" );
+static TASK_RETVAL tnet_start( char* cli ) {
+   printf( "start?\n" );
    adhd_launch_task( net_respond_task, "netp" );
    return RETVAL_OK;
 }
 
-static TASK_RETVAL tnet_rcvd( struct astring* cli ) {
+static TASK_RETVAL tnet_rcvd( char* cli ) {
    const int* received = NULL;
    TASK_PID pid;
 
    pid = adhd_get_pid_by_gid( "netp" );
    received = mget( pid, NET_MID_RECEIVED, sizeof( int ) );
-   tprintf( "frames rcvd: %d\n", *received );
+   printf( "frames rcvd: %d\n", *received );
 
    return RETVAL_OK;
 }
@@ -124,20 +124,17 @@ const struct api_command g_net_commands[NET_COMMANDS_COUNT] = {
    { "start", tnet_start },
 };
 
-static TASK_RETVAL trepl_net( struct astring* cli ) {
+static TASK_RETVAL repl_net( char* cli ) {
    const char* tok;
    uint8_t i = 0;
 
-   tok = trepl_tok( cli, 1 );
+   tok = repl_tok( cli, 1 );
    if( NULL == tok ) {
       return 1;
    }
 
    for( i = 0 ; NET_COMMANDS_COUNT > i ; i++ ) {
-      if( 0 == alpha_cmp_cc(
-         tok, CMD_MAX_LEN, g_net_commands[i].command, CMD_MAX_LEN, '\0',
-         false, false
-      ) ) {
+      if( 0 == strncmp( tok, g_net_commands[i].command, CMD_MAX_LEN ) ) {
          return g_net_commands[i].callback( cli );
       }
    }
@@ -145,38 +142,46 @@ static TASK_RETVAL trepl_net( struct astring* cli ) {
    return RETVAL_BAD_ARGS;
 }
 
-#endif /* USE_NET */
+#endif /* REPL_CMD_NET */
 
-static TASK_RETVAL tsys_proc( struct astring* cli ) {
+#ifdef REPL_CMD_PROC
+
+static TASK_RETVAL tsys_proc( char* cli ) {
    const char* task_gid = NULL;
    TASK_PID i = 0;
 
    for( i = 0 ; ADHD_TASKS_MAX > i ; i++ ) {
       task_gid = adhd_get_gid_by_pid( i );
       if( NULL != task_gid ) {
-         tprintf( "%d\t\"%s\"\n", i, task_gid );
+         printf( "%d\t\"%s\"\n", i, task_gid );
       }
    }
    
    return RETVAL_OK;
 }
 
-static TASK_RETVAL tsys_exit( struct astring* cli ) {
+#endif /* REPL_CMD_PROC */
+
+static TASK_RETVAL tsys_exit( char* cli ) {
    g_system_state = SYSTEM_SHUTDOWN;
    return RETVAL_OK;
 }
 
-static TASK_RETVAL tsys_mem( struct astring* cli ) {
-   tprintf(
+#ifdef REPL_CMD_MEM
+
+static TASK_RETVAL tsys_mem( char* cli ) {
+   printf(
       "mem:\nused: %d\ntotal: %d\nfree: %d\n",
       get_mem_used(), MEM_HEAP_SIZE, MEM_HEAP_SIZE - get_mem_used()
    );
    return RETVAL_OK;
 }
 
-#ifdef USE_DISK
+#endif /* REPL_CMD_MEM */
 
-static TASK_RETVAL tdisk_dir( struct astring* cli ) {
+#ifdef REPL_CMD_DIR
+
+static TASK_RETVAL tdisk_dir( char* cli ) {
    const char* tok;
    uint16_t offset = 0;
    char filename[13];
@@ -187,7 +192,7 @@ static TASK_RETVAL tdisk_dir( struct astring* cli ) {
    offset = mfat_get_root_dir_offset( 0, 0 );
    offset = mfat_get_dir_entry_first_offset( offset, 0, 0 );
 
-   tok = trepl_tok( cli, 1 );
+   tok = repl_tok( cli, 1 );
 
    mzero( filename, 13 );
    mzero( attrib_str, 5 );
@@ -215,7 +220,7 @@ static TASK_RETVAL tdisk_dir( struct astring* cli ) {
       size = mfat_get_dir_entry_size( offset, 0, 0 );
 
       /* Print the entry. */
-      tprintf( "- %s\t%12s\t%4d\t%6d\n", attrib_str, filename,
+      printf( "- %s\t%12s\t%4d\t%6d\n", attrib_str, filename,
          mfat_get_dir_entry_cyear( offset, 0, 0 ) + 1980, size );
 
       /* Get the next entry. */
@@ -225,8 +230,10 @@ static TASK_RETVAL tdisk_dir( struct astring* cli ) {
    return RETVAL_OK;
 }
 
+#endif /* REPL_CMD_DIR */
+
 #if 0
-static TASK_RETVAL tdisk_fat( struct astring* cli ) {
+static TASK_RETVAL tdisk_fat( char* cli ) {
    uint16_t i = 0;
    uint16_t entries_count = 0;
    uint16_t fat_entry = 0;
@@ -234,7 +241,7 @@ static TASK_RETVAL tdisk_fat( struct astring* cli ) {
    uint8_t display_dec = 0;
 
    i = 2;
-   tok = trepl_tok( cli, i );
+   tok = repl_tok( cli, i );
    while( NULL != tok ) {
       /* Determine display mode. */
       if( !alpha_cmp_cc( "d", 1, tok, 1, ' ', false, false ) ) {
@@ -255,7 +262,7 @@ static TASK_RETVAL tdisk_fat( struct astring* cli ) {
          }
       }
       i++;
-      tok = trepl_tok( cli, i );
+      tok = repl_tok( cli, i );
    }
 
    entries_count = mfat_get_entries_count( 0, 0 );
@@ -284,13 +291,13 @@ static TASK_RETVAL tdisk_fat( struct astring* cli ) {
 }
 #endif
 
-#ifndef USE_DISK_RO
+#ifdef REPL_CMD_TOUCH
 
-static TASK_RETVAL tdisk_touch( struct astring* cli ) {
+static TASK_RETVAL tdisk_touch( char* cli ) {
    const char* tok;
    uint32_t offset = 0;
 
-   tok = trepl_tok( cli, 1 );
+   tok = repl_tok( cli, 1 );
    if( NULL == tok ) {
       return RETVAL_BAD_ARGS;
    }
@@ -300,7 +307,7 @@ static TASK_RETVAL tdisk_touch( struct astring* cli ) {
    offset = mfat_get_dir_entry_offset( tok, MFAT_FILENAME_LEN, offset, 0, 0 );
    if( 0 < offset ) {
       /* TODO: Update file date. */
-      tprintf( "file exists\n" );
+      printf( "file exists\n" );
       return RETVAL_BAD_ARGS;
    }
 
@@ -309,20 +316,22 @@ static TASK_RETVAL tdisk_touch( struct astring* cli ) {
    offset = mfat_get_dir_entry_free_offset(
       offset, mfat_get_root_dir_entries_count( 0, 0 ) * 32, 0, 0 );
    if( 0 >= offset ) {
-      tprintf( "directory full\n" );
+      printf( "directory full\n" );
       return RETVAL_BAD_ARGS;
    }
 
    mfat_set_dir_entry_name( tok, offset, 0, 0 );
    mfat_set_dir_entry_size( 0, offset, 0, 0 );
-   tprintf( "create\n" );
+   printf( "create\n" );
 
    return RETVAL_OK;
 }
 
-#endif /* !USE_DISK_RO */
+#endif /* REPL_CMD_TOUCH */
 
-static TASK_RETVAL tdisk_cat( struct astring* cli ) {
+#ifdef REPL_CMD_CAT
+
+static TASK_RETVAL tdisk_cat( char* cli ) {
    const char* tok;
    uint32_t offset = 0;
    char buffer[MFAT_FILENAME_LEN + 1];
@@ -331,7 +340,7 @@ static TASK_RETVAL tdisk_cat( struct astring* cli ) {
 
    mzero( buffer, MFAT_FILENAME_LEN );
 
-   tok = trepl_tok( cli, 1 );
+   tok = repl_tok( cli, 1 );
    if( NULL == tok ) {
       return RETVAL_BAD_ARGS;
    }
@@ -339,29 +348,31 @@ static TASK_RETVAL tdisk_cat( struct astring* cli ) {
    offset = mfat_get_root_dir_offset( 0, 0 );
    offset = mfat_get_dir_entry_offset( tok, MFAT_FILENAME_LEN, offset, 0, 0 );
    mfat_get_dir_entry_name( buffer, offset, 0, 0 );
-   tprintf( "%s:\n\n", buffer );
+   printf( "%s:\n\n", buffer );
    file_size = mfat_get_dir_entry_size( offset, 0, 0 );
 
-   tprintf( "\"" );
+   printf( "\"" );
    do {
       mzero( buffer, 11 );
       written += mfat_get_dir_entry_data( offset, written,
          (unsigned char*)buffer, 8, 0, 0 );
-      tprintf( "%s", buffer );
+      printf( "%s", buffer );
    } while( file_size > written );
-   tprintf( "\"\n" );
+   printf( "\"\n" );
 
    return RETVAL_OK;
 }
 
+#endif /* REPL_CMD_CAT */
+
 #if 0
 #ifdef USE_BMP
 
-static TASK_RETVAL tdisk_bmp( struct astring* cli ) {
+static TASK_RETVAL tdisk_bmp( char* cli ) {
    const char* tok;
    FILEPTR_T offset = 0;
 
-   tok = trepl_tok( cli, 1 );
+   tok = repl_tok( cli, 1 );
    if( NULL == tok ) {
       return RETVAL_BAD_ARGS;
    }
@@ -380,9 +391,7 @@ static TASK_RETVAL tdisk_bmp( struct astring* cli ) {
 #endif /* USE_BMP */
 #endif
 
-#endif /* USE_DISK */
-
-TASK_RETVAL trepl_let( struct astring* cli ) {
+TASK_RETVAL repl_let( char* cli ) {
    uint8_t idx = 0;
    STRLEN_T len = 0;
    const char* tok = NULL;
@@ -390,18 +399,18 @@ TASK_RETVAL trepl_let( struct astring* cli ) {
    STRLEN_T i = 0;
 
    /* Get memory index. */
-   tok = trepl_tok( cli, 1 );
+   tok = repl_tok( cli, 1 );
    if( NULL == tok ) {
       return RETVAL_BAD_ARGS;
    }
    idx = alpha_atou_c( tok, CMD_MAX_LEN, 10 );
 
    /* Get and allocate value. */
-   tok = trepl_tok( cli, 2 );
+   tok = repl_tok( cli, 2 );
    if( NULL == tok ) {
       return RETVAL_BAD_ARGS;
    }
-   len = alpha_strlen_c( tok, CMD_MAX_LEN ) + 1;
+   len = strlen( tok ) + 1;
    memstr = mget( adhd_get_pid_by_gid( gid_repl ), idx, len );
 
    /* Copy value. */
@@ -411,41 +420,39 @@ TASK_RETVAL trepl_let( struct astring* cli ) {
    memstr[i] = '\0';
 
 #ifdef DEBUG_REPL
-   tprintf( "set $%d to %s\n", idx, memstr );
+   printf( "set $%d to %s\n", idx, memstr );
 #endif /* DEBUG_REPL */
 
    return RETVAL_OK;
 }
 
-TASK_RETVAL trepl_print( struct astring* cli ) {
+TASK_RETVAL repl_print( char* cli ) {
    const char* tok = NULL;
 
-   tok = trepl_tok( cli, 1 );
+   tok = repl_tok( cli, 1 );
    if( NULL == tok ) {
       return RETVAL_BAD_ARGS;
    }
 
-   tprintf( "%s\n", tok );  
+   printf( "%s\n", tok );  
 
    return RETVAL_OK;
 }
 
-TASK_RETVAL trepl_if( struct astring* cli ) {
-   const char* tok1 = NULL;
-   const char* tok2 = NULL;
+TASK_RETVAL repl_if( char* cli ) {
+   char* tok1 = NULL;
+   char* tok2 = NULL;
    STRLEN_T i = 0;
-   STRLEN_T len1 = 0;
-   STRLEN_T len2 = 0;
 
-   tok1 = trepl_tok( cli, 1 );
-   tok2 = trepl_tok( cli, 2 );
-   len1 = alpha_strlen_c( tok1, REPL_LINE_SIZE_MAX );
-   len2 = alpha_strlen_c( tok2, REPL_LINE_SIZE_MAX );
+   tok1 = repl_tok( cli, 1 );
+   tok2 = repl_tok( cli, 2 );
+   len1 = strlen( tok1 );
+   len2 = strlen( tok2 );
 
    /* Verify same length. */
    if( len1 != len2 ) {
 #if DEBUG_REPL
-      tprintf( "false\n" );
+      printf( "false\n" );
 #endif /* DEBUG_REPL */
       return RETVAL_FALSE;
    }
@@ -454,7 +461,7 @@ TASK_RETVAL trepl_if( struct astring* cli ) {
    for( i = 0 ; len1 > i && len2 > i ; i++ ) {
       if( tok1[i] != tok2[i] ) {
 #if DEBUG_REPL
-         tprintf( "false\n" );
+         printf( "false\n" );
 #endif /* DEBUG_REPL */
          return RETVAL_FALSE;
       }
@@ -468,7 +475,7 @@ TASK_RETVAL trepl_if( struct astring* cli ) {
    repl_command( cli );
 
 #if DEBUG_REPL
-   tprintf( "true\n" );
+   printf( "true\n" );
 #endif /* DEBUG_REPL */
 
    return RETVAL_TRUE;
@@ -479,41 +486,43 @@ TASK_RETVAL trepl_if( struct astring* cli ) {
  */
 #define COMMANDS_COUNT 10
 static const struct api_command g_commands[COMMANDS_COUNT] = {
-#ifdef USE_DISK
+#ifdef REPL_CMD_CAT
    { "cat", tdisk_cat },
+#endif /* REPL_CMD_CAT */
+#ifdef REPL_CMD_DIR
    { "dir", tdisk_dir },
-#endif /* USE_DISK */
+#endif /* REPL_CMD_DIR */
    { "exit", tsys_exit },
-   /* { "for", trepl_for }, */
-   { "ife", trepl_if },
-   { "let", trepl_let },
-   { "mem", tsys_mem },
-#ifdef USE_NET
-   { "net", trepl_net },
-#endif /* USE_NET */
-   { "print", trepl_print },
-   { "proc", tsys_proc }
-#ifdef USE_DISK
-#ifndef USE_DISK_RO
+   /* { "for", repl_for }, */
+   { "ife", repl_if },
+   { "let", repl_let }
+#ifdef REPL_CMD_MEM
+   , { "mem", tsys_mem }
+#endif /* REPL_CMD_MEM */
+#ifdef REPL_CMD_NET
+   , { "net", repl_net }
+#endif /* REPL_CMD_NET */
+   , { "print", repl_print }
+#ifdef REPL_CMD_PROC
+   , { "proc", tsys_proc }
+#endif /* REPL_CMD_PROC */
+#ifdef REPL_CMD_TOUCH
    , { "touch", tdisk_touch }
-#endif /* !USE_DISK_RO */
-#endif /* USE_DISK */
+#endif /* REPL_CMD_TOUCH */
 };
 
-TASK_RETVAL repl_command( struct astring* cli ) {
+TASK_RETVAL repl_command( char* cli ) {
    uint8_t i = 0;
    TASK_RETVAL retval = 0;
+   char* tok = NULL;
 
-   alpha_replace( ' ', '\0', cli );
+   tok = strtok( cli, REPL_LINE_SIZE_MAX, " " );
 
    for( i = 0 ; COMMANDS_COUNT > i ; i++ ) {
-      if(
-         0 == alpha_cmp_c( g_commands[i].command, CMD_MAX_LEN, cli, '\0',
-            false, 3 )
-      ) {
+      if( 0 == strncmp( g_commands[i].command, tok, CMD_MAX_LEN ) ) {
          retval = g_commands[i].callback( cli );
          if( RETVAL_OK == retval ) {
-            tprintf( "ready\n" );
+            printf( "ready\n" );
             return retval;
          }
       }
@@ -530,7 +539,7 @@ TASK_RETVAL repl_command( struct astring* cli ) {
    return RETVAL_NOT_FOUND;
 }
 
-TASK_RETVAL trepl_task() {
+TASK_RETVAL repl_task() {
    char c = '\0';
    struct astring* line;
    uint8_t retval = 0;
@@ -558,13 +567,13 @@ TASK_RETVAL trepl_task() {
       line->len + 1 >= (line->mem.sz - sizeof( struct astring )) ||
       (('\r' == c || '\n' == c) && 0 == line->len)
    ) {
-      tprintf( "\n" );
+      printf( "\n" );
 
       if( line->len + 1 >= (line->mem.sz - sizeof( struct astring )) ) {
          /* Line would be too long if we accepted this char. */
-         tprintf( "linebuf\n" );
+         printf( "linebuf\n" );
       } else {
-         tprintf( "linezero\n" );
+         printf( "linezero\n" );
       }
 
       /* Reset line. */
@@ -579,13 +588,13 @@ TASK_RETVAL trepl_task() {
          /* Reset any pending ANSI flag. */
          repl_unset_flag( REPL_FLAG_ANSI_SEQ );
 
-         tprintf( "\n" );
+         printf( "\n" );
          retval = g_repl_line_handler( line );
 
          if( RETVAL_NOT_FOUND == retval ) {
-            tprintf( "invalid\n" );
+            printf( "invalid\n" );
          } else if( RETVAL_BAD_ARGS == retval ) {
-            tprintf( "bad arguments\n" );
+            printf( "bad arguments\n" );
          }
          alpha_astring_clear( line );
          break;
@@ -613,7 +622,7 @@ TASK_RETVAL trepl_task() {
             } else if( '[' == c ) {
                break;
             } else {
-               tprintf( "\nansi+%d\n", c );
+               printf( "\nansi+%d\n", c );
             }
 
             /* Reset pending ANSI flag. */
