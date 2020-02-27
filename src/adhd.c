@@ -3,8 +3,7 @@
 
 #define ADHD_C
 #include "adhd.h"
-
-#include "alpha.h"
+#include "cstd.h"
 
 #if 0
 #ifdef __GNUC__
@@ -66,10 +65,11 @@ cleanup:
 
 #else
 
-static struct adhd_task g_tasks[ADHD_TASKS_MAX];
+static struct adhd_task* g_tasks;
 
 void adhd_start() {
-   mzero( g_tasks, sizeof( struct adhd_task ) * ADHD_TASKS_MAX );
+   /* TODO: Free this in shutdown. */
+   g_tasks = malloc( sizeof( struct adhd_task ) * ADHD_TASKS_MAX );
 }
 
 TASK_RETVAL adhd_launch_task( ADHD_TASK callback, const char* gid ) {
@@ -93,11 +93,11 @@ TASK_RETVAL adhd_launch_task( ADHD_TASK callback, const char* gid ) {
       return RETVAL_TOO_MANY_TASKS;
    }
 
-   mzero( &(g_tasks[pid_iter]), sizeof( struct adhd_task ) );
+   memset( &(g_tasks[pid_iter]), '\0', sizeof( struct adhd_task ) );
    task = &(g_tasks[pid_iter]);
    task->pid = pid_iter;
    task->callback = callback;
-   mcopy( task->gid, gid, 4 );
+   memcpy( task->gid, gid, 4 );
 
    return RETVAL_OK;
 }
@@ -117,8 +117,10 @@ void adhd_kill_task( TASK_PID pid ) {
       return;
    }
 
+   /* TODO: Call task cleanup. */
+
    /* TODO: Go through memory and remove any allocated blocks for this PID. */
-   mfree_all( pid );
+   //mfree_all( pid );
    
    g_tasks[pid].callback = NULL;
 }
@@ -149,7 +151,7 @@ TASK_PID adhd_get_pid_by_gid( const_char* gid ) {
       if(
          NULL != g_tasks[i].callback &&
          NULL != g_tasks[i].gid &&
-         0 == alpha_cmp_cc( gid, 4, g_tasks[i].gid, 4, ' ', true, true )
+         0 == strncmp( gid, g_tasks[i].gid, 4 )
       ) {
          return i;
       }

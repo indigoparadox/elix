@@ -38,10 +38,8 @@ CFLAGS=\
 	-DVERSION=\"$(shell date +'%Y.%m.%d.%H.%M.%S')\"
 
 SOURCES= \
-	console.c \
 	adhd.c \
-	alpha.c \
-	mem.c
+	cstd.c
 
 SOURCES_APPS_COLINUX= \
 	apps/repl.c \
@@ -117,6 +115,7 @@ $(BIN_LIN): CFLAGS += \
 	-DDEBUG \
 	-DMBMP_AGGRESSIVE_VALIDATE \
 	-DCOLINUX_TERMIOS \
+	-Wno-builtin-declaration-mismatch \
 	$(DEBUG_FLAGS)
 #	-DALPHA_CMP_DEBUG
 $(BIN_LIN): LDFLAGS += \
@@ -149,6 +148,7 @@ $(ASM_LIN): ASMDIR := ../asm/linux/
 
 $(BIN_WIN): CC := i686-w64-mingw32-g
 $(BIN_WIN): CFLAGS += \
+	-Wno-builtin-declaration-mismatch \
 	-DNET_CON_ECHO \
 	-DUSE_EXT_CLI \
 	-DUSE_DISK \
@@ -163,6 +163,7 @@ $(BIN_X86): AS := ia16-elf-gcc
 $(BIN_X86): LD := ia16-elf-ld
 $(BIN_X86): ASFLAGS := -c
 $(BIN_X86): CFLAGS += \
+	-Wno-builtin-declaration-mismatch \
 	-DNO_STD_HEADERS \
 	-DQD_PLATFORM=QD_PLATFORM_X86 \
 	-DREPL_NO_PRINTF_PTR \
@@ -210,6 +211,7 @@ $(BIN_MSP430): CFLAGS += \
 	-gdwarf-2 \
 	-Wall \
 	-Werror \
+	-Wno-builtin-declaration-mismatch \
 	-DMEM_HEAP_SIZE=300 \
 	-DUART_TX_BUFFER_LENGTH=0 \
 	-DUART_RX_BUFFER_LENGTH=20 \
