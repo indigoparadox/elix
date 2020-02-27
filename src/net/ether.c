@@ -1,4 +1,6 @@
 
+#ifdef USE_NET
+
 #include "ether.h"
 
 #include <stddef.h>
@@ -61,4 +63,6 @@ uint32_t ether_ntohl( const_uint32_t input ) {
       ((uint32_t) output[1] << 16) |
       ((uint32_t) output[0] << 24);
 }
+
+#endif /* USE_NET */
 

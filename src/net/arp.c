@@ -1,3 +1,5 @@
+ 
+#ifdef USE_NET
 
 #include "arp.h"
 
@@ -197,4 +199,6 @@ cleanup:
    return arp_packet_out;
 }
 #endif
+
+#endif /* USE_NET */
 

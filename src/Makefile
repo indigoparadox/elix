@@ -42,10 +42,11 @@ SOURCES= \
 	cstd.c
 
 SOURCES_APPS_COLINUX= \
-	apps/repl.c \
-	apps/medlin.c \
-	apps/microd.c \
-	apps/xmodem.c
+	apps/repl.c
+
+	#apps/medlin.c \
+	#apps/microd.c \
+	#apps/xmodem.c
 
 SOURCES_APPS_X86=\
 	apps/repl.c
@@ -104,9 +105,9 @@ DRIVERS_X86=\
 ISODIRX86=../isodir/x86
 CHECKSDIR=../tests
 
+	#-DUSE_EXT_CLI
+	#-DUSE_NET
 $(BIN_LIN): CFLAGS += \
-	-DUSE_EXT_CLI \
-	-DUSE_NET \
 	-DUSE_BMP \
 	-DUSE_DISK \
 	-DINIT_TASK="trepl_task" \

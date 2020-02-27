@@ -1,4 +1,6 @@
 
+#ifdef USE_NET
+
 #include "../net/net.h"
 
 /* This driver relies on a host OS anyway. */
@@ -125,4 +127,6 @@ int net_poll_frame(
 cleanup:
    return frame_len;
 }
+
+#endif /* USE_NET */
 

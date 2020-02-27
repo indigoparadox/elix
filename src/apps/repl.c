@@ -22,6 +22,8 @@ const char qd_logo[8][16] = {
 
 const char gid_repl[5] = "repl";
 
+char* g_line = NULL;
+
 /* Utility Functions */
 
 CONSOLE_CMD g_repl_line_handler = NULL;
@@ -52,7 +54,7 @@ char* repl_tok( char* cli, uint8_t idx ) {
    STRLEN_T sigil_start = 0;
    STRLEN_T i = 0;
    STRLEN_T len = 0;
-   STRLEN_T sigil_val = 0;
+   //STRLEN_T sigil_val = 0;
    STRLEN_T sigil_len = 0;
 
    tok = strtok( cli, REPL_LINE_SIZE_MAX, " " );
@@ -80,15 +82,15 @@ char* repl_tok( char* cli, uint8_t idx ) {
             printf( "sigil capture ends at: %d\n", i );
             printf( "sigil start: %d len: %d\n", sigil_start, sigil_len );
 #endif /* DEBUG_REPL */
-            sigil_val = atou( &(tok[sigil_start]), 10 );
+            //sigil_val = atou( &(tok[sigil_start]), 10 );
             sigil_start = 0;
 #ifdef DEBUG_REPL
             printf( "getting cell #%d\n", sigil_val );
 #endif /* DEBUG_REPL */
-            tok = mget( adhd_get_pid_by_gid( gid_repl ), sigil_val, len + 1 );
-            if( NULL != tok ) {
-               return tok;
-            }
+            //tok = mget( adhd_get_pid_by_gid( gid_repl ), sigil_val, len + 1 );
+            //if( NULL != tok ) {
+            //   return tok;
+            //}
 
          }
       }
@@ -391,6 +393,7 @@ static TASK_RETVAL tdisk_bmp( char* cli ) {
 #endif /* USE_BMP */
 #endif
 
+#if 0
 TASK_RETVAL repl_let( char* cli ) {
    uint8_t idx = 0;
    STRLEN_T len = 0;
@@ -425,6 +428,7 @@ TASK_RETVAL repl_let( char* cli ) {
 
    return RETVAL_OK;
 }
+#endif
 
 TASK_RETVAL repl_print( char* cli ) {
    const char* tok = NULL;
@@ -440,9 +444,11 @@ TASK_RETVAL repl_print( char* cli ) {
 }
 
 TASK_RETVAL repl_if( char* cli ) {
-   char* tok1 = NULL;
-   char* tok2 = NULL;
-   STRLEN_T i = 0;
+   char* tok1;
+   char* tok2;
+   size_t len1;
+   size_t len2;
+   size_t i = 0;
 
    tok1 = repl_tok( cli, 1 );
    tok2 = repl_tok( cli, 2 );
@@ -468,9 +474,8 @@ TASK_RETVAL repl_if( char* cli ) {
    }
 
    /* Verification passed. Do command. */
-
-   alpha_replace( '\0', ' ', cli );
-   alpha_astring_rtrunc( cli, (len1 + len2 + 3 /* Spaces */ + 3 /* ife */) );
+   strnreplace( cli, REPL_LINE_SIZE_MAX, '\0', ' ' );
+   strmtrunc( cli, 0, (len1 + len2 + 3 /* Spaces */ + 3 /* ife */) );
 
    repl_command( cli );
 
@@ -494,8 +499,8 @@ static const struct api_command g_commands[COMMANDS_COUNT] = {
 #endif /* REPL_CMD_DIR */
    { "exit", tsys_exit },
    /* { "for", repl_for }, */
-   { "ife", repl_if },
-   { "let", repl_let }
+   { "ife", repl_if }
+   //{ "let", repl_let }
 #ifdef REPL_CMD_MEM
    , { "mem", tsys_mem }
 #endif /* REPL_CMD_MEM */
@@ -541,7 +546,6 @@ TASK_RETVAL repl_command( char* cli ) {
 
 TASK_RETVAL repl_task() {
    char c = '\0';
-   struct astring* line;
    uint8_t retval = 0;
 
    adhd_task_setup();
@@ -560,16 +564,18 @@ TASK_RETVAL repl_task() {
     */
    /*line = alpha_astring(
       adhd_get_pid(), REPL_MID_LINE, REPL_LINE_SIZE_MAX + 1, NULL ); */
-   line = malloc( REPL_LINE_SIZE_MAX );
-   assert( NULL != line );
+   if( NULL == g_line ) {
+      g_line = malloc( REPL_LINE_SIZE_MAX );
+      assert( NULL != g_line );
+   }
 
    if(
-      line->len + 1 >= (line->mem.sz - sizeof( struct astring )) ||
-      (('\r' == c || '\n' == c) && 0 == line->len)
+      strlen( g_line ) + 1 <= REPL_LINE_SIZE_MAX ||
+      (('\r' == c || '\n' == c) && 0 == strlen( g_line) )
    ) {
       printf( "\n" );
 
-      if( line->len + 1 >= (line->mem.sz - sizeof( struct astring )) ) {
+      if( strlen( g_line ) + 1 >= REPL_LINE_SIZE_MAX ) {
          /* Line would be too long if we accepted this char. */
          printf( "linebuf\n" );
       } else {
@@ -577,7 +583,9 @@ TASK_RETVAL repl_task() {
       }
 
       /* Reset line. */
-      alpha_astring_clear( line );
+      free( g_line );
+      g_line = NULL;
+
       adhd_yield();
       adhd_continue_loop();
    }
@@ -589,20 +597,23 @@ TASK_RETVAL repl_task() {
          repl_unset_flag( REPL_FLAG_ANSI_SEQ );
 
          printf( "\n" );
-         retval = g_repl_line_handler( line );
+         retval = g_repl_line_handler( g_line );
 
          if( RETVAL_NOT_FOUND == retval ) {
             printf( "invalid\n" );
          } else if( RETVAL_BAD_ARGS == retval ) {
             printf( "bad arguments\n" );
          }
-         alpha_astring_clear( line );
+         free( g_line );
+         g_line = NULL;
          break;
 
       case 127:
          /* Backspace */
-         alpha_astring_trunc( line, 1 );
-         tputc( c );
+         if( 0 < strlen( g_line ) ) {
+            g_line[strlen( g_line ) - 1] = '\0';
+         }
+         putc( c, NULL );
          break;
 
       case 27:
@@ -630,8 +641,9 @@ TASK_RETVAL repl_task() {
             break;
          }
 
-         alpha_astring_append( line, c );
-         tputc( c );
+         /* We've already determined we can fit another char above. */
+         g_line[strlen( g_line )] = c;
+         putc( c, NULL );
          break;
    }
 

@@ -56,6 +56,79 @@ char* strtok( char* str, size_t sz, const char* delim ) {
    return NULL;
 }
 
+unsigned int atou( const char* str, int base ) {
+   unsigned int value = 0;
+   int i = 0, len;
+
+   len = strlen( str );
+
+   while( isalnum( *str ) && i < len ) {
+      value *= base;
+
+      if( '9' >= *str ) {
+         value += (*str - '0');
+      } else if( 'z' >= *str ) {
+         value += (*str - 'a');
+      } else if( 'Z' >= *str ) {
+         value += (*str - 'A');
+      }
+      i++;
+      str++;
+   }
+
+   return value;
+}
+
+char* utoan( unsigned int num, char* dest, size_t dest_sz, int base ) {
+   uint8_t rem;
+   size_t digits;
+   size_t digits_done = 0;
+   size_t dest_idx = 0;
+
+   digits = udigits( num, base );
+   assert( (0 == num && 1 == digits) || (0 < num && 0 < digits) );
+   assert( digits < dest_sz );
+
+   /* Handle 0 explicitly, otherwise empty string is printed for 0. */
+   if( 0 == num ) {
+      dest[0] = '0';
+      digits_done++;
+   }
+
+   dest_idx += digits;
+   while( 0 != num ) {
+      /* Get the 1's place. */
+      rem = num % base;
+      dest[--dest_idx] = (9 < rem) ? 
+         /* > 10, so it's a letter. */
+         (rem - 10) + 'a' :
+         /* < 10, so it's a number. */
+         rem + '0';
+      /* Move the next place value into range. */
+      num /= base;
+      digits_done++;
+   }
+   while( digits_done < digits ) {
+      dest[--dest_idx] = '0';
+      digits_done++;
+   }
+   dest[digits] = '\0';
+
+   return dest;
+}
+
+size_t udigits( unsigned int num, int base ) {
+   STRLEN_T digits = 0;
+   while( 0 < num ) {
+      num /= base;
+      digits++;
+   }
+   if( 0 == digits ) {
+      digits = 1; /* 0 */
+   }
+   return digits;
+}
+
 union mvalue {
    UTOA_T d;
    char c;
@@ -119,7 +192,7 @@ void fprintf( FILE* f, const char* pattern, ... ) {
                pad( pad_char, pad_len, f );
 
                /* Print number. */
-               if( NULL != utoa( spec->d, buffer, 10 ) ) {
+               if( NULL != utoan( spec->d, buffer, UTOA_DIGITS_MAX, 10 ) ) {
                   j = 0;
                   while( '\0' != buffer[j] && j <= UTOA_DIGITS_MAX ) {
                      putc( buffer[j], f );
@@ -136,7 +209,7 @@ void fprintf( FILE* f, const char* pattern, ... ) {
                pad( pad_char, pad_len, f );
 
                /* Print number. */
-               if( NULL != utoa( spec->d, buffer, 16 )
+               if( NULL != utoan( spec->d, buffer, UTOA_DIGITS_MAX, 16 )
                ) {
                   putc( '0', f );
                   putc( 'x', f );
@@ -167,7 +240,7 @@ void fprintf( FILE* f, const char* pattern, ... ) {
                pad( pad_char, pad_len, f );
 
                /* Print pointer as number. */
-               if( NULL != utoa( (uintptr_t)spec->p, buffer, 16 ) ) {
+               if( NULL != utoan( (uintptr_t)spec->p, buffer, UTOA_DIGITS_MAX, 16 ) ) {
                   j = 0;
                   while( '\0' != buffer[j] && j <= UTOA_DIGITS_MAX ) {
                      putc( buffer[j], f );

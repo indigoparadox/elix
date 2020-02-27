@@ -1,4 +1,6 @@
 
+#ifdef USE_NET
+
 #define NET_C
 #include "net.h"
 #include "arp.h"
@@ -119,4 +121,6 @@ TASK_RETVAL net_respond_task() {
 void net_init() {
 
 }
+
+#endif /* USE_NET */
 

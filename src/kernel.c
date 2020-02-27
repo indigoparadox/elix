@@ -7,11 +7,9 @@
 #define IO_C
 #include "kernel.h"
 #include "io.h"
-#include "console.h"
-#include "mem.h"
 #include "net/net.h"
 #include "adhd.h"
-#include "alpha.h"
+#include "cstd.h"
 
 #if defined( USE_EXT_CLI ) && INIT_TASK != trepl_task
 #error "repl app is required to enable external CLI!"
@@ -40,8 +38,6 @@ int kmain() {
    bool do_init = true;
    bool cmd_found = false;
 #endif /* USE_EXT_CLI */
-
-   minit();
 
 #ifdef USE_EXT_CLI
    if( 1 < argc ) {
@@ -77,8 +73,8 @@ int kmain() {
    if( do_init ) {
 #endif /* USE_EXT_CLI */
 
-   tinput_init();
-   toutput_init();
+   //tinput_init();
+   //toutput_init();
 
 #ifdef USE_NET
    net_init();
@@ -114,7 +110,7 @@ int kmain() {
    }
 #endif /* !SCHEDULE_COOP */
 
-   tprintf( "stopping...\n" );
+   printf( "stopping...\n" );
 
 #if 0
    /* Create an ARP request. */

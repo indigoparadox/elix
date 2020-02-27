@@ -1,7 +1,6 @@
 
 #include "../display.h"
 #include "../kernel.h"
-#include "../mem.h"
 #include "../io.h"
 
 #include <sys/select.h>
