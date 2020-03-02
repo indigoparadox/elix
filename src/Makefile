@@ -65,8 +65,9 @@ SOURCES_NET=$(SOURCES_TESTED_NET) \
 
 CHECKOBJ=\
 	check.o \
-	check_mem.o \
-	check_alpha.o
+	check_cstd.o
+#	check_mem.o \
+#	check_alpha.o
 #	check_console.o \
 
 OBJECTS=$(subst .c,.o,$(SOURCES))
@@ -241,6 +242,7 @@ $(BIN_MSP430): LDFLAGS += \
 
 tests: LDFLAGS += -lpcap $(shell pkg-config --libs check)
 tests: CFLAGS += \
+	-Wno-builtin-declaration-mismatch \
 	-DCHECK \
 	-DQD_PLATFORM=QD_PLATFORM_COLINUX \
 	-DUSE_NET \

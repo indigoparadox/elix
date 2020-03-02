@@ -3,6 +3,11 @@
 
 #include "etypes.h"
 
+#ifndef MEM_HEAP_SIZE
+#warning "Setting heap size to 320."
+#define MEM_HEAP_SIZE 320
+#endif /* MEM_HEAP_SIZE  */
+
 /* Memory table is 32 bits long. */
 #define MEM_BLOCK_SZ (MEM_HEAP_SIZE / 32)
 static uint32_t g_mem_table = 0;
@@ -34,6 +39,20 @@ void* memset( void* s, int c, size_t n ) {
    return NULL;
 }
 
+int strncmp( const char* str1, const char* str2, size_t sz ) {
+   size_t i = 0;
+
+   for( i = 0 ; sz > i ; i++ ) {
+      if( str1[i] > str2[i] ) {
+         return 1;
+      } else if( str1[i] < str2[i] ) {
+         return -1;
+      }
+   }
+
+   return 0;
+}
+
 char* strtok( char* str, size_t sz, const char* delim ) {
    size_t i, j, m, idx = 0;
 
@@ -54,6 +73,49 @@ char* strtok( char* str, size_t sz, const char* delim ) {
    }
 
    return NULL;
+}
+
+void strnreplace( char* str, size_t sz, char* s, char* r ) {
+   int i = 0, j = 0;
+   //size_t replace_diff = 0;
+
+   /* total_sz = strlen( s ) + strlen( r );
+
+   if( total_sz > sz ) {
+      // String buffer too small!
+      return;
+   } */
+
+   for( i = 0 ; sz > i ; i++ ) {
+
+      if( 0 == strncmp( &(str[i]), s, sz - i ) ) {
+         for( j = sz ; i + strlen( r ) <= j ; j-- ) {
+            str[j] = str[j - strlen( r )];
+         }
+      }
+
+#if 0
+      if( str[i] == s[j] ) {
+         /* Character match, so advance j. */
+         j++;
+      } else if( j >= strlen( s ) ) {
+         if( strlen( s ) > strlen( r ) ) {
+            replace_diff = strlen( s ) - strlen( r );
+            if( replace_diff + strlen( str ) > sz ) {
+               return;
+            }
+         } else {
+            replace_diff = strlen( r ) - strlen( s );
+            if( replace_diff + strlen( str ) > sz ) {
+               return;
+            }
+         }
+      } else {
+         /* Reset j. */
+         j = 0;
+      }
+#endif
+   }
 }
 
 unsigned int atou( const char* str, int base ) {
@@ -304,5 +366,9 @@ void fprintf( FILE* f, const char* pattern, ... ) {
 
       last = c;
    }
+}
+
+void putc( char c, FILE* f ) {
+   putchar( c );
 }
 
