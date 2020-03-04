@@ -1,24 +1,31 @@
 
 #include "cstd.h"
 
-#include <assert.h>
+#define assert( t ) \
+   if( t ) { \
+      printf( "bad assert: %d\n", __LINE__ ); \
+   }
 
 int main() {
    char str_test[30] = "This is a test.";
    char* s = "test";
-   char* r = "foo";
+   char* r = "replacement";
 
    assert( strlen( s ) == 4 );
+   printf( "Passed: strlen( s ): %d\n", strlen( s ) );
+   fflush( 0 );
    assert( strlen( r ) == 3 );
+   printf( "Passed: strlen( r ): %d\n", strlen( r ) );
+   fflush( 0 );
    assert( strlen( str_test ) < 30 );
-   printf( "%d\n", strlen( str_test ) );
-   return 0;
+   printf( "Passed: strlen( str_test ): %d\n", strlen( str_test ) );
+   fflush( 0 );
 
-   printf( "%s\n", str_test );
+   printf( "Before replace: %s\n", str_test );
 
-   strnreplace( str_test, 30, s, r );
+   //strnreplace( str_test, 30, s, r );
 
-   printf( "%s\n", str_test );
+   printf( "After replace: %s\n", str_test );
 
    return 0;
 }

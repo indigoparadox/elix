@@ -39,8 +39,18 @@ void* memset( void* s, int c, size_t n ) {
    return NULL;
 }
 
+size_t strlen( const char* str ) {
+   size_t i = 0;
+   while( '\0' != str[i] ) {
+      i++;
+   }
+   return i;
+}
+
 int strncmp( const char* str1, const char* str2, size_t sz ) {
    size_t i = 0;
+
+   printf( "strncmp: \"%s\" vs \"%s\" (%d)\n", str1, str2, sz );
 
    for( i = 0 ; sz > i ; i++ ) {
       if( str1[i] > str2[i] ) {
@@ -76,7 +86,8 @@ char* strtok( char* str, size_t sz, const char* delim ) {
 }
 
 void strnreplace( char* str, size_t sz, char* s, char* r ) {
-   int i = 0, j = 0;
+   int i = 0, r_iter = 0, sr_diff = 0;
+   int cmp_len = 0;
    //size_t replace_diff = 0;
 
    /* total_sz = strlen( s ) + strlen( r );
@@ -86,12 +97,30 @@ void strnreplace( char* str, size_t sz, char* s, char* r ) {
       return;
    } */
 
+#if 0
    for( i = 0 ; sz > i ; i++ ) {
 
-      if( 0 == strncmp( &(str[i]), s, sz - i ) ) {
-         for( j = sz ; i + strlen( r ) <= j ; j-- ) {
-            str[j] = str[j - strlen( r )];
+      if( sz - i < strlen( s ) ) {
+         /* Not enough chars left to compare, so fail automatically. */
+         break;
+
+      /* Max out at source length. */
+      } else if( 0 == strncmp( &(str[i]), s, strlen( s ) ) ) {
+         printf( "found\n" );
+         sr_diff = strlen( r ) - strlen( s );
+         for( r_iter = sz ; r_iter > i + sr_diff ; r_iter-- ) {
+            printf( "move %c to %c\n", str[r_iter - sr_diff], str[r_iter] );
+            fflush( 0 );
+            str[r_iter] = str[r_iter - sr_diff];
          }
+
+         for( r_iter = 0 ; strlen( r ) > r_iter ; r_iter++ ) {
+            printf( "replace %c with %c\n", str[i + r_iter], r[r_iter] );
+            fflush( 0 );
+            str[r_iter] = str[r_iter - sr_diff];
+            str[i + r_iter] = r[r_iter];
+         }
+         i += strlen( r );
       }
 
 #if 0
@@ -116,6 +145,7 @@ void strnreplace( char* str, size_t sz, char* s, char* r ) {
       }
 #endif
    }
+#endif
 }
 
 unsigned int atou( const char* str, int base ) {
@@ -211,6 +241,8 @@ static void pad( char pad, size_t len, FILE* f ) {
       i++;
    }
 }
+
+#ifdef CSTD_FPRINTF
 
 void fprintf( FILE* f, const char* pattern, ... ) {
    va_list args;
@@ -368,7 +400,11 @@ void fprintf( FILE* f, const char* pattern, ... ) {
    }
 }
 
+#endif /* CSTD_FPRINTF */
+
+#ifdef CSTD_PUTC
 void putc( char c, FILE* f ) {
    putchar( c );
 }
+#endif /* CSTD_PUTC */
 
