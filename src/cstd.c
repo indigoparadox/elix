@@ -56,13 +56,16 @@ int strncmp( const char* str1, const char* str2, size_t sz ) {
    fflush( 0 );
 #endif /* CSTD_DEBUG_VERBOSE */
 
-   for( i = 0 ; sz > i ; i++ ) {
-      if( str1[i] > str2[i] ) {
-         return 1;
-      } else if( str1[i] < str2[i] ) {
-         return -1;
+   for( i = 0 ; i < sz ; i++ ) {
+      if( str1[i] < str2[i] ) {
+         return str1[i] - str2[i];
+      } else if( str1[i] > str2[i] ) {
+         return str1[i] - str2[i];
+      } else if( str1[i] == '\0' && str2[i] == '\0' ) {
+         return 0;
       }
    }
+
 
    return 0;
 }
@@ -91,15 +94,6 @@ char* strtok( char* str, size_t sz, const char* delim ) {
 
 void strnreplace( char* str, size_t sz, const char* s, const char* r ) {
    int i = 0, r_iter = 0, sr_diff = 0;
-   int cmp_len = 0;
-   //size_t replace_diff = 0;
-
-   /* total_sz = strlen( s ) + strlen( r );
-
-   if( total_sz > sz ) {
-      // String buffer too small!
-      return;
-   } */
 
    for( i = 0 ; sz > i ; i++ ) {
 
@@ -218,7 +212,7 @@ union mvalue {
    char* s;
 };
 
-static void pad( char pad, size_t len, FILE* f ) {
+static void pad( char pad, size_t len, int f ) {
    uint8_t i = 0;
 
    if( 0 >= len || '\0' == pad ) {
@@ -231,9 +225,7 @@ static void pad( char pad, size_t len, FILE* f ) {
    }
 }
 
-#ifdef CSTD_FPRINTF
-
-void fprintf( FILE* f, const char* pattern, ... ) {
+void fprintf( int f, const char* pattern, ... ) {
    va_list args;
    int i = 0, j = 0;
    char last = '\0';
@@ -388,12 +380,4 @@ void fprintf( FILE* f, const char* pattern, ... ) {
       last = c;
    }
 }
-
-#endif /* CSTD_FPRINTF */
-
-#ifdef CSTD_PUTC
-void putc( char c, FILE* f ) {
-   putchar( c );
-}
-#endif /* CSTD_PUTC */
 
