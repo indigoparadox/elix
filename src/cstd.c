@@ -42,6 +42,7 @@ void* memset( void* s, int c, size_t n ) {
 size_t strlen( const char* str ) {
    size_t i = 0;
    while( '\0' != str[i] ) {
+      //printf( "%d: %c\n", i + 1, str[i] );
       i++;
    }
    return i;
@@ -50,7 +51,10 @@ size_t strlen( const char* str ) {
 int strncmp( const char* str1, const char* str2, size_t sz ) {
    size_t i = 0;
 
+#ifdef CSTD_DEBUG_VERBOSE
    printf( "strncmp: \"%s\" vs \"%s\" (%d)\n", str1, str2, sz );
+   fflush( 0 );
+#endif /* CSTD_DEBUG_VERBOSE */
 
    for( i = 0 ; sz > i ; i++ ) {
       if( str1[i] > str2[i] ) {
@@ -85,7 +89,7 @@ char* strtok( char* str, size_t sz, const char* delim ) {
    return NULL;
 }
 
-void strnreplace( char* str, size_t sz, char* s, char* r ) {
+void strnreplace( char* str, size_t sz, const char* s, const char* r ) {
    int i = 0, r_iter = 0, sr_diff = 0;
    int cmp_len = 0;
    //size_t replace_diff = 0;
@@ -97,7 +101,6 @@ void strnreplace( char* str, size_t sz, char* s, char* r ) {
       return;
    } */
 
-#if 0
    for( i = 0 ; sz > i ; i++ ) {
 
       if( sz - i < strlen( s ) ) {
@@ -106,46 +109,32 @@ void strnreplace( char* str, size_t sz, char* s, char* r ) {
 
       /* Max out at source length. */
       } else if( 0 == strncmp( &(str[i]), s, strlen( s ) ) ) {
+#ifdef CSTD_DEBUG_VERBOSE
          printf( "found\n" );
+#endif /* CSTD_DEBUG_VERBOSE */
          sr_diff = strlen( r ) - strlen( s );
+         /* Move chars at the end of the string forward to make room. */
          for( r_iter = sz ; r_iter > i + sr_diff ; r_iter-- ) {
-            printf( "move %c to %c\n", str[r_iter - sr_diff], str[r_iter] );
+#ifdef CSTD_DEBUG_VERBOSE
+            printf( "move %c to %c\n",
+               str[r_iter - sr_diff] ? str[r_iter - sr_diff] : 'X',
+               str[r_iter] ? str[r_iter] : 'X' );
             fflush( 0 );
+#endif /* CSTD_DEBUG_VERBOSE */
             str[r_iter] = str[r_iter - sr_diff];
          }
 
+         /* Replace old text/blanks with new string contents. */
          for( r_iter = 0 ; strlen( r ) > r_iter ; r_iter++ ) {
+#ifdef CSTD_DEBUG_VERBOSE
             printf( "replace %c with %c\n", str[i + r_iter], r[r_iter] );
             fflush( 0 );
-            str[r_iter] = str[r_iter - sr_diff];
+#endif /* CSTD_DEBUG_VERBOSE */
             str[i + r_iter] = r[r_iter];
          }
-         i += strlen( r );
+         i += strlen( r ) - 1;
       }
-
-#if 0
-      if( str[i] == s[j] ) {
-         /* Character match, so advance j. */
-         j++;
-      } else if( j >= strlen( s ) ) {
-         if( strlen( s ) > strlen( r ) ) {
-            replace_diff = strlen( s ) - strlen( r );
-            if( replace_diff + strlen( str ) > sz ) {
-               return;
-            }
-         } else {
-            replace_diff = strlen( r ) - strlen( s );
-            if( replace_diff + strlen( str ) > sz ) {
-               return;
-            }
-         }
-      } else {
-         /* Reset j. */
-         j = 0;
-      }
-#endif
    }
-#endif
 }
 
 unsigned int atou( const char* str, int base ) {
