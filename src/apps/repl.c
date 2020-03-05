@@ -474,7 +474,11 @@ TASK_RETVAL repl_if( char* cli ) {
    }
 
    /* Verification passed. Do command. */
-   //strnreplace( cli, REPL_LINE_SIZE_MAX, '\0', ' ' );
+   for( i = 0 ; REPL_LINE_SIZE_MAX > i ; i++ ) {
+      if( '\0' == cli[i] ) {
+         cli[i] = ' ';
+      }
+   }
    strmtrunc( cli, 0, (len1 + len2 + 3 /* Spaces */ + 3 /* ife */) );
 
    repl_command( cli );
@@ -534,12 +538,12 @@ TASK_RETVAL repl_command( char* cli ) {
    }
 
    /* Could not find an internal command. Try installed apps. */
-   for( i = 0 ; g_console_apps_top > i ; i++ ) {
+   /*for( i = 0 ; g_console_apps_top > i ; i++ ) {
       retval = g_console_apps[i]( cli );
       if( RETVAL_NOT_FOUND != retval ) {
          return retval;
       }
-   }
+   }*/
 
    return RETVAL_NOT_FOUND;
 }

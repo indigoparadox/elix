@@ -131,6 +131,18 @@ void strnreplace( char* str, size_t sz, const char* s, const char* r ) {
    }
 }
 
+void strmtrunc( char* str, size_t start, size_t diff ) {
+   int i = 0;
+
+   while( diff > 0 ) {
+      for( i = start ; strlen( str ) > i ; i++ ) {
+         /* Grab the null past the end of strlen, too. */
+         str[i] = str[i + 1];
+      }
+      diff--;
+   }
+}
+
 unsigned int atou( const char* str, int base ) {
    unsigned int value = 0;
    int i = 0, len;
