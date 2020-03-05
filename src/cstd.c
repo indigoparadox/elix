@@ -18,7 +18,7 @@ void* malloc( size_t sz ) {
    uint8_t page = 0;
    uint8_t* mem_table = (uint8_t*)&g_mem_table;
    uint16_t addr = 0;
-   
+
    do {
       if( !(bit_cmp & *mem_table) ) {
          /* See if there are enough free blocks to fill the request. */
@@ -174,7 +174,7 @@ char* utoan( unsigned int num, char* dest, size_t dest_sz, int base ) {
    while( 0 != num ) {
       /* Get the 1's place. */
       rem = num % base;
-      dest[--dest_idx] = (9 < rem) ? 
+      dest[--dest_idx] = (9 < rem) ?
          /* > 10, so it's a letter. */
          (rem - 10) + 'a' :
          /* < 10, so it's a number. */
@@ -212,7 +212,7 @@ union mvalue {
    char* s;
 };
 
-static void pad( char pad, size_t len, int f ) {
+static void pad( char pad, int len, int f ) {
    uint8_t i = 0;
 
    if( 0 >= len || '\0' == pad ) {
@@ -229,9 +229,9 @@ void fprintf( int f, const char* pattern, ... ) {
    va_list args;
    int i = 0, j = 0;
    char last = '\0';
-   union mvalue* spec = NULL;
-   char* buffer = NULL;
-   size_t pad_len = 0;
+   union mvalue spec;
+   char buffer[UTOA_DIGITS_MAX + 1];
+   int pad_len = 0; /* Needs to be able to go negative. */
    char c;
    uint8_t pad_char = ' ';
 
@@ -239,35 +239,35 @@ void fprintf( int f, const char* pattern, ... ) {
 
    for( i = 0 ; '\0' != pattern[i] ; i++ ) {
       c = pattern[i]; /* Separate so we can play tricks below. */
- 
+
       if( '%' == last ) {
          /* Conversion specifier encountered. */
-         spec = malloc( sizeof( union mvalue ) );
-         buffer = malloc( UTOA_DIGITS_MAX + 1 );
+         //spec = malloc( sizeof( union mvalue ) );
+         //buffer = malloc( UTOA_DIGITS_MAX + 1 );
          switch( pattern[i] ) {
             case 's':
-               spec->s = va_arg( args, char* );
+               spec.s = va_arg( args, char* );
 
                /* Print padding. */
-               pad_len -= strlen( spec->s );
+               pad_len -= strlen( spec.s );
                pad( pad_char, pad_len, f );
 
                /* Print string. */
                j = 0;
-               while( '\0' != spec->s[j] ) {
-                  putc( spec->s[j++], f );
+               while( '\0' != spec.s[j] ) {
+                  putc( spec.s[j++], f );
                }
                break;
 
             case 'd':
-               spec->d = va_arg( args, UTOA_T );
-               
+               spec.d = va_arg( args, UTOA_T );
+
                /* Print padding. */
-               pad_len -= udigits( spec->d, 10 );
+               pad_len -= udigits( spec.d, 10 );
                pad( pad_char, pad_len, f );
 
                /* Print number. */
-               if( NULL != utoan( spec->d, buffer, UTOA_DIGITS_MAX, 10 ) ) {
+               if( NULL != utoan( spec.d, buffer, UTOA_DIGITS_MAX, 10 ) ) {
                   j = 0;
                   while( '\0' != buffer[j] && j <= UTOA_DIGITS_MAX ) {
                      putc( buffer[j], f );
@@ -277,14 +277,14 @@ void fprintf( int f, const char* pattern, ... ) {
                break;
 
             case 'x':
-               spec->d = va_arg( args, int );
+               spec.d = va_arg( args, int );
 
                /* Print padding. */
-               pad_len -= udigits( spec->d, 16 );
+               pad_len -= udigits( spec.d, 16 );
                pad( pad_char, pad_len, f );
 
                /* Print number. */
-               if( NULL != utoan( spec->d, buffer, UTOA_DIGITS_MAX, 16 )
+               if( NULL != utoan( spec.d, buffer, UTOA_DIGITS_MAX, 16 )
                ) {
                   putc( '0', f );
                   putc( 'x', f );
@@ -297,25 +297,25 @@ void fprintf( int f, const char* pattern, ... ) {
                break;
 
             case 'c':
-               spec->c = va_arg( args, int );
+               spec.c = va_arg( args, int );
 
                /* Print padding. */
                pad( pad_char, pad_len, f );
 
                /* Print char. */
-               putc( spec->c, f );
+               putc( spec.c, f );
                break;
 
 #ifndef CONSOLE_NO_PRINTF_PTR
             case 'p':
-               spec->p = va_arg( args, void* );
+               spec.p = va_arg( args, void* );
 
                /* Print padding. */
-               pad_len -= udigits( (uintptr_t)spec->p, 16 );
+               pad_len -= udigits( (uintptr_t)spec.p, 16 );
                pad( pad_char, pad_len, f );
 
                /* Print pointer as number. */
-               if( NULL != utoan( (uintptr_t)spec->p, buffer, UTOA_DIGITS_MAX, 16 ) ) {
+               if( NULL != utoan( (uintptr_t)spec.p, buffer, UTOA_DIGITS_MAX, 16 ) ) {
                   j = 0;
                   while( '\0' != buffer[j] && j <= UTOA_DIGITS_MAX ) {
                      putc( buffer[j], f );
@@ -357,8 +357,8 @@ void fprintf( int f, const char* pattern, ... ) {
                c = '%';
                break;
          }
-         free( spec );
-         free( buffer );
+         //free( spec );
+         //free( buffer );
       } else if( '%' != c ) {
          pad_char = ' '; /* Reset padding. */
          pad_len = 0; /* Reset padding. */

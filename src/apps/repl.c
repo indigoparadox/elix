@@ -31,12 +31,12 @@ CONSOLE_CMD g_repl_line_handler = NULL;
 static void repl_show_logo() {
    uint8_t i = 0;
    for( i = 0 ; 8 > i ; i++ ) {
-      printf( "%c", qd_logo[i] );
+      printf( "%s", qd_logo[i] );
       printf( "\n" );
    }
    printf( "ELix console v" VERSION "\n" );
 #ifndef REPL_NO_PRINTF_PTR
-   printf( "ptr %d bytes\n", sizeof( void* ) );
+   //printf( "ptr %d bytes\n", sizeof( void* ) );
 #endif /* REPL_NO_PRINTF_PTR */
 }
 
@@ -474,7 +474,7 @@ TASK_RETVAL repl_if( char* cli ) {
    }
 
    /* Verification passed. Do command. */
-   strnreplace( cli, REPL_LINE_SIZE_MAX, '\0', ' ' );
+   //strnreplace( cli, REPL_LINE_SIZE_MAX, '\0', ' ' );
    strmtrunc( cli, 0, (len1 + len2 + 3 /* Spaces */ + 3 /* ife */) );
 
    repl_command( cli );

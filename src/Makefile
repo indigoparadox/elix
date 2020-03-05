@@ -249,6 +249,15 @@ tests: CFLAGS += \
 	-DMEM_SAVE
 tests: OBJDIR := ../obj/tests/
 
+testcstd: CFLAGS += \
+	-Wno-builtin-declaration-mismatch \
+	-Wno-error \
+	-nostdlib \
+	-g \
+	-DCSTD_PUTCHAR
+testcstd: LDFLAGS += \
+	-nostdlib
+
 ASMS=$(subst .c,.s,$(SOURCES))
 ASMS_APPS_X86=$(subst .c,.s,$(SOURCES_APPS_X86))
 ASMS_APPS_COLINUX=$(subst .c,.s,$(SOURCES_APPS_COLINUX))
@@ -256,6 +265,9 @@ ASMS_NET=$(subst .c,.s,$(SOURCES_NET))
 ASMS_DRIVERS_COLINUX=$(subst .c,.s,$(DRIVERS_COLINUX))
 
 all:
+
+testcstd: cstd.o testcstd.o
+	$(CC) -o $@ $(LDFLAGS) $^
 
 $(ASM_LIN): $(ASMS) $(ASMS_NET) $(ASMS_APPS_COLINUX) $(ASMS_DRIVERS_COLINUX) colinux/boot.s kernel.s
 

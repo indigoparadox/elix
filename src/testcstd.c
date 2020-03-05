@@ -8,17 +8,20 @@
    }
 
 int putchar( int c ) {
-   long retval;
+   int retval;
    long len;
    char* pc = (char*)&c;
+
+   len = 1;
+
    asm volatile (
-      "movl $0x04, %%eax\n"   /* write */
-      "movl $0x01, %%ebx\n"   /* stdout */
-      "movl $0x01, %%edx\n"   /* 1 char. */
-      "int $0x80\n"
-      : "=A"( retval )
-      : "c" ( pc )
-      : "memory" );
+      "movq $0x01, %%rax\n\t"
+      "movq $0x01, %%rdi\n\t"
+      "movq %1, %%rsi\n\t"
+      "movl %2, %%edx\n\t"
+      "syscall\n"
+      : "=g"( retval )
+      : "g" ( pc ), "g" ( len ) );
    return retval;
 }
 
@@ -37,6 +40,9 @@ int main() {
    char* r = "replacement";
    int len = 0;
    int i = 0;
+
+   putchar( 'f' );
+   putchar( '\n' );
 
    for( i = 0 ; strlen( r ) > i ; i++ ) {
       putchar( r[i] );
