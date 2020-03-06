@@ -70,26 +70,33 @@ int strncmp( const char* str1, const char* str2, size_t sz ) {
    return 0;
 }
 
-char* strtok( char* str, size_t sz, const char* delim ) {
-   size_t i, j, m, idx = 0;
+char* strtok_r( char* str, const char* delim, char** saveptr ) {
+   char* start = (str != NULL ? str : *saveptr);
+   char* iter = start;
+   int i = 0;
 
-   m = strlen( delim );
-
-   /* Iterate tokenized string. */
-   for( i = 0 ; sz > i ; i++ ) {
-      /* Iterate delims. */
-      for( j = 0 ; m > j ; j++ ) {
-         if( '\0' == str[i] ) {
-            idx = i + 1;
-         } if( str[i] == delim[j] ) {
-            /* Set a NULL and return the address of this token. */
-            str[i] = '\0';
-            return &(str[idx]);
-         }
-      }
+   /* str and *saveptr are both NULL. Nothing to iterate! */
+   if( NULL == start ) {
+      return NULL;
    }
 
-   return NULL;
+   /* Hunt for the delim chars. */
+   while( '\0' != *iter ) {
+      for( i = 0 ; strlen( delim ) > i ; i++ ) {
+         if( *iter == delim[i] ) {
+            /* Delim found. */
+            *iter = '\0';
+            *saveptr = ++iter;
+            return start;
+         }
+      }
+      iter++;
+   }
+
+   /* Reached the end of str. */
+   *saveptr = NULL;
+
+   return start;
 }
 
 void strnreplace( char* str, size_t sz, const char* s, const char* r ) {

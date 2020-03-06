@@ -31,7 +31,7 @@ void* memcpy( void* dest, const void* src, size_t sz );
 
 size_t strlen( const char* str );
 int strncmp( const char* str1, const char* str2, size_t sz );
-char* strtok( char* str, size_t sz, const char* delim );
+char* strtok_r( char* str, const char* delim, char** saveptr );
 void strnreplace( char* str, size_t sz, const char* s, const char* r );
 void strmtrunc( char* str, size_t start, size_t diff );
 unsigned int atou( const char* str, int base );
