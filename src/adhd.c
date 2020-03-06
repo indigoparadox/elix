@@ -12,59 +12,6 @@ const
 struct astring g_str_none = astring_l( "none" );
 #endif
 
-#ifdef SCHEDULE_COOP
-
-static struct adhd_task* g_head_env = NULL;
-static uint8_t g_next_pid = ADHD_PID_FIRST;
-
-TASK_PID adhd_get_pid_by_gid( const_char* gid ) {
-   /* TODO */
-}
-
-void adhd_step() {
-   /* Setup the scheduler target and go back to main if successful. */
-   if( !setjmp( g_sched_env->env ) ) {
-      longjmp( g_main_env->env, 1 );
-   }
-
-   /* Scheduler target starts here. */
-
-   /* Jump to the next task. */
-   g_curr_env = g_curr_env->next;
-   longjmp( g_curr_env->env, 1 );
-}
-
-TASK_PID adhd_new_task() {
-   struct adhd_task* task = NULL;
-
-   /* Setup the task struct and PID. */
-   task = mget( ADHD_PID_MAIN, g_next_pid, sizeof( struct adhd_task ) );
-   if( NULL == task ) {
-      goto cleanup;
-   }
-
-   task->status = TASK_STATUS_RUN;
-   task->pid = g_next_pid;
-   g_next_pid++;
-
-   if( NULL == g_head_env ) {
-      /* Start the ring with this task. */
-      g_head_env = task;
-      task->next = g_head_env;
-      g_curr_env = g_head_env;
-   } else {
-      /* Insert the task into the ring. */
-      task->next = g_curr_env->next;
-      g_curr_env->next = task;
-      g_curr_env = task;
-   }
-
-cleanup:
-   return task->pid;
-}
-
-#else
-
 static struct adhd_task* g_tasks;
 
 void adhd_start() {
@@ -159,15 +106,4 @@ TASK_PID adhd_get_pid_by_gid( const_char* gid ) {
 
    return TASK_PID_INVALID;
 }
-
-#endif /* SCHEDULE_COOP */
-
-#if 0
-void adhd_wait( BITFIELD status, BITFIELD condition ) {
-   //while( test_status( status ) != condition ) {
-      /* TODO: Keep calling handlers or the status may never go away. */
-      /* TODO: Otherwise, just wait for IRQ. */
-   //}
-}
-#endif
 
