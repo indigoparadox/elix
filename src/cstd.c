@@ -42,7 +42,6 @@ void* memset( void* s, int c, size_t n ) {
 size_t strlen( const char* str ) {
    size_t i = 0;
    while( '\0' != str[i] ) {
-      //printf( "%d: %c\n", i + 1, str[i] );
       i++;
    }
    return i;
@@ -268,8 +267,6 @@ void fprintf( int f, const char* pattern, ... ) {
 
       if( '%' == last ) {
          /* Conversion specifier encountered. */
-         //spec = malloc( sizeof( union mvalue ) );
-         //buffer = malloc( UTOA_DIGITS_MAX + 1 );
          switch( pattern[i] ) {
             case 's':
                spec.s = va_arg( args, char* );
@@ -383,8 +380,6 @@ void fprintf( int f, const char* pattern, ... ) {
                c = '%';
                break;
          }
-         //free( spec );
-         //free( buffer );
       } else if( '%' != c ) {
          pad_char = ' '; /* Reset padding. */
          pad_len = 0; /* Reset padding. */
