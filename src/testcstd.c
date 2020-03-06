@@ -88,6 +88,10 @@ int main() {
    t = strtok_r( NULL, " ", &tok_hold );
    cstd_assert( NULL == t, "NULL == t\n" );
 
+   strnreplace( str_tok_test, 30, NULL, " " );
+   cstd_assert( strncmp( str_tok_test, "Testing tokens now.", 19 ) == 0, "%d\n",
+      strncmp( str_tok_test, "Testing tokens now.", 19 ) );
+
    /* Test: strnreplace */
    printf( "Before replace: %s\n", str_test );
    strnreplace( str_test, 30, s, r );

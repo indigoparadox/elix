@@ -49,7 +49,11 @@ void repl_set_line_handler( CONSOLE_CMD new_handler ) {
    }
 }
 
-char* repl_tok( char* cli, uint8_t idx ) {
+void repl_untok( char* cli ) {
+   strnreplace( cli, REPL_LINE_SIZE_MAX, NULL, " " ); 
+}
+
+char* repl_tok( char* cli, char** saveptr ) {
    char* tok = NULL;
    STRLEN_T sigil_start = 0;
    STRLEN_T i = 0;
@@ -57,7 +61,7 @@ char* repl_tok( char* cli, uint8_t idx ) {
    //STRLEN_T sigil_val = 0;
    STRLEN_T sigil_len = 0;
 
-   tok = strtok( cli, REPL_LINE_SIZE_MAX, " " );
+   tok = strtok_r( cli, " ", saveptr );
    if( NULL == tok ) {
       return tok;
    }
@@ -190,11 +194,12 @@ static TASK_RETVAL tdisk_dir( char* cli ) {
    uint8_t attrib = 0;
    char attrib_str[5];
    uint32_t size = 0;
+   char* saveptr = NULL;
 
    offset = mfat_get_root_dir_offset( 0, 0 );
    offset = mfat_get_dir_entry_first_offset( offset, 0, 0 );
 
-   tok = repl_tok( cli, 1 );
+   tok = repl_tok( cli, &saveptr );
 
    mzero( filename, 13 );
    mzero( attrib_str, 5 );
@@ -298,8 +303,9 @@ static TASK_RETVAL tdisk_fat( char* cli ) {
 static TASK_RETVAL tdisk_touch( char* cli ) {
    const char* tok;
    uint32_t offset = 0;
+   char* saveptr = NULL;
 
-   tok = repl_tok( cli, 1 );
+   tok = repl_tok( cli, &saveptr );
    if( NULL == tok ) {
       return RETVAL_BAD_ARGS;
    }
@@ -339,10 +345,11 @@ static TASK_RETVAL tdisk_cat( char* cli ) {
    char buffer[MFAT_FILENAME_LEN + 1];
    uint32_t written = 0;
    uint32_t file_size = 0;
+   char* saveptr = NULL;
 
    mzero( buffer, MFAT_FILENAME_LEN );
 
-   tok = repl_tok( cli, 1 );
+   tok = repl_tok( cli, &saveptr );
    if( NULL == tok ) {
       return RETVAL_BAD_ARGS;
    }
@@ -432,8 +439,9 @@ TASK_RETVAL repl_let( char* cli ) {
 
 TASK_RETVAL repl_print( char* cli ) {
    const char* tok = NULL;
+   char* saveptr = NULL;
 
-   tok = repl_tok( cli, 1 );
+   tok = repl_tok( cli, &saveptr );
    if( NULL == tok ) {
       return RETVAL_BAD_ARGS;
    }
@@ -449,9 +457,10 @@ TASK_RETVAL repl_if( char* cli ) {
    size_t len1;
    size_t len2;
    size_t i = 0;
+   char* saveptr = NULL;
 
-   tok1 = repl_tok( cli, 1 );
-   tok2 = repl_tok( cli, 2 );
+   tok1 = repl_tok( cli, &saveptr );
+   tok2 = repl_tok( NULL, &saveptr );
    len1 = strlen( tok1 );
    len2 = strlen( tok2 );
 
@@ -524,15 +533,19 @@ TASK_RETVAL repl_command( char* cli ) {
    uint8_t i = 0;
    TASK_RETVAL retval = 0;
    char* tok = NULL;
+   char* saveptr = NULL;
 
-   tok = strtok( cli, REPL_LINE_SIZE_MAX, " " );
+   tok = strtok_r( cli, " ", &saveptr );
 
    for( i = 0 ; COMMANDS_COUNT > i ; i++ ) {
       if( 0 == strncmp( g_commands[i].command, tok, CMD_MAX_LEN ) ) {
+         repl_untok( cli );
          retval = g_commands[i].callback( cli );
          if( RETVAL_OK == retval ) {
             printf( "ready\n" );
             return retval;
+         } else {
+            tok = strtok_r( cli, " ", &saveptr );
          }
       }
    }

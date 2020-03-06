@@ -111,7 +111,7 @@ CHECKSDIR=../tests
 $(BIN_LIN): CFLAGS += \
 	-DUSE_BMP \
 	-DUSE_DISK \
-	-DINIT_TASK="trepl_task" \
+	-DINIT_TASK="repl_task" \
 	-DINIT_TASK_GID="repl" \
 	-DQD_PLATFORM=QD_PLATFORM_COLINUX \
 	-DDEBUG \

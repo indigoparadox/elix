@@ -7,7 +7,6 @@
 #include "ether.h"
 #include "../adhd.h"
 #include "../mem.h"
-#include "../alpha.h"
 
 /* TODO: Move interactive net stuff into its own module so it doesn't depend
  * on strings and console. */
