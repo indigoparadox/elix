@@ -99,21 +99,28 @@ char* strtok_r( char* str, const char* delim, char** saveptr ) {
    return start;
 }
 
-void strnreplace( char* str, size_t sz, const char* s, const char* r ) {
+void strnreplace( char* str, size_t sz, const char* src, const char* r ) {
    int i = 0, r_iter = 0, sr_diff = 0;
 
    for( i = 0 ; sz > i ; i++ ) {
 
-      if( sz - i < strlen( s ) ) {
+      if( NULL != src && sz - i < strlen( src ) ) {
          /* Not enough chars left to compare, so fail automatically. */
          break;
 
-      /* Max out at source length. */
-      } else if( 0 == strncmp( &(str[i]), s, strlen( s ) ) ) {
+      } else if(
+         (NULL == src && '\0' == str[i]) ||
+         /* Max out at source length. */
+         (NULL != src && 0 == strncmp( &(str[i]), src, strlen( src ) ))
+      ) {
 #ifdef CSTD_DEBUG_VERBOSE
          printf( "found\n" );
 #endif /* CSTD_DEBUG_VERBOSE */
-         sr_diff = strlen( r ) - strlen( s );
+         if( NULL != src ) {
+            sr_diff = strlen( r ) - strlen( src );
+         } else {
+            sr_diff = strlen( r ) - 1; /* 1 NULL */
+         }
          /* Move chars at the end of the string forward to make room. */
          for( r_iter = sz ; r_iter > i + sr_diff ; r_iter-- ) {
 #ifdef CSTD_DEBUG_VERBOSE
