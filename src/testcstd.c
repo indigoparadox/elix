@@ -1,10 +1,13 @@
 
 #include "cstd.h"
 
-#define assert( t ) \
+#define cstd_assert_str( s ) #s
+#define cstd_assert( t, ... ) \
    if( !(t) ) { \
-      printf( "bad assert on " __FILE__ " line %d\n", __LINE__ ); \
+      printf( "failed: bad assert on " __FILE__ " line %d\n", __LINE__ ); \
       return 1; \
+   } else { \
+      printf( "passed: " cstd_assert_str( t ) ": " __VA_ARGS__ ); \
    }
 
 int putchar( int c ) {
@@ -40,38 +43,59 @@ int main() {
    char* r = "replacement";
    int len = 0;
    int i = 0;
+   char str_tok_test[30] = "Testing tokens now.";
+   char* tok_hold = NULL;
+   char* t = NULL;
+   char str_repl_samelen_test[31] = "This is a tst.";
+   char* s_same = "tst";
+   char* r_same = "foo";
 
-   putchar( 'f' );
-   putchar( '\n' );
-
+   /* Test: putchar (needed for other tests) */
    for( i = 0 ; strlen( r ) > i ; i++ ) {
       putchar( r[i] );
    }
    putchar( '\n' );
 
+   /* Test: strlen */
    len = strlen( s );
-   assert( len == 4 );
-   printf( "Passed: strlen( s ): %d\n", len );
-   assert( strlen( r ) == 11 );
-   printf( "Passed: strlen( r ): %d\n", strlen( r ) );
-   assert( strlen( str_test ) < 30 );
-   printf( "Passed: strlen( str_test ): %d\n", strlen( str_test ) );
+   cstd_assert( len == 4, "%d\n", len );
+   cstd_assert( strlen( r ) == 11, "%d\n", strlen( r ) );
+   cstd_assert( strlen( str_test ) < 30, "%d\n", strlen( str_test ) );
 
-   printf( "strncmp( \"Foo\", \"Fii\", 3 ): %d\n",
+   /* Test: strncmp */
+   cstd_assert( strncmp( "Foo", "Fii", 3 ) > 0, "%d\n",
       strncmp( "Foo", "Fii", 3 ) );
-   assert( strncmp( "Foo", "Fii", 3 ) > 0 );
 
-   printf( "strncmp( \"Faa\", \"Fii\", 3 )\n" );
-   assert( strncmp( "Faa", "Fii", 3 ) < 0 );
+   cstd_assert( strncmp( "Faa", "Fii", 3 ) < 0, "%d\n",
+      strncmp( "Foo", "Fii", 3 ) );
 
-   assert( strncmp( "Grumpy", "Gru", 3 ) == 0 );
-   printf( "Passed: strncmp( \"Grumpy\", \"Gru\", 3 )\n" );
+   cstd_assert( strncmp( "Grumpy", "Gru", 3 ) == 0, "%d\n",
+      strncmp( "Grumpy", "Gru", 3 ) );
 
+   /* Test: strtok */
+   t = strtok_r( str_tok_test, " ", &tok_hold );
+   cstd_assert( strncmp( t, "Testing", 7 ) == 0, "%d\n",
+      strncmp( t, "Testing", 7 ) );
+
+   t = strtok_r( NULL, " ", &tok_hold );
+   cstd_assert( strncmp( t, "tokens", 6 ) == 0, "%d\n",
+      strncmp( t, "tokens", 6 ) );
+
+   t = strtok_r( NULL, " ", &tok_hold );
+   cstd_assert( strncmp( t, "now.", 4 ) == 0, "%d\n",
+      strncmp( t, "now.", 4 ) );
+
+   t = strtok_r( NULL, " ", &tok_hold );
+   cstd_assert( NULL == t, "NULL == t\n" );
+
+   /* Test: strnreplace */
    printf( "Before replace: %s\n", str_test );
-
    strnreplace( str_test, 30, s, r );
-
    printf( "After replace: %s\n", str_test );
+
+   printf( "Before replace: %s\n", str_repl_samelen_test );
+   strnreplace( str_repl_samelen_test, 30, s_same, r_same );
+   printf( "After replace: %s\n", str_repl_samelen_test );
 
    return 0;
 }
