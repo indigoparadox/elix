@@ -9,16 +9,11 @@
 extern uint8_t* heap;
 
 uint8_t g_mheap[MEM_HEAP_SIZE];
-MEMLEN_T g_mheap_top = 0;
+uint8_t* g_mheap_top = g_mheap;
+int g_mem_pid = 0;
 
-/* Setup the heap. */
-void minit() {
-   mzero( g_mheap, MEM_HEAP_SIZE );
-   g_mheap_top = 0;
-}
-
-MEMLEN_T get_mem_used() {
-   return g_mheap_top;
+int mused() {
+   return (int)(g_mheap_top - g_mheap);
 }
 
 /* Zero a given block of memory. */
@@ -27,26 +22,6 @@ void mzero( void* dest, int sz ) {
    for( i = 0 ; sz > i ; i++ ) {
       ((uint8_t*)dest)[i] = '\0';
    }
-}
-
-/* memcpy */
-int mcopy( void* dest, const void* src, int sz ) {
-   int i = 0;
-   for( i = 0 ; sz > i ; i++ ) {
-      ((uint8_t*)dest)[i] = ((uint8_t*)src)[i];
-   }
-   return i;
-}
-
-/* strncmp */
-int mcompare( const void* c1, const void* c2, int sz ) {
-   int i = 0;
-   for( i = 0 ; sz > i ; i++ ) {
-      if( ((uint8_t*)c1)[i] != ((uint8_t*)c2)[i] ) {
-         return 1;
-      }
-   }
-   return 0;
 }
 
 #if defined( MPRINT )
@@ -69,68 +44,30 @@ void mprint() {
 }
 #endif /* MPRINT */
 
-/* Get the heap position for a variable. Used in public functions below. */
-#ifndef CHECK
-static
-#endif /* CHECK */
-int mget_pos( int pid, int mid ) {
-   const struct mvar* var_iter = (struct mvar*)g_mheap;
-   int mheap_addr_iter = 0;
-
-   if( 0 >= g_mheap_top ) {
-      /* Heap is empty. */
-      return -1;
-   }
-
-   /* printf( "mpos_pid: %d (%d), mpos_mid: %d (%d)\n",
-      pid, var_iter->pid, mid, var_iter->mid ); */
-
-   /* Hunt until we find a var tagged with the sought pid and mid. */
-   while( pid != var_iter->pid || mid != var_iter->mid ) {
-      if( mheap_addr_iter >= g_mheap_top ) {
-         /* Unable to find it and ran out of heap! */
-         return -1;
-      }
-
-      /* Advance past the variable and metadara. */
-      mheap_addr_iter += var_iter->sz;
-      mheap_addr_iter += sizeof( struct mvar );
-
-      /* Advance the pointer to match. */
-      var_iter = (struct mvar*)&(g_mheap[mheap_addr_iter]);
-   }
-
-   if( pid != var_iter->pid || mid != var_iter->mid ) {
-      /* Unable to find it! */
-      return -1;
-   }
-
-   return mheap_addr_iter;
-}
-
-#ifndef CHECK
-static
-#endif /* CHECK */
-void mshift( MEMLEN_T start, MEMLEN_T offset ) {
+void mshift( void* start, MEMLEN_T offset ) {
    MEMLEN_T i = 0;
+   uint8_t* iter = NULL;
 
    if( 0 < offset ) {
-      for( i = g_mheap_top ; i >= start ; i-- ) {
-         g_mheap[i + offset] = g_mheap[i];
-         g_mheap[i] = 0;
+      /* Shifting memory contents outwards. */
+      for(
+         iter = (uint8_t*)(g_mheap + MEM_HEAP_SIZE);
+         iter >= (uint8_t*)start;
+         iter--
+      ) {
+         *((uint8_t*)(iter + offset)) = *iter;
+         *iter = 0;
       }
       g_mheap_top += offset;
    } else if( 0 > offset ) {
-      //printf( "shifting to %d by %d\n", start, offset );
+      /* Shifting memory contents inwards. */
       for(
-         i = start;
-         MEM_HEAP_SIZE > i - offset;
-         i++
+         iter = (uint8_t*)start;
+         (uint8_t*)(g_mheap + MEM_HEAP_SIZE) > (iter - offset);
+         iter++
       ) {
-         //printf( "erasing %d\n", i );
-         //printf( "offset: %d\n", i - offset );
-         g_mheap[i] = g_mheap[i - offset];
-         g_mheap[i - offset] = 0;
+         *iter = *((uint8_t*)(iter - offset));
+         *((uint8_t*)(iter - offset)) = 0;
       }
       /* Offset is negative, so we're still adding it to subtract. */
       g_mheap_top += offset;
@@ -181,17 +118,13 @@ static struct mvar* mcreate( MEMLEN_T sz ) {
    return out;
 }
 
-void* mget( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
-   return mget_meta( pid, mid, sz )->data;
-}
-
-struct mvar* mget_meta( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
+void* malloc( size_t sz ) {
    MEMLEN_T mheap_addr_iter = 0;
    struct mvar* var = NULL;
 
    assert( 0 < mid );
 
-   mheap_addr_iter = mget_pos( pid, mid );
+   mheap_addr_iter = mget_pos( g_mem_pid, mid );
    if( 0 > mheap_addr_iter ) {
       if( MGET_NO_CREATE == sz ) {
          return NULL;
@@ -221,19 +154,10 @@ struct mvar* mget_meta( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
    return var;
 }
 
-void mfree_all( TASK_PID pid ) {
-   /* TODO */
-}
-
-void mfree( TASK_PID pid, MEM_ID mid ) {
-   MEMLEN_T mheap_addr_iter = 0;
+void free( void* addr ) {
    struct mvar* var = NULL;
    MEMLEN_T sz = 0;
 
-   mheap_addr_iter = mget_pos( pid, mid );
-   if( 0 > mheap_addr_iter ) {
-      return;
-   }
 
    var = (struct mvar*)&(g_mheap[mheap_addr_iter]);
    sz = var->sz + sizeof( struct mvar );

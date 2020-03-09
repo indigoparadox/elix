@@ -39,6 +39,7 @@ CFLAGS=\
 
 SOURCES= \
 	adhd.c \
+	mem.c \
 	cstd.c
 
 SOURCES_APPS_COLINUX= \
@@ -266,7 +267,7 @@ ASMS_DRIVERS_COLINUX=$(subst .c,.s,$(DRIVERS_COLINUX))
 
 all:
 
-testcstd: cstd.o testcstd.o
+testcstd: cstd.o mem.o testcstd.o
 	$(CC) -o $@ $(LDFLAGS) $^
 
 $(ASM_LIN): $(ASMS) $(ASMS_NET) $(ASMS_APPS_COLINUX) $(ASMS_DRIVERS_COLINUX) colinux/boot.s kernel.s
