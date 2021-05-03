@@ -1,0 +1,18 @@
+[submodule "libs/mfat"]
+	path = libs/mfat
+	url = https://github.com/indigoparadox/mfat
+[submodule "libs/mnet"]
+	path = libs/mnet
+	url = https://github.com/indigoparadox/mnet
+[submodule "libs/mbmp"]
+	path = libs/mbmp
+	url = https://github.com/indigoparadox/mbmp
+[submodule "apps/msekai"]
+	path = apps/msekai
+	url = https://github.com/indigoparadox/msekai
+[submodule "libs/mcurses"]
+	path = libs/mcurses
+	url = https://github.com/indigoparadox/mcurses
+[submodule "libs/msign"]
+	path = libs/msign
+	url = https://github.com/indigoparadox/msign
