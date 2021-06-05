@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #define BUF_SZ 4096
 
@@ -23,6 +24,7 @@ struct label {
 };
 
 struct label* g_labels = NULL;
+struct label* g_unresolved = NULL;
 size_t g_ipc = 0;
 int g_section = 0;
 int g_escape = 0;
@@ -39,13 +41,13 @@ void reset_token() {
    g_token_len = 0;
 }
 
-void add_label( char* name, int ipc ) {
-   struct label* label_iter = g_labels;
+void add_label( char* name, int ipc, struct label** head ) {
+   struct label* label_iter = *head;
 
-   if( NULL == g_labels ) {
-      g_labels = calloc( 1, sizeof( struct label ) );
-      assert( NULL != g_labels );
-      label_iter = g_labels;
+   if( NULL == *head ) {
+      *head = calloc( 1, sizeof( struct label ) );
+      assert( NULL != *head );
+      label_iter = *head;
 
    } else {
       while( NULL != label_iter->next ) {
@@ -62,7 +64,7 @@ void add_label( char* name, int ipc ) {
    printf( "label: %s @ %d\n", name, ipc );
 }
 
-size_t get_label_ipc( char* label ) {
+size_t get_label_ipc( char* label, size_t ipc_of_call ) {
    struct label* label_iter = g_labels;
 
    while(
@@ -74,8 +76,11 @@ size_t get_label_ipc( char* label ) {
    }
 
    if( NULL == label_iter ) {
-      printf( "label not found\n" );
-      return NULL;
+      if( '$' != label[0] ) {
+         printf( "label not found; added to unresolved list\n" );
+         add_label( label, ipc_of_call, &g_unresolved );
+      }
+      return 0;
    }
 
    printf( "label for %s: %d\n", label, (unsigned char)(label_iter->ipc) );
@@ -130,7 +135,7 @@ void process_char( char c ) {
          g_state = STATE_NONE;
 
       } else if( STATE_NONE == g_state ) {
-         add_label( g_token, g_ipc );
+         add_label( g_token, g_ipc, &g_labels );
          reset_token();
 
       } else if( STATE_STRING == g_state ) {
@@ -250,6 +255,10 @@ void process_char( char c ) {
             printf( "instr: %s ", g_token );
             printf( "(%d)\n", instr_bytecode );
             write_bin_instr_or_data( (unsigned char)instr_bytecode );
+            if( VM_INSTR_POP == instr_bytecode ) {
+               /* Instruction has no data, so put a null padding. */
+               write_bin_instr_or_data( 0 );
+            }
          } else {
             //printf( "(bad instruction)\n" );
          }
@@ -279,10 +288,10 @@ void process_char( char c ) {
          0 < g_token_len
       ) {
          /* Decode token as label (or alloc). */
-         label_ipc = get_label_ipc( g_token );
+         label_ipc = get_label_ipc( g_token, g_ipc );
          if( '$' == g_token[0] ) {
             /* Token is an alloc, so create if doesn't exist. */
-            add_label( g_token, g_next_alloc_mid );
+            add_label( g_token, g_next_alloc_mid, &g_labels );
             label_ipc = g_next_alloc_mid;
             g_next_alloc_mid++;
          }
@@ -360,6 +369,8 @@ int main( int argc, char* argv[] ) {
    int bytes_read = 0,
       i = 0;
    char buf[BUF_SZ + 1] = { 0 };
+   struct label* unresolved_iter = NULL;
+   size_t resolve_ipc = 0;
 
    assert( 2 < argc );
 
@@ -376,12 +387,28 @@ int main( int argc, char* argv[] ) {
    bytes_read = fread( &buf, sizeof( char ), BUF_SZ, g_src_file );
    while( 0 < bytes_read ) {
       printf( "%s\n", buf );
-
       for( i = 0 ; bytes_read > i ; i++ ) {
          process_char( buf[i] );
       }
-
       bytes_read = fread( &buf, sizeof( char ), BUF_SZ, g_src_file );
+   }
+   memset( buf, '\0', BUF_SZ );
+
+   unresolved_iter = g_unresolved;
+   while( NULL != unresolved_iter ) {
+      printf( "unres: %s\n", unresolved_iter->name );
+
+      resolve_ipc = 
+         get_label_ipc( unresolved_iter->name, unresolved_iter->ipc );
+
+      fseek( g_bin_file, unresolved_iter->ipc, SEEK_SET );
+      g_ipc = unresolved_iter->ipc;
+      write_bin_instr_or_data( (unsigned char)resolve_ipc );
+
+      printf( "resolved to %d, placed at %d\n",
+         resolve_ipc, unresolved_iter->ipc );
+
+      unresolved_iter = unresolved_iter->next;
    }
 
 cleanup:

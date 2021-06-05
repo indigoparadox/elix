@@ -22,6 +22,7 @@
 #define VM_SYSC_ALLOC   0x04
 #define VM_SYSC_MSTORE  0x05
 #define VM_SYSC_MGET    0x06
+#define VM_SYSC_FREE    0x07
 
 #define VM_SECTION_DATA 0x01
 #define VM_SECTION_CPU  0x02

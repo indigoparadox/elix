@@ -72,6 +72,11 @@ static void vm_instr_sysc( TASK_PID pid, uint8_t call_id ) {
       }
       break;
    }
+
+   /* TODO: Q&D defeat warning. */
+   if( bytes_read != 0 ) {
+      bytes_read = 1;
+   }
 }
 
 static ssize_t vm_instr_branch( TASK_PID pid, uint8_t instr, uint8_t data ) {
@@ -118,8 +123,11 @@ ssize_t vm_instr_execute( TASK_PID pid, uint16_t instr_full ) {
    assert( 0 <= pid );
    assert( 0 <= task->ipc );
 
-   printf( "%x\n", instr );
-   
+   //printf( "ipc: %d, instr: %d (0x%x), data: %d (0x%x)\n",
+   //   task->ipc, instr, instr, data, data );
+
+   //assert( 0 != instr );
+
    switch( instr ) {
    case VM_INSTR_PUSH:
       vm_stack_push( task, data );
