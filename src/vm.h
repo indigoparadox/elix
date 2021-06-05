@@ -12,13 +12,21 @@
 #define VM_INSTR_PUSH   0x10
 #define VM_INSTR_POP    0x11
 #define VM_INSTR_ADD    0x20
+#define VM_INSTR_JSNZ   0x30
+#define VM_INSTR_JSEQ   0x31
+#define VM_INSTR_JSNE   0x32
 
 #define VM_SYSC_PUTC    0x01
+#define VM_SYSC_PRINTF  0x02
+#define VM_SYSC_GETC    0x03
+#define VM_SYSC_ALLOC   0x04
+#define VM_SYSC_MSTORE  0x05
+#define VM_SYSC_MGET    0x06
 
 #define VM_SECTION_DATA 0x01
 #define VM_SECTION_CPU  0x02
 
-ssize_t vm_instr_execute( int8_t pid, uint16_t instr_full );
+ssize_t vm_instr_execute( TASK_PID pid, uint16_t instr_full );
 
 #endif /* VM_H */
 
