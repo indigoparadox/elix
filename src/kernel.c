@@ -40,6 +40,8 @@ int kmain() {
    bool do_init = true;
    bool cmd_found = false;
 #endif /* USE_EXT_CLI */
+   FILEPTR_T init_offset = 0;
+   TASK_PID init_pid = 0;
 
    minit();
 
@@ -89,13 +91,26 @@ int kmain() {
    #define INIT_TASK_GID_STR string_me( INIT_TASK_GID )
 
    adhd_start();
-   adhd_launch_task( INIT_TASK, INIT_TASK_GID_STR );
+
+   init_offset = mfat_get_root_dir_offset( 0, 0 );
+   init_offset = mfat_get_dir_entry_offset(
+      "INIT.ELX", MFAT_FILENAME_LEN, init_offset, 0, 0 );
+   if( 0 == init_offset ) {
+      tprintf( "init task not found\n" );
+      goto cleanup;
+   }
+   init_pid = adhd_task_launch( 0, 0, init_offset );
+   if( RETVAL_TASK_INVALID == init_pid ) {
+      tprintf( "init task invalid exec\n" );
+      goto cleanup;
+   }
 
 #ifdef USE_EXT_CLI
    }
 
    if( cmd_found ) {
-      retval = repl_command( cli );
+      // TODO
+      //retval = repl_command( cli );
       goto cleanup;
    }
 #endif /* USE_EXT_CLI */
@@ -105,11 +120,13 @@ int kmain() {
 #ifndef SCHEDULE_COOP
    while( SYSTEM_SHUTDOWN != g_system_state ) {
       for( active = 0 ; ADHD_TASKS_MAX > active ; active++ ) {
-         retval = adhd_call_task( active );
-         if( RETVAL_KILL == retval ) {
-            /* Task returned -1; kill it. */
-            adhd_kill_task( active );
+         if( 0 < g_tasks[active].ipc ) {
+            adhd_task_execute_next( active );
          }
+      }
+      if( 0 == g_tasks[init_pid].ipc ) {
+         tprintf( "init died; shutting down\n" );
+         g_system_state = SYSTEM_SHUTDOWN;
       }
    }
 #endif /* !SCHEDULE_COOP */

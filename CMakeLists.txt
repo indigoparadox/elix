@@ -21,17 +21,11 @@ if(UNIX)
         USE_NET
         USE_BMP
         USE_DISK
-        INIT_TASK=trepl_task
-        INIT_TASK_GID=repl
         QD_PLATFORM=QD_PLATFORM_COLINUX
         DEBUG
         MBMP_AGGRESSIVE_VALIDATE
         COLINUX_TERMIOS)
     find_package(PkgConfig REQUIRED)
-
-    set(ELIX_APPS
-        src/apps/medlin.c
-        src/apps/repl.c)
 
     # Use PCAP for networking.
     pkg_check_modules(PCAP REQUIRED IMPORTED_TARGET libpcap)
@@ -44,9 +38,10 @@ set(ELIX_SOURCES
     src/console.c
     src/adhd.c
     src/alpha.c
+    src/vm.c
     src/mem.c
-    src/kernel.c
-    src/net/net.c)
+    src/kernel.c)
+    #src/net/net.c)
 
 set(ELIX_DRIVERS
     ${ELIX_DRIVER_PATH}/net.c
@@ -54,7 +49,7 @@ set(ELIX_DRIVERS
     ${ELIX_DRIVER_PATH}/keyboard.c
     ${ELIX_DRIVER_PATH}/disk.c)
 
-add_executable(elix ${ELIX_SOURCES} ${ELIX_DRIVERS} ${ELIX_APPS} ${ELIX_BOOT_MODULE})
+add_executable(elix ${ELIX_SOURCES} ${ELIX_DRIVERS} ${ELIX_BOOT_MODULE})
 
 target_compile_definitions(elix PUBLIC ${ELIX_DEFINES})
 

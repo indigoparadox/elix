@@ -52,6 +52,7 @@ typedef unsigned char bool;
 
 #else
 
+#include <sys/types.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
