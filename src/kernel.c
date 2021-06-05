@@ -28,10 +28,7 @@ int kmain( int argc, char** argv ) {
 #else
 int kmain() {
 #endif /* USE_EXT_CLI */
-#ifndef SCHEDULE_COOP
    TASK_PID active = 0;
-   TASK_RETVAL retval = 0;
-#endif /* !SCHEDULE_COOP */
 #ifdef USE_EXT_CLI
    struct astring* cli = NULL;
    char c = 0;
@@ -115,9 +112,6 @@ int kmain() {
    }
 #endif /* USE_EXT_CLI */
 
-   /* TODO: Kill task on request in COOP mode. */
-
-#ifndef SCHEDULE_COOP
    while( SYSTEM_SHUTDOWN != g_system_state ) {
       for( active = 0 ; ADHD_TASKS_MAX > active ; active++ ) {
          if( 0 < g_tasks[active].ipc ) {
@@ -129,7 +123,6 @@ int kmain() {
          g_system_state = SYSTEM_SHUTDOWN;
       }
    }
-#endif /* !SCHEDULE_COOP */
 
    tprintf( "stopping...\n" );
 
@@ -157,9 +150,7 @@ int kmain() {
    /* Listen for and handle incoming packets. */
    // TODO: net_close_socket( socket );
 
-#ifdef USE_EXT_CLI
 cleanup:
-#endif /* USE_EXT_CLI */
 
    return 0;
 }

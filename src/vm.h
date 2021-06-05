@@ -8,6 +8,7 @@
 #define VM_INSTR_EXIT   0x01
 #define VM_INSTR_GOTO   0x02
 #define VM_INSTR_SYSC   0x03
+#define VM_INSTR_SECT   0x0f
 #define VM_INSTR_PUSH   0x10
 #define VM_INSTR_POP    0x11
 #define VM_INSTR_ADD    0x20

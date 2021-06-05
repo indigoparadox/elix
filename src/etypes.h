@@ -57,6 +57,10 @@ typedef unsigned char bool;
 #include <stddef.h>
 #include <stdbool.h>
 
+#ifdef MSP430
+typedef int16_t ssize_t;
+#endif /* MSP430 */
+
 #endif /* NO_STD_HEADERS */
 
 #ifdef DEBUG

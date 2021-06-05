@@ -31,31 +31,17 @@ PROFILE_FLAGS=$(DEBUG_FLAGS) -pg
 
 CFLAGS=\
 	-DUSE_CONSOLE \
-	-I../../chiipy/src \
-	-I../../mfat/src \
-	-I../../mbmp/src \
-	-I../../msign/src \
+	-I../libs/mfat/src \
+	-I../libs/mbmp/src \
+	-I../libs/msign/src \
 	-DVERSION=\"$(shell date +'%Y.%m.%d.%H.%M.%S')\"
 
 SOURCES= \
 	console.c \
 	adhd.c \
 	alpha.c \
-	mem.c
-
-SOURCES_APPS_COLINUX= \
-	apps/repl.c \
-	apps/medlin.c \
-	apps/microd.c \
-	apps/xmodem.c
-
-SOURCES_APPS_X86=\
-	apps/repl.c
-
-SOURCES_APPS_MSP430=\
-	apps/repl.c \
-	apps/medlin.c
-#	apps/xmodem.c
+	mem.c \
+	vm.c
 
 SOURCES_TESTED_NET= \
 	net/tcp.c \
@@ -71,9 +57,6 @@ CHECKOBJ=\
 #	check_console.o \
 
 OBJECTS=$(subst .c,.o,$(SOURCES))
-OBJECTS_APPS_X86=$(subst .c,.o,$(SOURCES_APPS_X86))
-OBJECTS_APPS_COLINUX=$(subst .c,.o,$(SOURCES_APPS_COLINUX))
-OBJECTS_APPS_MSP430=$(subst .c,.o,$(SOURCES_APPS_MSP430))
 OBJECTS_NET=$(subst .c,.o,$(SOURCES_NET))
 OBJECTS_TESTED_NET=$(subst .c,.o,$(SOURCES_TESTED_NET))
 LDFLAGS=
@@ -122,11 +105,11 @@ $(BIN_LIN): CFLAGS += \
 $(BIN_LIN): LDFLAGS += \
 	-lpcap \
 	-lncurses \
-	-L../../mfat/bin/linux \
+	-L../libs/mfat/bin/linux \
 	-lmfat \
-	-L../../mbmp/bin/linux \
+	-L../libs/mbmp/bin/linux \
 	-lmbmp \
-	-L../../msign/bin/linux \
+	-L../libs/msign/bin/linux \
 	-lmsign
 #	-L../../chiipy/bin/linux/ \
 #	-lchiipy
@@ -137,8 +120,6 @@ $(ASM_LIN): CFLAGS += \
 	-DUSE_NET \
 	-DUSE_BMP \
 	-DUSE_DISK \
-	-DINIT_TASK="trepl_task" \
-	-DINIT_TASK_GID="repl" \
 	-DQD_PLATFORM=QD_PLATFORM_COLINUX \
 	-DDEBUG \
 	-DMBMP_AGGRESSIVE_VALIDATE \
@@ -198,9 +179,9 @@ $(BIN_LIN_MIN): CFLAGS += \
 $(BIN_LIN_MIN): OBJDIR := ../obj/colinux-min/
 $(BIN_LIN_MIN): LDFLAGS += \
 	-lpcap \
-	-L../../mfat/bin/linux \
+	-L../libs/mfat/bin/linux \
 	-lmfat \
-	-L../../msign/bin/linux \
+	-L../libs/msign/bin/linux \
 	-lmsign
 
 $(BIN_MSP430): CFLAGS += \
@@ -230,9 +211,9 @@ $(BIN_MSP430): CFLAGS += \
 $(BIN_MSP430): CC := msp430-gcc
 $(BIN_MSP430): OBJDIR := ../obj/msp430/
 $(BIN_MSP430): LDFLAGS += \
-	-L../../mfat/bin/msp430g2553 \
+	-L../libs/mfat/bin/msp430g2553 \
 	-lmfat \
-	-L../../msign/bin/msp430g2553 \
+	-L../libs/msign/bin/msp430g2553 \
 	-lmsign
 
 tests: LDFLAGS += -lpcap $(shell pkg-config --libs check)
@@ -244,19 +225,17 @@ tests: CFLAGS += \
 tests: OBJDIR := ../obj/tests/
 
 ASMS=$(subst .c,.s,$(SOURCES))
-ASMS_APPS_X86=$(subst .c,.s,$(SOURCES_APPS_X86))
-ASMS_APPS_COLINUX=$(subst .c,.s,$(SOURCES_APPS_COLINUX))
 ASMS_NET=$(subst .c,.s,$(SOURCES_NET))
 ASMS_DRIVERS_COLINUX=$(subst .c,.s,$(DRIVERS_COLINUX))
 
 all:
 
-$(ASM_LIN): $(ASMS) $(ASMS_NET) $(ASMS_APPS_COLINUX) $(ASMS_DRIVERS_COLINUX) colinux/boot.s kernel.s
+$(ASM_LIN): $(ASMS) $(ASMS_NET) $(ASMS_DRIVERS_COLINUX) colinux/boot.s kernel.s
 
-$(BIN_LIN): $(OBJECTS) $(OBJECTS_NET) $(OBJECTS_APPS_COLINUX) $(DRIVERS_COLINUX) colinux/boot.o kernel.o
+$(BIN_LIN): $(OBJECTS) $(OBJECTS_NET) $(DRIVERS_COLINUX) colinux/boot.o kernel.o
 	$(CC) -o $@ $(addprefix $(OBJDIR),$^) $(LDFLAGS)
 
-$(BIN_LIN_MIN): $(OBJECTS) $(OBJECTS_NET) $(OBJECTS_APPS_MSP430) $(DRIVERS_COLINUX) colinux/boot.o kernel.o
+$(BIN_LIN_MIN): $(OBJECTS) $(OBJECTS_NET) $(DRIVERS_COLINUX) colinux/boot.o kernel.o
 	$(CC) -o $@ $(addprefix $(OBJDIR),$^) $(LDFLAGS)
 
 $(BIN_WIN): $(OBJECTS) $(OBJECTS_NET) $(DRIVERS_COLINUX) kernel.o
@@ -275,12 +254,12 @@ $(ISODIRX86)/$(BIN_X86): $(BIN_X86)
 	$(MD) $(ISODIRX86)/boot
 	cp -v $(BIN_X86) $(ISODIRX86)/boot/$(BIN_X86)
 
-$(BIN_X86): $(OBJECTS) $(OBJECTS_APPS_X86) $(DRIVERS_X86) kernel.o
+$(BIN_X86): $(OBJECTS) $(DRIVERS_X86) kernel.o
 	$(AS) x86/boot.s -o $(OBJDIR)boot.o $(ASFLAGS)
 	$(LD) -o $@ $(addprefix $(OBJDIR),$^) $(OBJDIR)boot.o $(LDFLAGS)
 	ia16-elf-objcopy -O binary $(BIN_X86) x86-raw.bin
 
-$(BIN_MSP430): $(OBJECTS) $(DRIVERS_MSP430) $(OBJECTS_APPS_MSP430) kernel.o
+$(BIN_MSP430): $(OBJECTS) $(DRIVERS_MSP430) kernel.o
 	$(CC) -o $@ $(addprefix $(OBJDIR),$^) $(CFLAGS) $(LDFLAGS)
 
 tests: $(OBJECTS_TESTED) $(OBJECTS_TESTED_NET) $(DRIVERS_TESTS) $(addprefix $(CHECKSDIR)/,$(CHECKOBJ)) mem.o alpha.o

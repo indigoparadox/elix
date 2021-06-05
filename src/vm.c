@@ -6,13 +6,11 @@
 #include "adhd.h"
 
 static uint8_t vm_stack_pop( struct adhd_task* task ) {
-   uint8_t pop_out = 0;
-
    assert( 0 < task->stack_len );
 
    task->stack_len--;
 
-   pop_out = task->stack[task->stack_len];
+   return task->stack[task->stack_len];
 }
 
 static void vm_stack_push( struct adhd_task* task, uint8_t data ) {

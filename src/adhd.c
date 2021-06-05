@@ -3,6 +3,7 @@
 
 #define ADHD_C
 #include "adhd.h"
+#include "mem.h"
 
 void adhd_start() {
    mzero( g_tasks, sizeof( struct adhd_task ) * ADHD_TASKS_MAX );
@@ -13,7 +14,9 @@ TASK_PID adhd_task_launch(
 ) {
    uint8_t byte_iter = 0;
    TASK_PID pid_iter = 0;
-   uint8_t bytes_read = 0;
+   uint8_t bytes_read = 0,
+      cpu_section_found = 0,
+      section_instr_found = 0;
    struct adhd_task* task = NULL;
 
    /* Check for next available PID by using IPC (running tasks will always 
@@ -47,7 +50,16 @@ TASK_PID adhd_task_launch(
       }
 
       task->ipc += bytes_read;
-   } while( VM_SECTION_CPU != byte_iter );
+
+      if( VM_INSTR_SECT == byte_iter && !section_instr_found ) {
+         section_instr_found = 1;
+      } else if( VM_SECTION_CPU == byte_iter && section_instr_found ) {
+         cpu_section_found = 1;
+      } else {
+         section_instr_found = 0;
+      }
+
+   } while( !cpu_section_found );
 
    return pid_iter;
 }
