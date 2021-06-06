@@ -12,6 +12,9 @@
    push     #1
    malloc   $line_offst
 
+   push     #13
+   malloc   $filename
+
 start:
    push     prompt
    syscall  printf
@@ -49,5 +52,13 @@ proc_line:
    spop                 ; Remove input char from stack.
    push     #0
    mpop     $line_offst ; Pop 0 offset to memory.
+   push     #0          ; Push disk ID 0
+   push     #0          ; Push part ID 0
+   syscall  droot       ; Get the root directory offset.
+   push     #0          ; Push disk ID 0
+   push     #0          ; Push part ID 0
+   syscall  dfirst      ; Get the first entry offset.
+   spop
+   spop
    goto     start
 

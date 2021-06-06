@@ -5,20 +5,35 @@
 #include "console.h"
 #include "adhd.h"
 
+static uint8_t g_double_instr = 0;
+
 static uint8_t vm_stack_pop( struct adhd_task* task ) {
    assert( 0 < task->stack_len );
-
    task->stack_len--;
-
    return task->stack[task->stack_len];
 }
 
+static uint16_t vm_stack_dpop( struct adhd_task* task ) {
+   uint16_t dout = 0;
+   assert( 1 < task->stack_len );
+   task->stack_len--;
+   dout |= (task->stack[task->stack_len]) & 0x00ff;
+   task->stack_len--;
+   dout |= (task->stack[task->stack_len] << 8) & 0xff00;
+   return dout;
+}
+
 static void vm_stack_push( struct adhd_task* task, uint8_t data ) {
-
    assert( ADHD_STACK_MAX > task->stack_len + 1 );
-
    task->stack[task->stack_len] = data;
+   task->stack_len++;
+}
 
+static void vm_stack_dpush( struct adhd_task* task, uint16_t data ) {
+   assert( ADHD_STACK_MAX > task->stack_len + 2 );
+   task->stack[task->stack_len] = (uint8_t)((data >> 8) & 0x00ff);
+   task->stack_len++;
+   task->stack[task->stack_len] = (uint8_t)(data & 0x00ff);
    task->stack_len++;
 }
 
@@ -26,6 +41,35 @@ union vm_data_type {
    uint8_t byte;
    IPC_PTR ipc;
 };
+
+static void vm_sysc_droot( TASK_PID pid ) {
+   struct adhd_task* task = &(g_tasks[pid]);
+   uint16_t offset = 0;
+   uint8_t disk_id = 0,
+      part_id = 0;
+
+   part_id = vm_stack_pop( task );
+   disk_id = vm_stack_pop( task );
+
+   offset = mfat_get_root_dir_offset( disk_id, part_id );
+
+   vm_stack_dpush( task, offset );
+}
+
+static void vm_sysc_dfirst( TASK_PID pid ) {
+   struct adhd_task* task = &(g_tasks[pid]);
+   uint16_t offset = 0;
+   uint8_t disk_id = 0,
+      part_id = 0;
+
+   part_id = vm_stack_pop( task );
+   disk_id = vm_stack_pop( task );
+   offset = vm_stack_dpop( task );
+
+   offset = mfat_get_dir_entry_first_offset( offset, disk_id, part_id );
+
+   vm_stack_dpush( task, offset );
+}
 
 static void vm_instr_sysc( TASK_PID pid, uint8_t call_id ) {
    struct adhd_task* task = &(g_tasks[pid]);
@@ -66,6 +110,22 @@ static void vm_instr_sysc( TASK_PID pid, uint8_t call_id ) {
             task->disk_id, task->part_id );
          assert( 0 < bytes_read ); /* TODO: Crash program. */
       }
+      break;
+
+   case VM_SYSC_DROOT:
+      vm_sysc_droot( pid );
+      break;
+      
+   case VM_SYSC_DFIRST:
+      vm_sysc_dfirst( pid );
+      break;
+      
+   case VM_SYSC_DNEXT:
+      vm_sysc_dnext( pid );
+      break;
+      
+   case VM_SYSC_DNAME:
+      vm_sysc_dname( pid );
       break;
    }
 
@@ -186,12 +246,30 @@ ssize_t vm_instr_execute( TASK_PID pid, uint16_t instr_full ) {
 
    //assert( 0 != instr );
 
+   switch( g_double_instr ) {
+   case VM_INSTR_DPUSH:
+      vm_stack_dpush( task, instr_full );
+      return task->ipc + 1; /* Done processing. */
+
+   default:
+      break; /* Ignore. */
+   }
+
    switch( instr ) {
    case VM_INSTR_PUSH:
       vm_stack_push( task, data );
       break;
 
+   case VM_INSTR_DPUSH:
+      /* Push will happen on next execute with full number. */
+      g_double_instr = VM_INSTR_DPUSH;
+      break;
+
    case VM_INSTR_SPOP:
+      vm_stack_pop( task );
+      break;
+
+   case VM_INSTR_SDPOP:
       vm_stack_pop( task );
       break;
 

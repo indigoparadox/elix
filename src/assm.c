@@ -110,6 +110,7 @@ void process_char( char c ) {
    char buf_out[BUF_SZ + 1] = { 0 };
    size_t label_ipc = 0;
    int instr_bytecode = 0;
+   uint16_t dnum = 0;
 
    switch( c ) {
    case '.':
@@ -239,6 +240,11 @@ void process_char( char c ) {
             g_state = STATE_PARAMS;
             g_instr = VM_INSTR_PUSH;
 
+         } else if( 0 == strncmp( "dpush", g_token, 4 ) ) {
+            instr_bytecode = VM_INSTR_DPUSH;
+            g_state = STATE_PARAMS;
+            g_instr = VM_INSTR_DPUSH;
+
          } else if( 0 == strncmp( "syscall", g_token, 7 ) ) {
             instr_bytecode = VM_INSTR_SYSC;
             g_state = STATE_PARAMS;
@@ -251,6 +257,10 @@ void process_char( char c ) {
          
          } else if( 0 == strncmp( "spop", g_token, 4 ) ) {
             instr_bytecode = VM_INSTR_SPOP;
+            g_state = STATE_NONE;
+
+         } else if( 0 == strncmp( "sdpop", g_token, 5 ) ) {
+            instr_bytecode = VM_INSTR_SDPOP;
             g_state = STATE_NONE;
 
          } else if( 0 == strncmp( "sadd", g_token, 4 ) ) {
@@ -343,8 +353,20 @@ void process_char( char c ) {
 
       } else if( STATE_NUM == g_state || STATE_PLUS == g_state ) {
          /* Decode token as number. */
-         printf( "num: %d\n", atoi( g_token ) );
-         write_bin_instr_or_data( atoi( g_token ) );
+         if( VM_INSTR_DPUSH == g_instr ) {
+            dnum = atoi( g_token );
+            printf( "dnum: %d (0x%x) (0x%x 0x%x)\n",
+               dnum,
+               dnum,
+               (uint8_t)((dnum >> 8) & 0x00ff),
+               (uint8_t)((dnum) & 0x00ff) );
+            write_bin_instr_or_data( 0 );
+            write_bin_instr_or_data( (uint8_t)((dnum >> 8) & 0x00ff) );
+            write_bin_instr_or_data( (uint8_t)((dnum) & 0x00ff) );
+         } else {
+            printf( "num: %d\n", atoi( g_token ) );
+            write_bin_instr_or_data( atoi( g_token ) );
+         }
          reset_token();
          g_state = STATE_NONE;
 
@@ -388,6 +410,12 @@ void process_char( char c ) {
 
             } else if( 0 == strncmp( g_token, "getc", 4 ) ) {
                instr_bytecode = VM_SYSC_GETC;
+
+            } else if( 0 == strncmp( g_token, "droot", 5 ) ) {
+               instr_bytecode = VM_SYSC_DROOT;
+
+            } else if( 0 == strncmp( g_token, "dfirst", 6 ) ) {
+               instr_bytecode = VM_SYSC_DFIRST;
 
             }
 

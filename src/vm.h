@@ -9,10 +9,12 @@
 #define VM_INSTR_GOTO      0x02
 #define VM_INSTR_SYSC      0x03
 #define VM_INSTR_PUSH      0x04
+#define VM_INSTR_DPUSH     0x05
 #define VM_INSTR_SECT      0x0f
 #define VM_INSTR_SMIN      0x10 /* DUMMY */
 #define VM_INSTR_SPOP      0x10
-#define VM_INSTR_SADD      0x11
+#define VM_INSTR_SDPOP     0x11
+#define VM_INSTR_SADD      0x12
 #define VM_INSTR_SMAX      0x1f /* DUMMY */
 #define VM_INSTR_JMIN      0x30 /* DUMMY */
 #define VM_INSTR_JSNZ      0x30
@@ -33,6 +35,13 @@
 #define VM_SYSC_PUTC    0x01
 #define VM_SYSC_PRINTF  0x02
 #define VM_SYSC_GETC    0x03
+#define VM_SYSC_CMP     0x04
+#define VM_SYSC_ICMP    0x05
+#define VM_SYSC_DENTRY  0x06
+#define VM_SYSC_DROOT   0x07
+#define VM_SYSC_DFIRST  0x08
+#define VM_SYSC_DNEXT   0x09
+#define VM_SYSC_DNAME   0x0a
 
 #define VM_SECTION_DATA 0x01
 #define VM_SECTION_CPU  0x02
