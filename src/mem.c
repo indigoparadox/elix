@@ -22,7 +22,7 @@ MEMLEN_T get_mem_used() {
 }
 
 /* Zero a given block of memory. */
-void mzero( void* dest, int sz ) {
+void mzero( void* dest, MEMLEN_T sz ) {
    int i = 0;
    for( i = 0 ; sz > i ; i++ ) {
       ((uint8_t*)dest)[i] = '\0';
@@ -30,7 +30,7 @@ void mzero( void* dest, int sz ) {
 }
 
 /* memcpy */
-int mcopy( void* dest, const void* src, int sz ) {
+SMEMLEN_T mcopy( void* dest, const void* src, MEMLEN_T sz ) {
    int i = 0;
    for( i = 0 ; sz > i ; i++ ) {
       ((uint8_t*)dest)[i] = ((uint8_t*)src)[i];
@@ -39,7 +39,7 @@ int mcopy( void* dest, const void* src, int sz ) {
 }
 
 /* strncmp */
-int mcompare( const void* c1, const void* c2, int sz ) {
+SMEMLEN_T mcompare( const void* c1, const void* c2, MEMLEN_T sz ) {
    int i = 0;
    for( i = 0 ; sz > i ; i++ ) {
       if( ((uint8_t*)c1)[i] != ((uint8_t*)c2)[i] ) {
@@ -73,9 +73,9 @@ void mprint() {
 #ifndef CHECK
 static
 #endif /* CHECK */
-int mget_pos( int pid, int mid ) {
+SMEMLEN_T mget_pos( int pid, int mid ) {
    const struct mvar* var_iter = (struct mvar*)g_mheap;
-   int mheap_addr_iter = 0;
+   SMEMLEN_T mheap_addr_iter = 0;
 
    if( 0 >= g_mheap_top ) {
       /* Heap is empty. */
@@ -111,7 +111,7 @@ int mget_pos( int pid, int mid ) {
 #ifndef CHECK
 static
 #endif /* CHECK */
-void mshift( MEMLEN_T start, MEMLEN_T offset ) {
+void mshift( MEMLEN_T start, SMEMLEN_T offset ) {
    MEMLEN_T i = 0;
 
    if( 0 < offset ) {
@@ -186,7 +186,7 @@ void* mget( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
 }
 
 struct mvar* mget_meta( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
-   MEMLEN_T mheap_addr_iter = 0;
+   SMEMLEN_T mheap_addr_iter = 0;
    struct mvar* var = NULL;
 
    assert( 0 < mid );
@@ -197,7 +197,7 @@ struct mvar* mget_meta( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
          return NULL;
       }
       var = mcreate( sz );
-   } else if( 0 <= sz ) {
+   } else {
       var = (struct mvar*)&(g_mheap[mheap_addr_iter]);
       if( sz > var->sz ) {
          var = mresize( var, mheap_addr_iter, sz );

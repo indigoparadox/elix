@@ -19,21 +19,21 @@
 #define STATE_PLUS      7
 
 struct label {
-   size_t ipc;
+   unsigned short ipc;
    char name[BUF_SZ + 1];
    struct label* next;
 };
 
 struct label* g_labels = NULL;
 struct label* g_unresolved = NULL;
-size_t g_ipc = 0;
+unsigned short g_ipc = 0;
 int g_section = 0;
 int g_escape = 0;
 int g_instr = 0;
 int g_state = STATE_NONE;
 int g_plus = 0;
 char g_token[BUF_SZ + 1] = { 0 };
-size_t g_token_len = 0;
+unsigned short g_token_len = 0;
 FILE* g_src_file = NULL,
    * g_bin_file = NULL;
 uint8_t g_next_alloc_mid = 1;
@@ -70,7 +70,7 @@ void add_label( char* name, int ipc, struct label** head ) {
    printf( "\n" );
 }
 
-size_t get_label_ipc( char* label, size_t ipc_of_call ) {
+unsigned short get_label_ipc( char* label, unsigned short ipc_of_call ) {
    struct label* label_iter = g_labels;
 
    while(
@@ -94,10 +94,24 @@ size_t get_label_ipc( char* label, size_t ipc_of_call ) {
    return label_iter->ipc;
 }
 
-void write_bin_instr_or_data( char c ) {
+void write_bin_instr_or_data( unsigned char c ) {
    fwrite( &c, sizeof( char ), 1, g_bin_file );
    g_ipc++;
    printf( "wrote %d (0x%x), ipc: %ld\n\n", c, c, g_ipc );
+}
+
+void write_double_bin_instr_or_data( unsigned short u ) {
+   printf( "first byte:\n" );
+   write_bin_instr_or_data( (uint8_t)((u >> 8) & 0x00ff) );
+   printf( "second byte:\n" );
+   write_bin_instr_or_data( (uint8_t)(u & 0x00ff) );
+   printf( "previous writes wrote %d (0x%x) (0x%x 0x%x), ipc: %ld, %ld\n\n",
+      u,
+      u,
+      (uint8_t)((u >> 8) & 0x00ff),
+      (uint8_t)(u & 0x00ff),
+      g_ipc - 1,
+      g_ipc);
 }
 
 void append_to_token( char c ) {
@@ -108,9 +122,8 @@ void append_to_token( char c ) {
 
 void process_char( char c ) {
    char buf_out[BUF_SZ + 1] = { 0 };
-   size_t label_ipc = 0;
+   unsigned short label_ipc = 0;
    int instr_bytecode = 0;
-   uint16_t dnum = 0;
 
    switch( c ) {
    case '.':
@@ -235,15 +248,15 @@ void process_char( char c ) {
       if( STATE_NONE == g_state ) {
          /* Try to decode token as an instruction. */
          instr_bytecode = -1;
-         if( 0 == strncmp( "push", g_token, 4 ) ) {
+         if( 0 == strncmp( "pushd", g_token, 5 ) ) {
+            instr_bytecode = VM_INSTR_PUSHD;
+            g_state = STATE_PARAMS;
+            g_instr = VM_INSTR_PUSHD;
+
+         } else if( 0 == strncmp( "push", g_token, 4 ) ) {
             instr_bytecode = VM_INSTR_PUSH;
             g_state = STATE_PARAMS;
             g_instr = VM_INSTR_PUSH;
-
-         } else if( 0 == strncmp( "dpush", g_token, 4 ) ) {
-            instr_bytecode = VM_INSTR_DPUSH;
-            g_state = STATE_PARAMS;
-            g_instr = VM_INSTR_DPUSH;
 
          } else if( 0 == strncmp( "syscall", g_token, 7 ) ) {
             instr_bytecode = VM_INSTR_SYSC;
@@ -261,6 +274,10 @@ void process_char( char c ) {
 
          } else if( 0 == strncmp( "sdpop", g_token, 5 ) ) {
             instr_bytecode = VM_INSTR_SDPOP;
+            g_state = STATE_NONE;
+
+         } else if( 0 == strncmp( "saddd", g_token, 5 ) ) {
+            instr_bytecode = VM_INSTR_SADDD;
             g_state = STATE_NONE;
 
          } else if( 0 == strncmp( "sadd", g_token, 4 ) ) {
@@ -282,6 +299,11 @@ void process_char( char c ) {
             g_state = STATE_PARAMS;
             g_instr = VM_INSTR_JSNE;
          
+         } else if( 0 == strncmp( "jsged", g_token, 5 ) ) {
+            instr_bytecode = VM_INSTR_JSGED;
+            g_state = STATE_PARAMS;
+            g_instr = VM_INSTR_JSGED;
+         
          } else if( 0 == strncmp( "jsge", g_token, 4 ) ) {
             instr_bytecode = VM_INSTR_JSGE;
             g_state = STATE_PARAMS;
@@ -302,6 +324,11 @@ void process_char( char c ) {
             g_state = STATE_PARAMS;
             g_instr = VM_INSTR_MPUSHCO;
 
+         } else if( 0 == strncmp( g_token, "mpushcd", 7 ) ) {
+            instr_bytecode = VM_INSTR_MPUSHCD;
+            g_state = STATE_PARAMS;
+            g_instr = VM_INSTR_MPUSHCD;
+
          } else if( 0 == strncmp( g_token, "mpushc", 6 ) ) {
             instr_bytecode = VM_INSTR_MPUSHC;
             g_state = STATE_PARAMS;
@@ -312,10 +339,20 @@ void process_char( char c ) {
             g_state = STATE_PARAMS;
             g_instr = VM_INSTR_MPOPCO;
 
+         } else if( 0 == strncmp( g_token, "mpopcd", 6 ) ) {
+            instr_bytecode = VM_INSTR_MPOPCD;
+            g_state = STATE_PARAMS;
+            g_instr = VM_INSTR_MPOPCD;
+
          } else if( 0 == strncmp( g_token, "mpopc", 5 ) ) {
             instr_bytecode = VM_INSTR_MPOPC;
             g_state = STATE_PARAMS;
             g_instr = VM_INSTR_MPOPC;
+
+         } else if( 0 == strncmp( g_token, "mpopd", 5 ) ) {
+            instr_bytecode = VM_INSTR_MPOPD;
+            g_state = STATE_PARAMS;
+            g_instr = VM_INSTR_MPOPD;
 
          } else if( 0 == strncmp( g_token, "mpop", 4 ) ) {
             instr_bytecode = VM_INSTR_MPOP;
@@ -333,10 +370,15 @@ void process_char( char c ) {
             printf( "(%d)\n", instr_bytecode );
             write_bin_instr_or_data( (unsigned char)instr_bytecode );
             if(
-               VM_INSTR_SMIN <= instr_bytecode &&
-               VM_INSTR_SMAX >= instr_bytecode
+               (VM_INSTR_SMIN <= instr_bytecode &&
+               VM_INSTR_SMAX >= instr_bytecode) ||
+               (VM_INSTR_MMIN <= instr_bytecode &&
+               VM_INSTR_MMAX >= instr_bytecode) ||
+               VM_INSTR_PUSHD == instr_bytecode
             ) {
-               /* Stack instruction has no data, so put a null padding. */
+               /* Stack instruction has no data or 16-bit-wide data,
+                  so put a null padding in instruction data field. */
+               printf( "padding:\n" );
                write_bin_instr_or_data( 0 );
             }
          } else {
@@ -353,16 +395,12 @@ void process_char( char c ) {
 
       } else if( STATE_NUM == g_state || STATE_PLUS == g_state ) {
          /* Decode token as number. */
-         if( VM_INSTR_DPUSH == g_instr ) {
-            dnum = atoi( g_token );
-            printf( "dnum: %d (0x%x) (0x%x 0x%x)\n",
-               dnum,
-               dnum,
-               (uint8_t)((dnum >> 8) & 0x00ff),
-               (uint8_t)((dnum) & 0x00ff) );
-            write_bin_instr_or_data( 0 );
-            write_bin_instr_or_data( (uint8_t)((dnum >> 8) & 0x00ff) );
-            write_bin_instr_or_data( (uint8_t)((dnum) & 0x00ff) );
+         if(
+            VM_INSTR_PUSHD == g_instr ||
+            (VM_INSTR_MMIN <= instr_bytecode &&
+            VM_INSTR_MMAX >= instr_bytecode)
+         ) {
+            write_double_bin_instr_or_data( atoi( g_token ) );
          } else {
             printf( "num: %d\n", atoi( g_token ) );
             write_bin_instr_or_data( atoi( g_token ) );
@@ -373,6 +411,7 @@ void process_char( char c ) {
       } else if(
          (VM_INSTR_GOTO == g_instr ||
             VM_INSTR_PUSH == g_instr ||
+            VM_INSTR_PUSHD == g_instr ||
             (VM_INSTR_JMIN <= g_instr && VM_INSTR_JMAX >= g_instr) ||
             (VM_INSTR_MMIN <= g_instr && VM_INSTR_MMAX >= g_instr)) &&
          STATE_PARAMS == g_state &&
@@ -386,13 +425,14 @@ void process_char( char c ) {
             label_ipc = g_next_alloc_mid;
             g_next_alloc_mid++;
          }
-         write_bin_instr_or_data( (unsigned char)label_ipc );
-         #if 0
-         if( VM_INSTR_MMIN <= g_instr && VM_INSTR_MMAX >= g_instr ) {
-            /* xxx Memory instructions get an extra byte for byte offset. */
-            write_bin_instr_or_data( 0 ); // XXX
+         if(
+            VM_INSTR_PUSHD == g_instr ||
+            (VM_INSTR_MMIN <= g_instr && VM_INSTR_MMAX >= g_instr)
+         ) {
+            write_double_bin_instr_or_data( label_ipc );
+         } else {
+            write_bin_instr_or_data( (unsigned char)label_ipc );
          }
-         #endif
          g_state = STATE_NONE;
          g_instr = 0;
          reset_token();
@@ -464,7 +504,7 @@ int main( int argc, char* argv[] ) {
       i = 0;
    char buf[BUF_SZ + 1] = { 0 };
    struct label* unresolved_iter = NULL;
-   size_t resolve_ipc = 0;
+   unsigned short resolve_ipc = 0;
 
    assert( 2 < argc );
 

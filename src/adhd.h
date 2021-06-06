@@ -12,7 +12,7 @@
 #define ADHD_MID_ENV_CURRENT 3
 
 #define ADHD_TASKS_MAX 4
-#define ADHD_STACK_MAX 8
+#define ADHD_STACK_MAX 12
 
 #define TASK_PID_INVALID -1
 

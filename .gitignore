@@ -8,3 +8,4 @@ tests
 qd86.img
 qd430.bin
 build
+src/vm_debug.h

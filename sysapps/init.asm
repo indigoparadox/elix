@@ -6,13 +6,13 @@
 
 .cpu:
 
-   push     #20
+   pushd     #20
    malloc   $line
 
-   push     #1
+   pushd     #1
    malloc   $line_offst
 
-   push     #13
+   pushd     #13
    malloc   $filename
 
 start:
@@ -28,30 +28,31 @@ poll:
 proc_char:
    push     '\n'        ; Push \n char to compare to input char in jseq.
    jseq     proc_line   ; JSEQ pops \n.
-   mpushc   $line_offst ; Push offset onto stack.
-   push     #20         ; Push max line len to compare to offset.
-   jsge     too_long
+   mpushcd  $line_offst ; Push offset onto stack.
+   pushd    #20         ; Push max line len to compare to offset.
+   jsged    too_long
    mpopco   $line       ; Pop input char copy to line+offset (pops offset).
    syscall  putc        ; Print input char and remove it from stack.
-   mpushc   $line_offst
-   push     #1
-   sadd                 ; Add 1 to offset (pops #1).
-   mpop     $line_offst ; Pops offset to memory.
+   mpushcd  $line_offst
+   pushd    #1
+   saddd                ; Add 1 to offset (pops #1).
+   mpopd    $line_offst ; Pops offset to memory.
    goto     poll
 
 too_long:
    spop                 ; Remove input char from stack.
    spop                 ; Remove line offset from stack.
+   spop                 ; Remove line offset from stack.
    push     tltext
    syscall  printf      ; Print warning (pops warning).
-   push     #0
-   mpop     $line_offst ; Pop 0 offset to memory.
+   pushd    #0
+   mpopd    $line_offst ; Pop 0 offset to memory.
    goto     start
 
 proc_line:
    spop                 ; Remove input char from stack.
-   push     #0
-   mpop     $line_offst ; Pop 0 offset to memory.
+   pushd    #0          ; Push zero offset.
+   mpopd    $line_offst ; Pop 0 offset to memory.
    push     #0          ; Push disk ID 0
    push     #0          ; Push part ID 0
    syscall  droot       ; Get the root directory offset.

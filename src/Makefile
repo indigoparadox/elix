@@ -191,7 +191,7 @@ $(BIN_MSP430): CFLAGS += \
 	-gdwarf-2 \
 	-Wall \
 	-Werror \
-	-DMEM_HEAP_SIZE=300 \
+	-DMEM_HEAP_SIZE=288 \
 	-DUART_TX_BUFFER_LENGTH=0 \
 	-DUART_RX_BUFFER_LENGTH=20 \
 	-DINIT_TASK="trepl_task" \

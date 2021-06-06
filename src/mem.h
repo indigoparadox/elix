@@ -24,8 +24,8 @@ union mvalue {
 void minit();
 
 #ifdef CHECK
-void mshift( MEMLEN_T start, MEMLEN_T offset );
-int mget_pos( int pid, int mid );
+void mshift( MEMLEN_T start, SMEMLEN_T offset );
+SMEMLEN_T mget_pos( int pid, int mid );
 #endif /* CHECK */
 
 #if defined( MPRINT )
@@ -51,9 +51,9 @@ struct mvar* mget_meta( TASK_PID pid, MEM_ID mid, MEMLEN_T sz );
  *  @{
  */
 
-void mzero( void* dest, int sz );
-int mcopy( void* dest, const void* src, int sz );
-int mcompare( const void* c1, const void* c2, int sz );
+void mzero( void* dest, MEMLEN_T sz );
+SMEMLEN_T mcopy( void* dest, const void* src, MEMLEN_T sz );
+SMEMLEN_T mcompare( const void* c1, const void* c2, MEMLEN_T sz );
 void mfree_all( TASK_PID pid );
 void mfree( TASK_PID pid, MEM_ID mid );
 

@@ -73,7 +73,8 @@ typedef int16_t ssize_t;
  *  @{
  */
 
-typedef int16_t MEMLEN_T;
+typedef uint16_t MEMLEN_T;
+typedef int32_t  SMEMLEN_T;
 
 typedef uint16_t BITFIELD;
 

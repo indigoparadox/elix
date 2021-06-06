@@ -5,6 +5,10 @@
 #include "console.h"
 #include "adhd.h"
 
+#if USE_VM_MONITOR
+#include "vm_debug.h"
+#endif /* USE_VM_MONITOR */
+
 static uint8_t g_double_instr = 0;
 
 static uint8_t vm_stack_pop( struct adhd_task* task ) {
@@ -69,6 +73,12 @@ static void vm_sysc_dfirst( TASK_PID pid ) {
    offset = mfat_get_dir_entry_first_offset( offset, disk_id, part_id );
 
    vm_stack_dpush( task, offset );
+}
+
+static void vm_sysc_dnext( TASK_PID pid ) {
+}
+
+static void vm_sysc_dname( TASK_PID pid ) {
 }
 
 static void vm_instr_sysc( TASK_PID pid, uint8_t call_id ) {
@@ -139,6 +149,8 @@ static ssize_t vm_instr_branch( TASK_PID pid, uint8_t instr, uint8_t data ) {
    struct adhd_task* task = &(g_tasks[pid]);
    uint8_t comp1 = 0,
       comp2 = 0;
+   uint16_t dcomp1 = 0,
+      dcomp2 = 0;
    ssize_t retval = task->ipc + 1;
    
    switch( instr ) {
@@ -147,6 +159,7 @@ static ssize_t vm_instr_branch( TASK_PID pid, uint8_t instr, uint8_t data ) {
       if( 0 != comp1 ) {
          retval = data;
       }
+      vm_stack_push( task, comp1 );
       break;
 
    case VM_INSTR_JSEQ:
@@ -155,6 +168,7 @@ static ssize_t vm_instr_branch( TASK_PID pid, uint8_t instr, uint8_t data ) {
       if( comp1 == comp2 ) {
          retval = data;
       }
+      vm_stack_push( task, comp1 );
       break;
 
    case VM_INSTR_JSNE:
@@ -163,6 +177,7 @@ static ssize_t vm_instr_branch( TASK_PID pid, uint8_t instr, uint8_t data ) {
       if( comp1 != comp2 ) {
          retval = data;
       }
+      vm_stack_push( task, comp1 );
       break;
 
    case VM_INSTR_JSGE:
@@ -171,59 +186,92 @@ static ssize_t vm_instr_branch( TASK_PID pid, uint8_t instr, uint8_t data ) {
       if( comp1 >= comp2 ) {
          retval = data;
       }
+      vm_stack_push( task, comp1 );
+      break;
+
+   case VM_INSTR_JSGED:
+      dcomp2 = vm_stack_dpop( task );
+      dcomp1 = vm_stack_dpop( task );
+      if( dcomp1 >= dcomp2 ) {
+         retval = data;
+      }
+      vm_stack_dpush( task, dcomp1 );
       break;
    }
-
-   vm_stack_push( task, comp1 );
 
    return retval;
 }
 
-static ssize_t vm_instr_mem( TASK_PID pid, uint8_t instr, uint8_t data ) {
+static ssize_t vm_instr_mem( TASK_PID pid, uint8_t instr, MEMLEN_T mid ) {
    struct adhd_task* task = &(g_tasks[pid]);
    uint8_t* addr_tmp = NULL;
-   uint8_t offset = 0;
+   MEMLEN_T offset = 0;
 
    switch( instr ) {
    case VM_INSTR_MALLOC:
-      addr_tmp = mget( pid, data, vm_stack_pop( task ) );
+      addr_tmp = mget( pid, mid, vm_stack_dpop( task ) );
       /* Not NULL or offset of data from NULL.*/
       assert( NULL != addr_tmp && (void*)0x4 != addr_tmp );
       break;
 
    case VM_INSTR_MPOP:
-      addr_tmp = mget( pid, data, 0 );
+      addr_tmp = mget( pid, mid, 0 );
       /* Not NULL or offset of data from NULL.*/
       assert( NULL != addr_tmp && (void*)0x4 != addr_tmp );
       *addr_tmp = vm_stack_pop( task );
       break;
 
    case VM_INSTR_MPOPC:
-      addr_tmp = mget( pid, data, 0 );
+      addr_tmp = mget( pid, mid, 0 );
       /* Not NULL or offset of data from NULL.*/
       assert( NULL != addr_tmp && (void*)0x4 != addr_tmp );
       *addr_tmp = vm_stack_pop( task );
       vm_stack_push( task, *addr_tmp );
       break;
 
+   case VM_INSTR_MPOPD:
+      addr_tmp = mget( pid, mid, 0 );
+      /* Not NULL or offset of data from NULL.*/
+      /* TODO: Verify memory sz is >=2 */
+      assert( NULL != addr_tmp && (void*)0x4 != addr_tmp );
+      *((uint16_t*)addr_tmp) = vm_stack_dpop( task );
+      break;
+
+   case VM_INSTR_MPOPCD:
+      addr_tmp = mget( pid, mid, 0 );
+      /* Not NULL or offset of data from NULL.*/
+      /* TODO: Verify memory sz is >=2 */
+      assert( NULL != addr_tmp && (void*)0x4 != addr_tmp );
+      *((uint16_t*)addr_tmp) = vm_stack_dpop( task );
+      vm_stack_dpush( task, *((uint16_t*)addr_tmp) );
+      break;
+
    case VM_INSTR_MPOPCO:
-      addr_tmp = mget( pid, data, 0 );
+      addr_tmp = mget( pid, mid, 0 );
       /* Not NULL or offset of data from NULL.*/
       assert( NULL != addr_tmp && (void*)0x4 != addr_tmp );
-      offset = vm_stack_pop( task );
+      offset = vm_stack_dpop( task );
       *(addr_tmp + offset) = vm_stack_pop( task );
       vm_stack_push( task, *(addr_tmp + offset) );
       break;
 
    case VM_INSTR_MPUSHC:
-      addr_tmp = mget( pid, data, 0 );
+      addr_tmp = mget( pid, mid, 0 );
       /* Not NULL or offset of data from NULL.*/
       assert( NULL != addr_tmp && (void*)0x4 != addr_tmp );
       vm_stack_push( task, *addr_tmp );
       break;
 
+   case VM_INSTR_MPUSHCD:
+      addr_tmp = mget( pid, mid, 0 );
+      /* Not NULL or offset of data from NULL.*/
+      /* TODO: Verify memory sz is >=2 */
+      assert( NULL != addr_tmp && (void*)0x4 != addr_tmp );
+      vm_stack_dpush( task, *addr_tmp );
+      break;
+
    case VM_INSTR_MPUSHCO:
-      addr_tmp = mget( pid, data, 0 );
+      addr_tmp = mget( pid, mid, 0 );
       /* Not NULL or offset of data from NULL.*/
       assert( NULL != addr_tmp && (void*)0x4 != addr_tmp );
       offset = vm_stack_pop( task );
@@ -238,69 +286,107 @@ ssize_t vm_instr_execute( TASK_PID pid, uint16_t instr_full ) {
    struct adhd_task* task = &(g_tasks[pid]);
    uint8_t instr = instr_full >> 8;
    uint8_t data = instr_full & 0xff;
+   uint16_t ddata = 0;
 
    assert( 0 <= pid );
    assert( 0 <= task->ipc );
 
-   //printf( "ipc: %d, instr: %d (0x%x), data: %d (0x%x), stack: %d\n", task->ipc, instr, instr, data, data, task->stack_len );
+#if USE_VM_MONITOR
+   if( g_double_instr ) {
+      printf( "ipc: %d, double data: %d (0x%x), stack: %d\n", task->ipc, instr_full, instr_full, task->stack_len );
+   } else {
+      int j = 0, k = 0;
+      while(
+        -1  != vm_instr_debug[j].val && instr != vm_instr_debug[j].val
+      ) {
+         j++;
+      }
+      if( VM_INSTR_SYSC == instr ) {
+         while(
+         -1  != vm_sysc_debug[k].val && data != vm_sysc_debug[k].val
+         ) {
+            k++;
+         }
+         printf(
+            "ipc: %d, instr: %s (%d) (0x%x), sysc: %s (%d) (0x%x), stack: %d\n",
+            task->ipc,
+            vm_instr_debug[j].name,
+            instr,
+            instr,
+            vm_sysc_debug[k].name,
+            data,
+            data,
+            task->stack_len );
+      } else {
+         printf(
+            "ipc: %d, instr: %s (%d) (0x%x), data: %d (0x%x), stack: %d\n",
+            task->ipc,
+            vm_instr_debug[j].name,
+            instr,
+            instr,
+            data,
+            data,
+            task->stack_len );
+      }
+   }
+#endif /* USE_VM_MONITOR */
 
-   //assert( 0 != instr );
-
-   switch( g_double_instr ) {
-   case VM_INSTR_DPUSH:
+   /* Process instructions with double parameters if this is 2nd cycle. */
+   if( VM_INSTR_PUSHD == g_double_instr ) {
+      g_double_instr = 0;
+      /* instr_full is double data, here. */
       vm_stack_dpush( task, instr_full );
       return task->ipc + 1; /* Done processing. */
-
-   default:
-      break; /* Ignore. */
+   
+   } else if(
+      VM_INSTR_MMIN <= g_double_instr && VM_INSTR_MMAX >= g_double_instr
+   ) {
+      ddata = g_double_instr;
+      g_double_instr = 0;
+      /* instr_full is double data, here. */
+      return vm_instr_mem( pid, ddata, instr_full );
    }
 
-   switch( instr ) {
-   case VM_INSTR_PUSH:
+   /* Process normal instructions and 1st cycles. */
+   if( VM_INSTR_PUSH == instr ) {
       vm_stack_push( task, data );
-      break;
 
-   case VM_INSTR_DPUSH:
+   } else if( VM_INSTR_PUSHD == instr ) {
       /* Push will happen on next execute with full number. */
-      g_double_instr = VM_INSTR_DPUSH;
-      break;
+      g_double_instr = VM_INSTR_PUSHD;
 
-   case VM_INSTR_SPOP:
+   } else if( VM_INSTR_SPOP == instr ) {
       vm_stack_pop( task );
-      break;
 
-   case VM_INSTR_SDPOP:
-      vm_stack_pop( task );
-      break;
+   } else if( VM_INSTR_SDPOP == instr ) {
+      vm_stack_dpop( task );
 
-   case VM_INSTR_SADD:
+   } else if( VM_INSTR_SADD == instr ) {
       data = vm_stack_pop( task ) + vm_stack_pop( task );
       vm_stack_push( task, data );
-      break;
 
-   case VM_INSTR_SYSC:
+   } else if( VM_INSTR_SADDD == instr ) {
+      ddata = vm_stack_dpop( task ) + vm_stack_dpop( task );
+      vm_stack_dpush( task, ddata );
+
+   } else if( VM_INSTR_SYSC == instr ) {
       vm_instr_sysc( pid, data );
-      break;
    
-   case VM_INSTR_EXIT:
+   } else if( VM_INSTR_EXIT == instr ) {
       return -1;
 
-   case VM_INSTR_GOTO:
+   } else if( VM_INSTR_GOTO == instr ) {
       return data;
 
-   case VM_INSTR_JSNZ:
-   case VM_INSTR_JSEQ:
-   case VM_INSTR_JSNE:
-   case VM_INSTR_JSGE:
+   } else if(
+      VM_INSTR_JMIN <= instr && VM_INSTR_JMAX >= instr
+   ) {
       return vm_instr_branch( pid, instr, data );
-
-   case VM_INSTR_MALLOC:
-   case VM_INSTR_MPOP:
-   case VM_INSTR_MPOPC:
-   case VM_INSTR_MPOPCO:
-   case VM_INSTR_MPUSHC:
-   case VM_INSTR_MPUSHCO:
-      return vm_instr_mem( pid, instr, data );
+   
+   } else if(
+      VM_INSTR_MMIN <= instr && VM_INSTR_MMAX >= instr
+   ) {
+      g_double_instr = instr;
    }
 
    return task->ipc + 1;
