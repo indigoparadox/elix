@@ -16,6 +16,7 @@
 #define STATE_STRING    4
 #define STATE_NUM       5
 #define STATE_COMMENT   6
+#define STATE_PLUS      7
 
 struct label {
    size_t ipc;
@@ -30,11 +31,12 @@ int g_section = 0;
 int g_escape = 0;
 int g_instr = 0;
 int g_state = STATE_NONE;
+int g_plus = 0;
 char g_token[BUF_SZ + 1] = { 0 };
 size_t g_token_len = 0;
 FILE* g_src_file = NULL,
    * g_bin_file = NULL;
-uint8_t g_next_alloc_mid = 0;
+uint8_t g_next_alloc_mid = 1;
 
 void reset_token() {
    memset( g_token, '\0', BUF_SZ + 1 );
@@ -61,7 +63,11 @@ void add_label( char* name, int ipc, struct label** head ) {
    strncpy( label_iter->name, name, BUF_SZ );
    label_iter->ipc = ipc;
 
-   printf( "label: %s @ %d\n", name, ipc );
+   printf( "label: %s @ %d", name, ipc );
+   if( '$' == name[0] ) {
+      printf( " (dynamic)" );
+   }
+   printf( "\n" );
 }
 
 size_t get_label_ipc( char* label, size_t ipc_of_call ) {
@@ -69,9 +75,9 @@ size_t get_label_ipc( char* label, size_t ipc_of_call ) {
 
    while(
       NULL != label_iter &&
-      0 != strncmp( label_iter->name, label, strlen( label_iter->name ) )
+      0 != strncmp( label, label_iter->name, strlen( label ) )
    ) {
-      printf( "searching for %s, found %s...\n", label, label_iter->name );
+      //printf( "searching for %s, found %s...\n", label, label_iter->name );
       label_iter = label_iter->next;
    }
 
@@ -91,7 +97,7 @@ size_t get_label_ipc( char* label, size_t ipc_of_call ) {
 void write_bin_instr_or_data( char c ) {
    fwrite( &c, sizeof( char ), 1, g_bin_file );
    g_ipc++;
-   printf( "wrote %d (0x%x), ipc: %ld\n", c, c, g_ipc );
+   printf( "wrote %d (0x%x), ipc: %ld\n\n", c, c, g_ipc );
 }
 
 void append_to_token( char c ) {
@@ -164,6 +170,7 @@ void process_char( char c ) {
 
    case '"':
       /* Start or terminate string. */
+      /* TODO: Handled escaped quote. */
       if( STATE_STRING == g_state ) {
          write_bin_instr_or_data( 0 ); /* Append NULL byte. */
          printf( "state none\n" );
@@ -209,6 +216,18 @@ void process_char( char c ) {
       }
       break;
 
+   case '+':
+      if( STATE_STRING == g_state || STATE_CHAR == g_state ) {
+         printf( "c: %c\n", c );
+         write_bin_instr_or_data( c );
+
+      } else if( STATE_PARAMS == g_state ) {
+         g_state = STATE_PLUS;
+         g_plus = 0;
+         printf( "state plus" );
+      }
+      break;
+
    case '\n':
    case '\r':
    case ' ':
@@ -230,8 +249,12 @@ void process_char( char c ) {
             g_state = STATE_PARAMS;
             g_instr = VM_INSTR_GOTO;
          
-         } else if( 0 == strncmp( "pop", g_token, 3 ) ) {
-            instr_bytecode = VM_INSTR_POP;
+         } else if( 0 == strncmp( "spop", g_token, 4 ) ) {
+            instr_bytecode = VM_INSTR_SPOP;
+            g_state = STATE_NONE;
+
+         } else if( 0 == strncmp( "sadd", g_token, 4 ) ) {
+            instr_bytecode = VM_INSTR_SADD;
             g_state = STATE_NONE;
 
          } else if( 0 == strncmp( "jsnz", g_token, 4 ) ) {
@@ -249,14 +272,61 @@ void process_char( char c ) {
             g_state = STATE_PARAMS;
             g_instr = VM_INSTR_JSNE;
          
+         } else if( 0 == strncmp( "jsge", g_token, 4 ) ) {
+            instr_bytecode = VM_INSTR_JSGE;
+            g_state = STATE_PARAMS;
+            g_instr = VM_INSTR_JSGE;
+         
+         } else if( 0 == strncmp( g_token, "malloc", 6 ) ) {
+            instr_bytecode = VM_INSTR_MALLOC;
+            g_state = STATE_PARAMS;
+            g_instr = VM_INSTR_MALLOC;
+
+         } else if( 0 == strncmp( g_token, "mstore", 6 ) ) {
+            instr_bytecode = VM_INSTR_MPOP;
+            g_state = STATE_PARAMS;
+            g_instr = VM_INSTR_MPOP;
+
+         } else if( 0 == strncmp( g_token, "mpushco", 7 ) ) {
+            instr_bytecode = VM_INSTR_MPUSHCO;
+            g_state = STATE_PARAMS;
+            g_instr = VM_INSTR_MPUSHCO;
+
+         } else if( 0 == strncmp( g_token, "mpushc", 6 ) ) {
+            instr_bytecode = VM_INSTR_MPUSHC;
+            g_state = STATE_PARAMS;
+            g_instr = VM_INSTR_MPUSHC;
+
+         } else if( 0 == strncmp( g_token, "mpopco", 6 ) ) {
+            instr_bytecode = VM_INSTR_MPOPCO;
+            g_state = STATE_PARAMS;
+            g_instr = VM_INSTR_MPOPCO;
+
+         } else if( 0 == strncmp( g_token, "mpopc", 5 ) ) {
+            instr_bytecode = VM_INSTR_MPOPC;
+            g_state = STATE_PARAMS;
+            g_instr = VM_INSTR_MPOPC;
+
+         } else if( 0 == strncmp( g_token, "mpop", 4 ) ) {
+            instr_bytecode = VM_INSTR_MPOP;
+            g_state = STATE_PARAMS;
+            g_instr = VM_INSTR_MPOP;
+
+         } else if( 0 == strncmp( g_token, "mfree", 5 ) ) {
+            instr_bytecode = VM_INSTR_MFREE;
+            g_state = STATE_PARAMS;
+            g_instr = VM_INSTR_MFREE;
          }
          
          if( 0 <= instr_bytecode ) {
             printf( "instr: %s ", g_token );
             printf( "(%d)\n", instr_bytecode );
             write_bin_instr_or_data( (unsigned char)instr_bytecode );
-            if( VM_INSTR_POP == instr_bytecode ) {
-               /* Instruction has no data, so put a null padding. */
+            if(
+               VM_INSTR_SMIN <= instr_bytecode &&
+               VM_INSTR_SMAX >= instr_bytecode
+            ) {
+               /* Stack instruction has no data, so put a null padding. */
                write_bin_instr_or_data( 0 );
             }
          } else {
@@ -271,7 +341,7 @@ void process_char( char c ) {
          /* Add whitespace character to string literal. */
          write_bin_instr_or_data( c );
 
-      } else if( STATE_NUM == g_state ) {
+      } else if( STATE_NUM == g_state || STATE_PLUS == g_state ) {
          /* Decode token as number. */
          printf( "num: %d\n", atoi( g_token ) );
          write_bin_instr_or_data( atoi( g_token ) );
@@ -281,21 +351,26 @@ void process_char( char c ) {
       } else if(
          (VM_INSTR_GOTO == g_instr ||
             VM_INSTR_PUSH == g_instr ||
-            VM_INSTR_JSNZ == g_instr ||
-            VM_INSTR_JSNE == g_instr ||
-            VM_INSTR_JSEQ == g_instr) &&
+            (VM_INSTR_JMIN <= g_instr && VM_INSTR_JMAX >= g_instr) ||
+            (VM_INSTR_MMIN <= g_instr && VM_INSTR_MMAX >= g_instr)) &&
          STATE_PARAMS == g_state &&
          0 < g_token_len
       ) {
          /* Decode token as label (or alloc). */
          label_ipc = get_label_ipc( g_token, g_ipc );
-         if( '$' == g_token[0] ) {
+         if( '$' == g_token[0] && 0 == label_ipc ) {
             /* Token is an alloc, so create if doesn't exist. */
             add_label( g_token, g_next_alloc_mid, &g_labels );
             label_ipc = g_next_alloc_mid;
             g_next_alloc_mid++;
          }
          write_bin_instr_or_data( (unsigned char)label_ipc );
+         #if 0
+         if( VM_INSTR_MMIN <= g_instr && VM_INSTR_MMAX >= g_instr ) {
+            /* xxx Memory instructions get an extra byte for byte offset. */
+            write_bin_instr_or_data( 0 ); // XXX
+         }
+         #endif
          g_state = STATE_NONE;
          g_instr = 0;
          reset_token();
@@ -310,15 +385,6 @@ void process_char( char c ) {
 
             } else if( 0 == strncmp( g_token, "printf", 6 ) ) {
                instr_bytecode = VM_SYSC_PRINTF;
-
-            } else if( 0 == strncmp( g_token, "alloc", 5 ) ) {
-               instr_bytecode = VM_SYSC_ALLOC;
-
-            } else if( 0 == strncmp( g_token, "mstore", 6 ) ) {
-               instr_bytecode = VM_SYSC_MSTORE;
-
-            } else if( 0 == strncmp( g_token, "mget", 4 ) ) {
-               instr_bytecode = VM_SYSC_MGET;
 
             } else if( 0 == strncmp( g_token, "getc", 4 ) ) {
                instr_bytecode = VM_SYSC_GETC;

@@ -192,12 +192,14 @@ struct mvar* mget_meta( TASK_PID pid, MEM_ID mid, MEMLEN_T sz ) {
    assert( 0 < mid );
 
    mheap_addr_iter = mget_pos( pid, mid );
+   //printf( "xxx %d %d %d %d\n", pid, mid, sz, mheap_addr_iter );
    if( 0 > mheap_addr_iter ) {
       if( MGET_NO_CREATE == sz ) {
+         printf( "err %d %d\n", pid, mid );
          return NULL;
       }
       var = mcreate( sz );
-   } else if( 0 < sz ) {
+   } else if( 0 <= sz ) {
       var = (struct mvar*)&(g_mheap[mheap_addr_iter]);
       if( sz > var->sz ) {
          var = mresize( var, mheap_addr_iter, sz );
