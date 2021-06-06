@@ -170,7 +170,12 @@ void process_char( char c ) {
       break;
 
    case ';':
-      if( STATE_NONE == g_state ) {
+      if(
+         STATE_NONE == g_state ||
+         STATE_PARAMS == g_state ||
+         STATE_NUM == g_state ||
+         STATE_PLUS == g_state
+      ) {
          g_state = STATE_COMMENT;
       } else if( STATE_STRING == g_state || STATE_CHAR == g_state ) {
          printf( "c: %c\n", c );
@@ -314,6 +319,16 @@ void process_char( char c ) {
             g_state = STATE_PARAMS;
             g_instr = VM_INSTR_JSGE;
          
+         } else if( 0 == strncmp( "jszd", g_token, 4 ) ) {
+            instr_bytecode = VM_INSTR_JSZD;
+            g_state = STATE_PARAMS;
+            g_instr = VM_INSTR_JSZD;
+         
+         } else if( 0 == strncmp( "jsz", g_token, 3 ) ) {
+            instr_bytecode = VM_INSTR_JSZ;
+            g_state = STATE_PARAMS;
+            g_instr = VM_INSTR_JSZ;
+         
          } else if( 0 == strncmp( g_token, "malloc", 6 ) ) {
             instr_bytecode = VM_INSTR_MALLOC;
             g_state = STATE_PARAMS;
@@ -446,7 +461,7 @@ void process_char( char c ) {
          g_instr = 0;
          reset_token();
 
-      } else if( STATE_PARAMS == g_state ) {
+      } else if( STATE_PARAMS == g_state && VM_INSTR_SYSC == g_instr ) {
          if( 0 < g_token_len ) {
             printf( "param: %s", g_token );
             instr_bytecode = -1;
@@ -454,8 +469,11 @@ void process_char( char c ) {
             if( 0 == strncmp( g_token, "putc", 4 ) ) {
                instr_bytecode = VM_SYSC_PUTC;
 
-            } else if( 0 == strncmp( g_token, "printf", 6 ) ) {
-               instr_bytecode = VM_SYSC_PRINTF;
+            } else if( 0 == strncmp( g_token, "puts", 4 ) ) {
+               instr_bytecode = VM_SYSC_PUTS;
+
+            } else if( 0 == strncmp( g_token, "mputs", 5 ) ) {
+               instr_bytecode = VM_SYSC_MPUTS;
 
             } else if( 0 == strncmp( g_token, "getc", 4 ) ) {
                instr_bytecode = VM_SYSC_GETC;
@@ -465,6 +483,9 @@ void process_char( char c ) {
 
             } else if( 0 == strncmp( g_token, "dfirst", 6 ) ) {
                instr_bytecode = VM_SYSC_DFIRST;
+
+            } else if( 0 == strncmp( g_token, "dname", 5 ) ) {
+               instr_bytecode = VM_SYSC_DNAME;
 
             }
 
@@ -498,6 +519,9 @@ void process_char( char c ) {
          }
          printf( "c: %c\n", c );
          write_bin_instr_or_data( c );
+
+      } else if( STATE_COMMENT == g_state ) {
+         /* Do nothing. */
 
       } else {
          append_to_token( c );

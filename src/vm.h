@@ -23,6 +23,8 @@
 #define VM_INSTR_JSNE      0x33
 #define VM_INSTR_JSGE      0x34
 #define VM_INSTR_JSGED     0x35
+#define VM_INSTR_JSZ       0x36
+#define VM_INSTR_JSZD      0x37
 #define VM_INSTR_JMAX      0x3f /* DUMMY */
 #define VM_INSTR_MMIN      0x40 /* DUMMY */
 #define VM_INSTR_MALLOC    0x40
@@ -38,7 +40,7 @@
 #define VM_INSTR_MMAX      0x4f /* DUMMY */
 
 #define VM_SYSC_PUTC    0x01
-#define VM_SYSC_PRINTF  0x02
+#define VM_SYSC_PUTS  0x02
 #define VM_SYSC_GETC    0x03
 #define VM_SYSC_CMP     0x04
 #define VM_SYSC_ICMP    0x05
@@ -47,6 +49,7 @@
 #define VM_SYSC_DFIRST  0x08
 #define VM_SYSC_DNEXT   0x09
 #define VM_SYSC_DNAME   0x0a
+#define VM_SYSC_MPUTS 0x0b
 
 #define VM_SECTION_DATA 0x01
 #define VM_SECTION_CPU  0x02

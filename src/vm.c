@@ -54,8 +54,8 @@ static void vm_sysc_droot( TASK_PID pid ) {
    uint8_t disk_id = 0,
       part_id = 0;
 
-   part_id = vm_stack_pop( task );
    disk_id = vm_stack_pop( task );
+   part_id = vm_stack_pop( task );
 
    offset = mfat_get_root_dir_offset( disk_id, part_id );
 
@@ -68,8 +68,8 @@ static void vm_sysc_dfirst( TASK_PID pid ) {
    uint8_t disk_id = 0,
       part_id = 0;
 
-   part_id = vm_stack_pop( task );
    disk_id = vm_stack_pop( task );
+   part_id = vm_stack_pop( task );
    offset = vm_stack_dpop( task );
 
    offset = mfat_get_dir_entry_first_offset( offset, disk_id, part_id );
@@ -81,6 +81,18 @@ static void vm_sysc_dnext( TASK_PID pid ) {
 }
 
 static void vm_sysc_dname( TASK_PID pid ) {
+   struct adhd_task* task = &(g_tasks[pid]);
+   uint16_t offset = 0;
+   uint8_t disk_id = 0,
+      part_id = 0;
+   char* filename = NULL;
+
+   filename = mget( pid, vm_stack_dpop( task ), 0 );
+   offset = vm_stack_dpop( task );
+   disk_id = vm_stack_pop( task );
+   part_id = vm_stack_pop( task );
+
+   mfat_get_dir_entry_name( filename, offset, disk_id, part_id );
 }
 
 static void vm_instr_sysc( TASK_PID pid, uint8_t call_id ) {
@@ -88,6 +100,7 @@ static void vm_instr_sysc( TASK_PID pid, uint8_t call_id ) {
    union vm_data_type data;
    unsigned char cbuf = 0;
    uint8_t bytes_read = 0;
+   char* str_ptr = NULL;
 
    assert( 0 <= pid );
    assert( 0 <= task->ipc );
@@ -103,7 +116,16 @@ static void vm_instr_sysc( TASK_PID pid, uint8_t call_id ) {
       vm_stack_push( task, cbuf );
       break;
 
-   case VM_SYSC_PRINTF:
+   case VM_SYSC_MPUTS:
+      data.ipc = vm_stack_dpop( task );
+      str_ptr = mget( pid, data.ipc, 0 );
+      while( '\0' != *str_ptr ) {
+         tputc( *str_ptr );
+         str_ptr++;
+      }
+      break;
+
+   case VM_SYSC_PUTS:
       /* TODO: Use actual printf w/ format strings. */
       data.ipc = vm_stack_pop( task );
       bytes_read = mfat_get_dir_entry_data(
@@ -166,6 +188,22 @@ static SIPC_PTR vm_instr_branch( TASK_PID pid, uint8_t instr, IPC_PTR addr ) {
          retval = addr;
       }
       vm_stack_push( task, comp1 );
+      break;
+
+   case VM_INSTR_JSZ:
+      comp1 = vm_stack_pop( task );
+      if( 0 == comp1 ) {
+         retval = addr;
+      }
+      vm_stack_push( task, comp1 );
+      break;
+
+   case VM_INSTR_JSZD:
+      dcomp1 = vm_stack_dpop( task );
+      if( 0 == dcomp1 ) {
+         retval = addr;
+      }
+      vm_stack_dpush( task, dcomp1 );
       break;
 
    case VM_INSTR_JSEQ:
@@ -273,7 +311,7 @@ static ssize_t vm_instr_mem( TASK_PID pid, uint8_t instr, MEMLEN_T mid ) {
       /* Not NULL or offset of data from NULL.*/
       /* TODO: Verify memory sz is >=2 */
       assert( NULL != addr_tmp && (void*)0x4 != addr_tmp );
-      vm_stack_dpush( task, *addr_tmp );
+      vm_stack_dpush( task, *((uint16_t*)addr_tmp) );
       break;
 
    case VM_INSTR_MPUSHCO:
