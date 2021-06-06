@@ -6,7 +6,6 @@
 
 #define VM_INSTR_NOP       0x00
 #define VM_INSTR_EXIT      0x01
-#define VM_INSTR_GOTO      0x02
 #define VM_INSTR_SYSC      0x03
 #define VM_INSTR_PUSH      0x04
 #define VM_INSTR_PUSHD     0x05
@@ -18,11 +17,12 @@
 #define VM_INSTR_SADDD     0x13
 #define VM_INSTR_SMAX      0x1f /* DUMMY */
 #define VM_INSTR_JMIN      0x30 /* DUMMY */
-#define VM_INSTR_JSNZ      0x30
-#define VM_INSTR_JSEQ      0x31
-#define VM_INSTR_JSNE      0x32
-#define VM_INSTR_JSGE      0x33
-#define VM_INSTR_JSGED     0x34
+#define VM_INSTR_JUMP      0x30
+#define VM_INSTR_JSNZ      0x31
+#define VM_INSTR_JSEQ      0x32
+#define VM_INSTR_JSNE      0x33
+#define VM_INSTR_JSGE      0x34
+#define VM_INSTR_JSGED     0x35
 #define VM_INSTR_JMAX      0x3f /* DUMMY */
 #define VM_INSTR_MMIN      0x40 /* DUMMY */
 #define VM_INSTR_MALLOC    0x40

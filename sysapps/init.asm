@@ -4,6 +4,15 @@
    prompt:  "\n>"
    tltext:  "\nline too long\n"
 
+   logo1: "     _____     \n",
+   logo2: "   .`_| |_`.   \n",
+   logo3: "  / /_| |_\\ \\  \n",
+   logo4: " |  __| |___|  \n",
+   logo5: " | |  | |      \n",
+   logo6: "  \\ \\_| |___   \n",
+   logo7: "   `._|_____/  \n",
+   logo8: "               \n"
+
 .cpu:
 
    pushd     #20
@@ -15,6 +24,23 @@
    pushd     #13
    malloc   $filename
 
+   push     logo1
+   syscall  printf
+   push     logo2
+   syscall  printf
+   push     logo3
+   syscall  printf
+   push     logo4
+   syscall  printf
+   push     logo5
+   syscall  printf
+   push     logo6
+   syscall  printf
+   push     logo7
+   syscall  printf
+   push     logo8
+   syscall  printf
+
 start:
    push     prompt
    syscall  printf
@@ -23,7 +49,7 @@ poll:
    syscall  getc        ; Put input char on the stack.
    jsnz     proc_char   ; If input char != 0, process it.
    spop                 ; Else clear the stack.
-   goto     poll        ; Poll again.
+   jump     poll        ; Poll again.
 
 proc_char:
    push     '\n'        ; Push \n char to compare to input char in jseq.
@@ -37,7 +63,7 @@ proc_char:
    pushd    #1
    saddd                ; Add 1 to offset (pops #1).
    mpopd    $line_offst ; Pops offset to memory.
-   goto     poll
+   jump     poll
 
 too_long:
    spop                 ; Remove input char from stack.
@@ -47,7 +73,7 @@ too_long:
    syscall  printf      ; Print warning (pops warning).
    pushd    #0
    mpopd    $line_offst ; Pop 0 offset to memory.
-   goto     start
+   jump     start
 
 proc_line:
    spop                 ; Remove input char from stack.
@@ -61,5 +87,5 @@ proc_line:
    syscall  dfirst      ; Get the first entry offset.
    spop
    spop
-   goto     start
+   jump     start
 

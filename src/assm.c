@@ -77,8 +77,13 @@ unsigned short get_label_ipc( char* label, unsigned short ipc_of_call ) {
       NULL != label_iter &&
       0 != strncmp( label, label_iter->name, strlen( label ) )
    ) {
-      //printf( "searching for %s, found %s...\n", label, label_iter->name );
+      printf( "searching for %s, found %s (%d)...\n",
+         label, label_iter->name, label_iter->ipc );
       label_iter = label_iter->next;
+   }
+   if( NULL != label_iter ) {
+      printf( "searching for %s, found %s (%d)...\n",
+         label, label_iter->name, label_iter->ipc );
    }
 
    if( NULL == label_iter ) {
@@ -89,7 +94,7 @@ unsigned short get_label_ipc( char* label, unsigned short ipc_of_call ) {
       return 0;
    }
 
-   printf( "label for %s: %d\n", label, (unsigned char)(label_iter->ipc) );
+   printf( "label for %s: %d\n", label, label_iter->ipc );
 
    return label_iter->ipc;
 }
@@ -97,7 +102,7 @@ unsigned short get_label_ipc( char* label, unsigned short ipc_of_call ) {
 void write_bin_instr_or_data( unsigned char c ) {
    fwrite( &c, sizeof( char ), 1, g_bin_file );
    g_ipc++;
-   printf( "wrote %d (0x%x), ipc: %ld\n\n", c, c, g_ipc );
+   printf( "wrote %d (0x%x), ipc: %d\n\n", c, c, g_ipc );
 }
 
 void write_double_bin_instr_or_data( unsigned short u ) {
@@ -105,7 +110,7 @@ void write_double_bin_instr_or_data( unsigned short u ) {
    write_bin_instr_or_data( (uint8_t)((u >> 8) & 0x00ff) );
    printf( "second byte:\n" );
    write_bin_instr_or_data( (uint8_t)(u & 0x00ff) );
-   printf( "previous writes wrote %d (0x%x) (0x%x 0x%x), ipc: %ld, %ld\n\n",
+   printf( "previous writes wrote %d (0x%x) (0x%x 0x%x), ipc: %d, %d\n\n",
       u,
       u,
       (uint8_t)((u >> 8) & 0x00ff),
@@ -263,10 +268,10 @@ void process_char( char c ) {
             g_state = STATE_PARAMS;
             g_instr = VM_INSTR_SYSC;
 
-         } else if( 0 == strncmp( "goto", g_token, 4 ) ) {
-            instr_bytecode = VM_INSTR_GOTO;
+         } else if( 0 == strncmp( "jump", g_token, 4 ) ) {
+            instr_bytecode = VM_INSTR_JUMP;
             g_state = STATE_PARAMS;
-            g_instr = VM_INSTR_GOTO;
+            g_instr = VM_INSTR_JUMP;
          
          } else if( 0 == strncmp( "spop", g_token, 4 ) ) {
             instr_bytecode = VM_INSTR_SPOP;
@@ -374,6 +379,8 @@ void process_char( char c ) {
                VM_INSTR_SMAX >= instr_bytecode) ||
                (VM_INSTR_MMIN <= instr_bytecode &&
                VM_INSTR_MMAX >= instr_bytecode) ||
+               (VM_INSTR_JMIN <= instr_bytecode &&
+               VM_INSTR_JMAX >= instr_bytecode) ||
                VM_INSTR_PUSHD == instr_bytecode
             ) {
                /* Stack instruction has no data or 16-bit-wide data,
@@ -397,6 +404,8 @@ void process_char( char c ) {
          /* Decode token as number. */
          if(
             VM_INSTR_PUSHD == g_instr ||
+            (VM_INSTR_JMIN <= instr_bytecode &&
+            VM_INSTR_JMAX >= instr_bytecode) ||
             (VM_INSTR_MMIN <= instr_bytecode &&
             VM_INSTR_MMAX >= instr_bytecode)
          ) {
@@ -409,8 +418,7 @@ void process_char( char c ) {
          g_state = STATE_NONE;
 
       } else if(
-         (VM_INSTR_GOTO == g_instr ||
-            VM_INSTR_PUSH == g_instr ||
+         (VM_INSTR_PUSH == g_instr ||
             VM_INSTR_PUSHD == g_instr ||
             (VM_INSTR_JMIN <= g_instr && VM_INSTR_JMAX >= g_instr) ||
             (VM_INSTR_MMIN <= g_instr && VM_INSTR_MMAX >= g_instr)) &&
@@ -427,7 +435,8 @@ void process_char( char c ) {
          }
          if(
             VM_INSTR_PUSHD == g_instr ||
-            (VM_INSTR_MMIN <= g_instr && VM_INSTR_MMAX >= g_instr)
+            (VM_INSTR_MMIN <= g_instr && VM_INSTR_MMAX >= g_instr) ||
+            (VM_INSTR_JMIN <= g_instr && VM_INSTR_JMAX >= g_instr)
          ) {
             write_double_bin_instr_or_data( label_ipc );
          } else {
@@ -537,7 +546,7 @@ int main( int argc, char* argv[] ) {
 
       fseek( g_bin_file, unresolved_iter->ipc, SEEK_SET );
       g_ipc = unresolved_iter->ipc;
-      write_bin_instr_or_data( (unsigned char)resolve_ipc );
+      write_double_bin_instr_or_data( resolve_ipc );
 
       printf( "resolved to %d, placed at %d\n",
          resolve_ipc, unresolved_iter->ipc );

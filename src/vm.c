@@ -5,6 +5,8 @@
 #include "console.h"
 #include "adhd.h"
 
+//#define USE_VM_MONITOR 1
+
 #if USE_VM_MONITOR
 #include "vm_debug.h"
 #endif /* USE_VM_MONITOR */
@@ -145,19 +147,23 @@ static void vm_instr_sysc( TASK_PID pid, uint8_t call_id ) {
    }
 }
 
-static ssize_t vm_instr_branch( TASK_PID pid, uint8_t instr, uint8_t data ) {
+static SIPC_PTR vm_instr_branch( TASK_PID pid, uint8_t instr, IPC_PTR addr ) {
    struct adhd_task* task = &(g_tasks[pid]);
    uint8_t comp1 = 0,
       comp2 = 0;
    uint16_t dcomp1 = 0,
       dcomp2 = 0;
-   ssize_t retval = task->ipc + 1;
+   IPC_PTR retval = task->ipc + 1;
    
    switch( instr ) {
+   case VM_INSTR_JUMP:
+      retval = addr;
+      break;
+
    case VM_INSTR_JSNZ:
       comp1 = vm_stack_pop( task );
       if( 0 != comp1 ) {
-         retval = data;
+         retval = addr;
       }
       vm_stack_push( task, comp1 );
       break;
@@ -166,7 +172,7 @@ static ssize_t vm_instr_branch( TASK_PID pid, uint8_t instr, uint8_t data ) {
       comp2 = vm_stack_pop( task );
       comp1 = vm_stack_pop( task );
       if( comp1 == comp2 ) {
-         retval = data;
+         retval = addr;
       }
       vm_stack_push( task, comp1 );
       break;
@@ -175,7 +181,7 @@ static ssize_t vm_instr_branch( TASK_PID pid, uint8_t instr, uint8_t data ) {
       comp2 = vm_stack_pop( task );
       comp1 = vm_stack_pop( task );
       if( comp1 != comp2 ) {
-         retval = data;
+         retval = addr;
       }
       vm_stack_push( task, comp1 );
       break;
@@ -184,7 +190,7 @@ static ssize_t vm_instr_branch( TASK_PID pid, uint8_t instr, uint8_t data ) {
       comp2 = vm_stack_pop( task );
       comp1 = vm_stack_pop( task );
       if( comp1 >= comp2 ) {
-         retval = data;
+         retval = addr;
       }
       vm_stack_push( task, comp1 );
       break;
@@ -193,7 +199,7 @@ static ssize_t vm_instr_branch( TASK_PID pid, uint8_t instr, uint8_t data ) {
       dcomp2 = vm_stack_dpop( task );
       dcomp1 = vm_stack_dpop( task );
       if( dcomp1 >= dcomp2 ) {
-         retval = data;
+         retval = addr;
       }
       vm_stack_dpush( task, dcomp1 );
       break;
@@ -277,6 +283,10 @@ static ssize_t vm_instr_mem( TASK_PID pid, uint8_t instr, MEMLEN_T mid ) {
       offset = vm_stack_pop( task );
       vm_stack_push( task, *(addr_tmp + offset) );
       break;
+
+   case VM_INSTR_MFREE:
+      mfree( pid, mid );
+      break;
    }
 
    return task->ipc + 1;
@@ -297,7 +307,9 @@ ssize_t vm_instr_execute( TASK_PID pid, uint16_t instr_full ) {
    } else {
       int j = 0, k = 0;
       while(
-        -1  != vm_instr_debug[j].val && instr != vm_instr_debug[j].val
+        -1  != vm_instr_debug[j].val &&
+        ((g_double_instr && g_double_instr != vm_instr_debug[j].val) ||
+        instr != vm_instr_debug[j].val)
       ) {
          j++;
       }
@@ -329,6 +341,8 @@ ssize_t vm_instr_execute( TASK_PID pid, uint16_t instr_full ) {
             task->stack_len );
       }
    }
+
+   assert( g_double_instr || 0 != instr );
 #endif /* USE_VM_MONITOR */
 
    /* Process instructions with double parameters if this is 2nd cycle. */
@@ -345,6 +359,15 @@ ssize_t vm_instr_execute( TASK_PID pid, uint16_t instr_full ) {
       g_double_instr = 0;
       /* instr_full is double data, here. */
       return vm_instr_mem( pid, ddata, instr_full );
+
+   } else if(
+      VM_INSTR_JMIN <= g_double_instr && VM_INSTR_JMAX >= g_double_instr
+   ) {
+      ddata = g_double_instr;
+      g_double_instr = 0;
+
+      /* instr_full is double data, here. */
+      return vm_instr_branch( pid, ddata, instr_full );
    }
 
    /* Process normal instructions and 1st cycles. */
@@ -375,13 +398,10 @@ ssize_t vm_instr_execute( TASK_PID pid, uint16_t instr_full ) {
    } else if( VM_INSTR_EXIT == instr ) {
       return -1;
 
-   } else if( VM_INSTR_GOTO == instr ) {
-      return data;
-
    } else if(
       VM_INSTR_JMIN <= instr && VM_INSTR_JMAX >= instr
    ) {
-      return vm_instr_branch( pid, instr, data );
+      g_double_instr = instr;
    
    } else if(
       VM_INSTR_MMIN <= instr && VM_INSTR_MMAX >= instr
