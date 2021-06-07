@@ -271,6 +271,20 @@ static SIPC_PTR vm_sysc_flagoff( TASK_PID pid ) {
    return task->ipc + 1;
 }
 
+static SIPC_PTR vm_sysc_putc( TASK_PID pid ) {
+   struct adhd_task* task = &(g_tasks[pid]);
+   uint8_t c = 0;
+   uint8_t stack_error = 0;
+
+   c = vm_stack_pop( task, &stack_error );
+   if( stack_error ) { return -1; }
+   if( task->flags & ADHD_TASK_FLAG_FOREGROUND ) {
+      tputc( c );
+   }
+
+   return task->ipc + 1;
+}
+
 static SIPC_PTR vm_instr_sysc( TASK_PID pid, uint8_t call_id ) {
    struct adhd_task* task = &(g_tasks[pid]);
    union vm_data_type data;
@@ -286,12 +300,7 @@ static SIPC_PTR vm_instr_sysc( TASK_PID pid, uint8_t call_id ) {
       return -1;
 
    case VM_SYSC_PUTC:
-      data.byte = vm_stack_pop( task, &stack_error );
-      if( stack_error ) { return -1; }
-      if( task->flags & ADHD_TASK_FLAG_FOREGROUND ) {
-         tputc( data.byte );
-      }
-      break;
+      return vm_sysc_putc( pid );
 
    case VM_SYSC_GETC:
       if( task->flags & ADHD_TASK_FLAG_FOREGROUND ) {
