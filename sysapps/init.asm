@@ -105,9 +105,11 @@ fs_match:
    pushd    elipses
    syscall  puts
 
-   mpushcd  $diskpart_id   ; Push as double, read popped as 2 uint8_ts.
    mpushcd  $fs_offset
+   mpushcd  $diskpart_id   ; Push as double, read popped as 2 uint8_ts.
    syscall  launch
+   spop                 ; Pop fs_offset from launch.
+   spop                 ; Pop fs_offset from launch.
    ;push     #1          ; Disable foreground I/O.
    ;syscall  flagoff     ; Disable foreground I/O.
 
@@ -136,11 +138,13 @@ proc_line:
    mpopd    $fs_offset  ; Store FS offset in memory.
 
 fs_iter:
-   push     #0          ; Push disk ID 0
-   push     #0          ; Push part ID 0
    mpushcd  $fs_offset  ; Place FS offset on the stack.
    pushd    $filename   ; Push address of filename buffer.
+   push     #0          ; Push disk ID 0
+   push     #0          ; Push part ID 0
    syscall  dname       ; Store entry name in $filename (pops offset and fname).
+   spop                 ; Pop fs_offset from dname.
+   spop                 ; Pop fs_offset from dname.
 
    ; DEBUG Show files as iterated.
    ;push     '\n'

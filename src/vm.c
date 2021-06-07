@@ -110,127 +110,71 @@ static SIPC_PTR vm_sysc_puts( TASK_PID pid ) {
    return task->ipc + 1;
 }
 
-static SIPC_PTR vm_sysc_droot( TASK_PID pid ) {
+static SIPC_PTR vm_sysc_mfat( TASK_PID pid, uint8_t call_id ) {
    struct adhd_task* task = &(g_tasks[pid]);
    int32_t offset = 0;
-   int16_t disk_id = 0,
-      part_id = 0;
-
-   disk_id = vm_stack_pop( task );
-   if( 0 > disk_id ) { return -1; }
-   part_id = vm_stack_pop( task );
-   if( 0 > part_id ) { return -1; }
-
-   offset = mfat_get_root_dir_offset( disk_id, part_id );
-
-#if USE_VM_MONITOR
-   printf( "droot out: %d\n", offset );
-#endif /* USE_VM_MONITOR */
-
-   if( 0 > vm_stack_dpush( task, offset ) ) {
-      return -1;
-   }
-
-   return task->ipc + 1;
-}
-
-static SIPC_PTR vm_sysc_dfirst( TASK_PID pid ) {
-   struct adhd_task* task = &(g_tasks[pid]);
-   SFILEPTR_T offset = 0;
-   int16_t disk_id = 0,
-      part_id = 0;
-
-   part_id = vm_stack_pop( task );
-   if( 0 > part_id ) { return -1; }
-   disk_id = vm_stack_pop( task );
-   if( 0 > disk_id ) { return -1; }
-   offset = vm_stack_dpop( task );
-   if( 0 > offset ) { return -1; }
-
-#if USE_VM_MONITOR
-   printf( "dfirst in: %d\n", offset );
-#endif /* USE_VM_MONITOR */
-
-   offset = mfat_get_dir_entry_first_offset( offset, disk_id, part_id );
-
-#if USE_VM_MONITOR
-   printf( "dfirst out: %d\n", offset );
-#endif /* USE_VM_MONITOR */
-
-   if( 0 > vm_stack_dpush( task, offset ) ) {
-      return -1;
-   }
-
-   return task->ipc + 1;
-}
-
-static SIPC_PTR vm_sysc_dnext( TASK_PID pid ) {
-   struct adhd_task* task = &(g_tasks[pid]);
-   SFILEPTR_T offset = 0;
-   int16_t disk_id = 0,
-      part_id = 0;
-
-   part_id = vm_stack_pop( task );
-   if( 0 > part_id ) { return -1; }
-   disk_id = vm_stack_pop( task );
-   if( 0 > disk_id ) { return -1; }
-   offset = vm_stack_dpop( task );
-   if( 0 > offset ) { return -1; }
-
-#if USE_VM_MONITOR
-   printf( "dnext in: %d\n", offset );
-#endif /* USE_VM_MONITOR */
-
-   offset = mfat_get_dir_entry_next_offset( offset, disk_id, part_id );
-
-#if USE_VM_MONITOR
-   printf( "dnext out: %d\n", offset );
-#endif /* USE_VM_MONITOR */
-
-   if( 0 > vm_stack_dpush( task, offset ) ) {
-      return -1;
-   }
-
-   return task->ipc + 1;
-}
-
-static SIPC_PTR vm_sysc_dname( TASK_PID pid ) {
-   struct adhd_task* task = &(g_tasks[pid]);
-   SFILEPTR_T offset = 0;
    int16_t disk_id = 0,
       part_id = 0;
    char* filename = NULL;
    int16_t mid = 0;
 
-   mid = vm_stack_dpop( task );
-   if( 0 > mid ) { return -1; }
-   filename = mget( pid, mid, 0 );
-   offset = vm_stack_dpop( task );
-   if( 0 > offset ) { return -1; }
    part_id = vm_stack_pop( task );
    if( 0 > part_id ) { return -1; }
    disk_id = vm_stack_pop( task );
    if( 0 > disk_id ) { return -1; }
 
-   mfat_get_dir_entry_name( filename, offset, disk_id, part_id );
+   switch( call_id ) {
+   case VM_SYSC_DROOT:
+      offset = mfat_get_root_dir_offset( disk_id, part_id );
+#if USE_VM_MONITOR
+      printf( "droot out: %d\n", offset );
+#endif /* USE_VM_MONITOR */
+      break;
 
-   return task->ipc + 1;
-}
+   case VM_SYSC_DFIRST:
+      offset = vm_stack_dpop( task );
+      if( 0 > offset ) { return -1; }
+#if USE_VM_MONITOR
+      printf( "dfirst in: %d\n", offset );
+#endif /* USE_VM_MONITOR */
+      offset = mfat_get_dir_entry_first_offset( offset, disk_id, part_id );
+#if USE_VM_MONITOR
+      printf( "dfirst out: %d\n", offset );
+#endif /* USE_VM_MONITOR */
+      break;
 
-static SIPC_PTR vm_sysc_launch( TASK_PID pid ) {
-   struct adhd_task* task = &(g_tasks[pid]);
-   int16_t disk_id = 0,
-      part_id = 0;
-   SFILEPTR_T offset = 0;
+   case VM_SYSC_DNEXT:
+      offset = vm_stack_dpop( task );
+      if( 0 > offset ) { return -1; }
+#if USE_VM_MONITOR
+      printf( "dnext in: %d\n", offset );
+#endif /* USE_VM_MONITOR */
+      offset = mfat_get_dir_entry_next_offset( offset, disk_id, part_id );
+#if USE_VM_MONITOR
+      printf( "dnext out: %d\n", offset );
+#endif /* USE_VM_MONITOR */
+      break;
 
-   offset = vm_stack_dpop( task );
-   if( 0 > offset ) { return -1; }
-   part_id = vm_stack_pop( task );
-   if( 0 > part_id ) { return -1; }
-   disk_id = vm_stack_pop( task );
-   if( 0 > disk_id ) { return -1; }
+   case VM_SYSC_DNAME:
+      mid = vm_stack_dpop( task );
+      if( 0 > mid ) { return -1; }
+      filename = mget( pid, mid, 0 );
+      if( NULL == filename ) { return -1; }
+      offset = vm_stack_dpop( task );
+      if( 0 > offset ) { return -1; }
+      mfat_get_dir_entry_name( filename, offset, disk_id, part_id );
+      break;
 
-   adhd_task_launch( disk_id, part_id, offset );
+   case VM_SYSC_LAUNCH:
+      offset = vm_stack_dpop( task );
+      if( 0 > offset ) { return -1; }
+      adhd_task_launch( disk_id, part_id, offset );
+      break;
+   }
+
+   if( 0 > vm_stack_dpush( task, offset ) ) {
+      return -1;
+   }
 
    return task->ipc + 1;
 }
@@ -323,19 +267,19 @@ static SIPC_PTR vm_instr_sysc( TASK_PID pid, uint8_t call_id ) {
       return vm_sysc_flagoff( pid );
 
    case VM_SYSC_LAUNCH:
-      return vm_sysc_launch( pid );
+      return vm_sysc_mfat( pid, call_id );
 
    case VM_SYSC_DROOT:
-      return vm_sysc_droot( pid );
+      return vm_sysc_mfat( pid, call_id );
       
    case VM_SYSC_DFIRST:
-      return vm_sysc_dfirst( pid );
+      return vm_sysc_mfat( pid, call_id );
       
    case VM_SYSC_DNEXT:
-      return vm_sysc_dnext( pid );
+      return vm_sysc_mfat( pid, call_id );
       
    case VM_SYSC_DNAME:
-      return vm_sysc_dname( pid );
+      return vm_sysc_mfat( pid, call_id );
 
    }
 
