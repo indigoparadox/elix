@@ -28,6 +28,7 @@ struct adhd_task {
    uint8_t flags;
    uint8_t disk_id;
    uint8_t part_id;
+   uint8_t prev_instr;
    FILEPTR_T file_offset;
    uint8_t stack[ADHD_STACK_MAX];
    uint8_t stack_len;

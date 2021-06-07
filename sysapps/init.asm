@@ -107,8 +107,9 @@ match:
    syscall  launch
    ;push     #1          ; Disable foreground I/O.
    ;syscall  flagoff     ; Disable foreground I/O.
-   mfree    $filename   ; Free filename buffer.
-   mfree    $fs_offset
+
+   ;mfree    $filename   ; Free filename buffer.
+   ;mfree    $fs_offset
    pushd    #0          ; Push 0 line offset.
    mpopd    $line_offst ; Pop 0 line offset to memory.
    push     #0          ; Push NULL to stack.

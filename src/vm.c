@@ -11,8 +11,6 @@
 #include "vm_debug.h"
 #endif /* USE_VM_MONITOR */
 
-static uint8_t g_double_instr = 0;
-
 static uint8_t vm_stack_pop( struct adhd_task* task ) {
    assert( 0 < task->stack_len );
    task->stack_len--;
@@ -446,13 +444,14 @@ SIPC_PTR vm_instr_execute( TASK_PID pid, uint16_t instr_full ) {
    assert( 0 <= task->ipc );
 
 #if USE_VM_MONITOR
-   if( g_double_instr ) {
-      printf( "ipc: %d, double data: %d (0x%x), stack: %d\n", task->ipc, instr_full, instr_full, task->stack_len );
+   if( task->prev_instr ) {
+      printf( "pid: %d, ipc: %d, double data: %d (0x%x), stack: %d\n",
+         pid, task->ipc, instr_full, instr_full, task->stack_len );
    } else {
       int j = 0, k = 0;
       while(
         -1  != vm_instr_debug[j].val &&
-        ((g_double_instr && g_double_instr != vm_instr_debug[j].val) ||
+        ((task->prev_instr && task->prev_instr != vm_instr_debug[j].val) ||
         instr != vm_instr_debug[j].val)
       ) {
          j++;
@@ -464,7 +463,8 @@ SIPC_PTR vm_instr_execute( TASK_PID pid, uint16_t instr_full ) {
             k++;
          }
          printf(
-            "ipc: %d, instr: %s (%d) (0x%x), sysc: %s (%d) (0x%x), stack: %d\n",
+            "pid: %d, ipc: %d, instr: %s (%d) (0x%x), sysc: %s (%d) (0x%x), stack: %d\n",
+            pid,
             task->ipc,
             vm_instr_debug[j].name,
             instr,
@@ -475,7 +475,8 @@ SIPC_PTR vm_instr_execute( TASK_PID pid, uint16_t instr_full ) {
             task->stack_len );
       } else {
          printf(
-            "ipc: %d, instr: %s (%d) (0x%x), data: %d (0x%x), stack: %d\n",
+            "pid: %d, ipc: %d, instr: %s (%d) (0x%x), data: %d (0x%x), stack: %d\n",
+            pid,
             task->ipc,
             vm_instr_debug[j].name,
             instr,
@@ -486,29 +487,29 @@ SIPC_PTR vm_instr_execute( TASK_PID pid, uint16_t instr_full ) {
       }
    }
 
-   assert( g_double_instr || 0 != instr );
+   assert( task->prev_instr || 0 != instr );
 #endif /* USE_VM_MONITOR */
 
    /* Process instructions with double parameters if this is 2nd cycle. */
-   if( VM_INSTR_PUSHD == g_double_instr ) {
-      g_double_instr = 0;
+   if( VM_INSTR_PUSHD == task->prev_instr ) {
+      task->prev_instr = 0;
       /* instr_full is double data, here. */
       vm_stack_dpush( task, instr_full );
       return task->ipc + 1; /* Done processing. */
    
    } else if(
-      VM_INSTR_MMIN <= g_double_instr && VM_INSTR_MMAX >= g_double_instr
+      VM_INSTR_MMIN <= task->prev_instr && VM_INSTR_MMAX >= task->prev_instr
    ) {
-      ddata = g_double_instr;
-      g_double_instr = 0;
+      ddata = task->prev_instr;
+      task->prev_instr = 0;
       /* instr_full is double data, here. */
       return vm_instr_mem( pid, ddata, instr_full );
 
    } else if(
-      VM_INSTR_JMIN <= g_double_instr && VM_INSTR_JMAX >= g_double_instr
+      VM_INSTR_JMIN <= task->prev_instr && VM_INSTR_JMAX >= task->prev_instr
    ) {
-      ddata = g_double_instr;
-      g_double_instr = 0;
+      ddata = task->prev_instr;
+      task->prev_instr = 0;
 
       /* instr_full is double data, here. */
       return vm_instr_branch( pid, ddata, instr_full );
@@ -520,7 +521,7 @@ SIPC_PTR vm_instr_execute( TASK_PID pid, uint16_t instr_full ) {
 
    } else if( VM_INSTR_PUSHD == instr ) {
       /* Push will happen on next execute with full number. */
-      g_double_instr = VM_INSTR_PUSHD;
+      task->prev_instr = VM_INSTR_PUSHD;
 
    } else if( VM_INSTR_SJUMP == instr ) {
       return vm_stack_dpop( task );
@@ -545,12 +546,12 @@ SIPC_PTR vm_instr_execute( TASK_PID pid, uint16_t instr_full ) {
    } else if(
       VM_INSTR_JMIN <= instr && VM_INSTR_JMAX >= instr
    ) {
-      g_double_instr = instr;
+      task->prev_instr = instr;
    
    } else if(
       VM_INSTR_MMIN <= instr && VM_INSTR_MMAX >= instr
    ) {
-      g_double_instr = instr;
+      task->prev_instr = instr;
    }
 
    return task->ipc + 1;
