@@ -286,13 +286,11 @@ void process_char( char c ) {
 
          } else if( 0 == strncmp( "sret", g_token, 4 ) ) {
             instr_bytecode = VM_INSTR_SRET;
-            g_state = STATE_PARAMS;
-            g_instr = VM_INSTR_SRET;
+            g_state = STATE_NONE;
          
          } else if( 0 == strncmp( "sjump", g_token, 5 ) ) {
             instr_bytecode = VM_INSTR_SJUMP;
-            g_state = STATE_PARAMS;
-            g_instr = VM_INSTR_SJUMP;
+            g_state = STATE_NONE;
          
          } else if( 0 == strncmp( "jump", g_token, 4 ) ) {
             instr_bytecode = VM_INSTR_JUMP;

@@ -502,7 +502,33 @@ static SIPC_PTR vm_instr_stack( TASK_PID pid, uint8_t instr ) {
 
    switch( instr ) {
    case VM_INSTR_SJUMP:
-      return vm_stack_dpop( task );
+      data1 = vm_stack_dpop( task );
+      /* Slip the current address into the bottom of the stack. */
+      if( ADHD_STACK_MAX <= task->stack_len + 2 ) {
+         tprintf( "%s\n", gc_stack_error );
+         return -1;
+      }
+      task->stack_len += 2;
+      for( data2 = task->stack_len - 1 ; data2 > 1 ; data2-- ) {
+         task->stack[data2] = task->stack[data2 - 2];
+      }
+      task->ipc += 1; /* We want to return to the NEXT instruction. */
+      task->stack[0] = (task->ipc << 8) & 0x00ff;
+      task->stack[1] = task->ipc & 0x00ff;
+      return data1;
+
+   case VM_INSTR_SRET:
+      /* Grab jump address from the bottom of the stack. */
+      if( 2 > task->stack_len ) {
+         tprintf( "%s\n", gc_stack_error );
+         return -1;
+      }
+      data1 |= (task->stack[0] & 0x00ff) << 8;
+      data1 |= task->stack[1] & 0x00ff;
+      for( data2 = 0 ; data2 < task->stack_len - 2 ; data2++ ) {
+         task->stack[data2] = task->stack[data2 + 1];
+      }
+      return data1;
 
    case VM_INSTR_SPOP:
       if( 0 > vm_stack_pop( task ) ) {
@@ -617,17 +643,11 @@ SIPC_PTR vm_instr_execute( TASK_PID pid, uint16_t instr_full ) {
       /* Push will happen on next execute with full number. */
       task->prev_instr = VM_INSTR_PUSHD;
 
-   } else if( VM_INSTR_SJUMP == instr ) {
+   } else if( VM_INSTR_SJUMP == instr || VM_INSTR_SRET == instr ) {
       return vm_instr_stack( pid, instr );
 
    } else if( VM_INSTR_SPOP == instr ) {
       return vm_instr_stack( pid, instr );
-
-   //} else if( VM_INSTR_SDPOP == instr ) {
-   //   return vm_instr_stack( pid, instr );
-
-   //} else if( VM_INSTR_SADD == instr ) {
-   //   return vm_instr_stack( pid, instr );
 
    } else if( VM_INSTR_SADDD == instr ) {
       return vm_instr_stack( pid, instr );

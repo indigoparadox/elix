@@ -31,22 +31,8 @@
    pushd    #2
    malloc   $diskpart_id
 
-   pushd    logo1
-   syscall  puts
-   pushd    logo2
-   syscall  puts
-   pushd    logo3
-   syscall  puts
-   pushd    logo4
-   syscall  puts
-   pushd    logo5
-   syscall  puts
-   pushd    logo6
-   syscall  puts
-   pushd    logo7
-   syscall  puts
-   pushd    logo8
-   syscall  puts
+   pushd    sub_logo
+   sjump
 
 start:
    pushd    prompt
@@ -226,4 +212,25 @@ icmp_cleanup:
    mfree    $icmp_idx
 
    jump     icmp_finish
+
+sub_logo:
+
+   pushd    logo1
+   syscall  puts
+   pushd    logo2
+   syscall  puts
+   pushd    logo3
+   syscall  puts
+   pushd    logo4
+   syscall  puts
+   pushd    logo5
+   syscall  puts
+   pushd    logo6
+   syscall  puts
+   pushd    logo7
+   syscall  puts
+   pushd    logo8
+   syscall  puts
+
+   sret
 
