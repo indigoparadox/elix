@@ -17,7 +17,6 @@ add_subdirectory(libs/mnet)
 if(UNIX)
     set(ELIX_DRIVER_PATH src/colinux)
     set(ELIX_DEFINES
-        USE_EXT_CLI
         USE_NET
         USE_BMP
         USE_DISK
@@ -37,7 +36,6 @@ endif(UNIX)
 set(ELIX_SOURCES
     src/console.c
     src/adhd.c
-    src/alpha.c
     src/vm.c
     src/mem.c
     src/kernel.c)

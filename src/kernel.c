@@ -11,17 +11,16 @@
 #include "mem.h"
 #include "net/net.h"
 #include "adhd.h"
-#include "alpha.h"
-
-#if defined( USE_EXT_CLI ) && INIT_TASK != trepl_task
-#error "repl app is required to enable external CLI!"
-#elif defined( USE_EXT_CLI )
-#include "apps/repl.h"
-#endif /* USE_EXT_CLI && !USE_REPL */
 
 TASK_RETVAL INIT_TASK();
 
 #define TASKS_MAX 5
+
+#ifdef USE_ERROR_CODES
+static const char gc_invalid_init[] = "EM01\n";
+#else
+static const char gc_invalid_init[] = "invalid init\n";
+#endif /* USE_ERROR_CODES */
 
 #ifdef USE_EXT_CLI
 int kmain( int argc, char** argv ) {
@@ -94,12 +93,12 @@ int kmain() {
    init_offset = mfat_get_dir_entry_offset(
       "INIT.ELX", MFAT_FILENAME_LEN, init_offset, 0, 0 );
    if( 0 == init_offset ) {
-      tprintf( "init task not found\n" );
+      tprintf( "%s\n", gc_invalid_init );
       goto cleanup;
    }
    init_pid = adhd_task_launch( 0, 0, init_offset );
    if( RETVAL_TASK_INVALID == init_pid ) {
-      tprintf( "init task invalid exec\n" );
+      tprintf( "%s\n", gc_invalid_init );
       goto cleanup;
    }
 

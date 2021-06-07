@@ -19,7 +19,6 @@
 #endif /* _WIN32 */
 #include <unistd.h>
 #include <pcap.h>
-#include "../alpha.h"
 
 char g_pcap_errbuff[PCAP_ERRBUF_SIZE] = { 0 };
 

@@ -5,7 +5,6 @@
 #include "console.h"
 #include "display.h"
 #include "mem.h"
-#include "alpha.h"
 #include "io.h"
 
 #define TPRINT_PAD_ZERO 0
@@ -13,6 +12,60 @@
 
 void abort() {
 }
+
+/* Return the number of digits in a number. */
+STRLEN_T tudigits( UTOA_T num, uint8_t base ) {
+   STRLEN_T digits = 0;
+   while( 0 < num ) {
+      num /= base;
+      digits++;
+   }
+   if( 0 == digits ) {
+      digits = 1; /* 0 */
+   }
+   return digits;
+}
+
+STRLEN_T tutoa(
+   UTOA_T num, char* dest, STRLEN_T dest_sz, uint8_t base
+) {
+   uint8_t rem;
+   STRLEN_T digits;
+   STRLEN_T digits_done = 0;
+   STRLEN_T dest_idx = 0;
+
+   digits = tudigits( num, base );
+   assert( (0 == num && 1 == digits) || (0 < num && 0 < digits) );
+   assert( digits < dest_sz );
+
+   /* Handle 0 explicitly, otherwise empty string is printed for 0. */
+   if( 0 == num ) {
+      dest[0] = '0';
+      digits_done++;
+   }
+
+   dest_idx += digits;
+   while( 0 != num ) {
+      /* Get the 1's place. */
+      rem = num % base;
+      dest[--dest_idx] = (9 < rem) ? 
+         /* > 10, so it's a letter. */
+         (rem - 10) + 'a' :
+         /* < 10, so it's a number. */
+         rem + '0';
+      /* Move the next place value into range. */
+      num /= base;
+      digits_done++;
+   }
+   while( digits_done < digits ) {
+      dest[--dest_idx] = '0';
+      digits_done++;
+   }
+   dest[digits] = '\0';
+
+   return digits;
+}
+
 
 static void tpad( char pad, STRLEN_T len ) {
    uint8_t i = 0;
@@ -79,12 +132,12 @@ void tprintf( const char* pattern, ... ) {
                spec.d = va_arg( args, UTOA_T );
                
                /* Print padding. */
-               pad_len -= alpha_udigits( spec.d, 10 );
+               pad_len -= tudigits( spec.d, 10 );
                tpad( pad_char, pad_len );
 
                /* Print number. */
                if(
-                  0 < alpha_utoa_c( spec.d, buffer, UTOA_DIGITS_MAX + 1, 10 )
+                  0 < tutoa( spec.d, buffer, UTOA_DIGITS_MAX + 1, 10 )
                ) {
                   j = 0;
                   while( '\0' != buffer[j] && j <= UTOA_DIGITS_MAX ) {
@@ -98,12 +151,12 @@ void tprintf( const char* pattern, ... ) {
                spec.d = va_arg( args, int );
 
                /* Print padding. */
-               pad_len -= alpha_udigits( spec.d, 16 );
+               pad_len -= tudigits( spec.d, 16 );
                tpad( pad_char, pad_len );
 
                /* Print number. */
                if(
-                  0 < alpha_utoa_c( spec.d, buffer, UTOA_DIGITS_MAX + 1, 16 )
+                  0 < tutoa( spec.d, buffer, UTOA_DIGITS_MAX + 1, 16 )
                ) {
                   tputc( '0' );
                   tputc( 'x' );
@@ -130,12 +183,12 @@ void tprintf( const char* pattern, ... ) {
                spec.p = va_arg( args, void* );
 
                /* Print padding. */
-               pad_len -= alpha_udigits( (uintptr_t)spec.p, 16 );
+               pad_len -= tudigits( (uintptr_t)spec.p, 16 );
                tpad( pad_char, pad_len );
 
                /* Print pointer as number. */
                if( 0 <
-                  alpha_utoa_c(
+                  tutoa(
                      (uintptr_t)spec.p, buffer, UTOA_DIGITS_MAX + 1, 16 )
                ) {
                   j = 0;

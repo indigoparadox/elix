@@ -2,7 +2,6 @@
 #define UART_C
 #include "../uart.h"
 
-#include "../alpha.h"
 #include "../kernel.h"
 #include "../io.h"
 #include "../platform.h"

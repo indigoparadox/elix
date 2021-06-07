@@ -39,7 +39,6 @@ CFLAGS=\
 SOURCES= \
 	console.c \
 	adhd.c \
-	alpha.c \
 	mem.c \
 	vm.c
 
@@ -191,11 +190,12 @@ $(BIN_MSP430): CFLAGS += \
 	-gdwarf-2 \
 	-Wall \
 	-Werror \
-	-DMEM_HEAP_SIZE=282 \
+	-DMEM_HEAP_SIZE=274 \
 	-DUART_TX_BUFFER_LENGTH=0 \
 	-DUART_RX_BUFFER_LENGTH=20 \
 	-DINIT_TASK="trepl_task" \
 	-DINIT_TASK_GID="repl" \
+	-DUSE_ERROR_CODES \
 	-DQD_PLATFORM=QD_PLATFORM_MSP430 \
 	-mmcu=msp430g2553 \
 	-DUTOA_BITS=32 \

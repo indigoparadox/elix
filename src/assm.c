@@ -226,6 +226,9 @@ void process_char( char c ) {
             reset_token();
             g_state = STATE_NONE;
 
+         } else if( STATE_COMMENT == g_state ) {
+            /* Do nothing. */
+
          } else {
             printf( "c: %c\n", c );
             write_bin_instr_or_data( c );
@@ -295,26 +298,9 @@ void process_char( char c ) {
             instr_bytecode = VM_INSTR_SPOP;
             g_state = STATE_NONE;
 
-#if 0
-         } else if( 0 == strncmp( "sdpop", g_token, 5 ) ) {
-            instr_bytecode = VM_INSTR_SDPOP;
-            g_state = STATE_NONE;
-#endif
-
          } else if( 0 == strncmp( "saddd", g_token, 5 ) ) {
             instr_bytecode = VM_INSTR_SADDD;
             g_state = STATE_NONE;
-
-#if 0
-         } else if( 0 == strncmp( "sadd", g_token, 4 ) ) {
-            instr_bytecode = VM_INSTR_SADD;
-            g_state = STATE_NONE;
-
-         } else if( 0 == strncmp( "jsnz", g_token, 4 ) ) {
-            instr_bytecode = VM_INSTR_JSNZ;
-            g_state = STATE_PARAMS;
-            g_instr = VM_INSTR_JSNZ;
-#endif
 
          } else if( 0 == strncmp( "jseq", g_token, 4 ) ) {
             instr_bytecode = VM_INSTR_JSEQ;
@@ -346,18 +332,6 @@ void process_char( char c ) {
             g_state = STATE_PARAMS;
             g_instr = VM_INSTR_JSGE;
          
-#if 0
-         } else if( 0 == strncmp( "jszd", g_token, 4 ) ) {
-            instr_bytecode = VM_INSTR_JSZD;
-            g_state = STATE_PARAMS;
-            g_instr = VM_INSTR_JSZD;
-         
-         } else if( 0 == strncmp( "jsz", g_token, 3 ) ) {
-            instr_bytecode = VM_INSTR_JSZ;
-            g_state = STATE_PARAMS;
-            g_instr = VM_INSTR_JSZ;
-#endif
-
          } else if( 0 == strncmp( g_token, "malloc", 6 ) ) {
             instr_bytecode = VM_INSTR_MALLOC;
             g_state = STATE_PARAMS;
@@ -383,29 +357,10 @@ void process_char( char c ) {
             g_state = STATE_PARAMS;
             g_instr = VM_INSTR_MPUSHC;
 
-#if 0
-         } else if( 0 == strncmp( g_token, "mpopco", 6 ) ) {
-            instr_bytecode = VM_INSTR_MPOPCO;
-            g_state = STATE_PARAMS;
-            g_instr = VM_INSTR_MPOPCO;
-
-         } else if( 0 == strncmp( g_token, "mpopcd", 6 ) ) {
-            instr_bytecode = VM_INSTR_MPOPCD;
-            g_state = STATE_PARAMS;
-            g_instr = VM_INSTR_MPOPCD;
-#endif
-
          } else if( 0 == strncmp( g_token, "mpopo", 5 ) ) {
             instr_bytecode = VM_INSTR_MPOPO;
             g_state = STATE_PARAMS;
             g_instr = VM_INSTR_MPOPO;
-
-#if 0
-         } else if( 0 == strncmp( g_token, "mpopc", 5 ) ) {
-            instr_bytecode = VM_INSTR_MPOPC;
-            g_state = STATE_PARAMS;
-            g_instr = VM_INSTR_MPOPC;
-#endif
 
          } else if( 0 == strncmp( g_token, "mpopd", 5 ) ) {
             instr_bytecode = VM_INSTR_MPOPD;

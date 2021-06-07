@@ -95,7 +95,7 @@ not_found:
    syscall  puts
    jump     start
 
-match:
+fs_match:
    spop                 ; Clear icmp result.
    
    pushd    starting
@@ -148,13 +148,13 @@ fs_iter:
    ;pushd    $filename
    ;syscall  mputs
 
-   pushd    $filename
-   pushd    $line
-   push     #13         ; Compare at most 13 chars.
-   push     ' '         ; Use space as separator.
-   syscall  icmp
+   ;pushd    $filename
+   ;pushd    $line
+   jump     icmp        ; Compare line and filename.
+
+icmp_finish:
    push     #0
-   jseq     match
+   jseq     fs_match
    spop                 ; Clear icmp result.
    mpushcd  $fs_offset  ; Place FS offset on the stack.
    push     #0          ; Push disk ID 0
@@ -175,4 +175,51 @@ fs_iter_cleanup:
    push     #0          ; Push NULL to stack.
    mpop     $line       ; Pop NULL to line char 0.
    jump     start
+
+; Should be called after pushing:
+; - line compare length
+; Pushes 0 before jumping back if match; otherwise 1.
+icmp:
+   pushd    #2
+   malloc   $icmp_idx   ; Start at index/offset 0.
+
+icmp_loop:
+
+   ; TODO: Insensitive comparison.
+
+   mpushcd  $icmp_idx      ;
+   pushd    #13            ; Compare 13 chars.
+   jsed     icmp_match     ; Reached max chars (pops #13).
+   
+   mpushco  $line          ; Push line address (idx still on stack from before).
+   mpushcd  $icmp_idx      ; Push compare offset.
+   mpushco  $filename      ; Push filename address.
+   jsne     icmp_no_match  ; Chars didn't match.
+
+   ;mpushcd  $icmp_idx
+   push     #0
+   jseq     icmp_match     ; Reaching NULL is a match.
+   spop                    ; Pop filename comparison char.
+   mpushcd  $icmp_idx
+   pushd    #1
+   saddd                   ; Add 1 to offset (pops #1).
+   mpopd    $icmp_idx
+
+   jump     icmp_loop
+
+icmp_no_match:
+   spop                    ; Pop filename comparison char.
+   push     #1             ; 1 for no match.
+   jump     icmp_cleanup
+
+icmp_match:
+   spop                    ; Pop filename comparison char.
+   push     #0             ; 0 for match.
+   jump     icmp_cleanup
+
+icmp_cleanup:
+
+   mfree    $icmp_idx
+
+   jump     icmp_finish
 

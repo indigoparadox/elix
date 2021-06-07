@@ -4,7 +4,6 @@
 
 /*! \file console.h */
 
-#include "alpha.h"
 #include "display.h"
 #include "uart.h"
 
