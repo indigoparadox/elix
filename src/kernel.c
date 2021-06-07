@@ -29,11 +29,11 @@ int kmain( int argc, char** argv ) {
 int kmain() {
 #endif /* USE_EXT_CLI */
    TASK_PID active = 0;
+   int fg_pid = -1;
 #ifdef USE_EXT_CLI
    struct astring* cli = NULL;
    char c = 0;
    int i = 0, j = 0;
-   int fg_pid = -1;
    bool switch_found = false;
    bool do_init = true;
    bool cmd_found = false;
