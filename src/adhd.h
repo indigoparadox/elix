@@ -21,8 +21,11 @@
 
 #define RETVAL_KILL 255
 
+#define ADHD_TASK_FLAG_FOREGROUND   0x01
+
 struct adhd_task {
    uint16_t ipc;
+   uint8_t flags;
    uint8_t disk_id;
    uint8_t part_id;
    FILEPTR_T file_offset;

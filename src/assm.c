@@ -7,7 +7,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define BUF_SZ 4096
+#define BUF_SZ 40960
 
 #define STATE_NONE      0
 #define STATE_SECTION   1
@@ -75,7 +75,8 @@ unsigned short get_label_ipc( char* label, unsigned short ipc_of_call ) {
 
    while(
       NULL != label_iter &&
-      0 != strncmp( label, label_iter->name, strlen( label ) )
+      (0 != strncmp( label_iter->name, label, strlen( label_iter->name ) ) ||
+      strlen( label ) != strlen( label_iter->name ))
    ) {
       printf( "searching for %s, found %s (%d)...\n",
          label, label_iter->name, label_iter->ipc );
@@ -84,6 +85,9 @@ unsigned short get_label_ipc( char* label, unsigned short ipc_of_call ) {
    if( NULL != label_iter ) {
       printf( "searching for %s, found %s (%d)...\n",
          label, label_iter->name, label_iter->ipc );
+      assert( 0 == strncmp(
+         label_iter->name, label, strlen( label_iter->name ) ) );
+      assert( strlen( label ) == strlen( label_iter->name ) );
    }
 
    if( NULL == label_iter ) {
@@ -486,6 +490,18 @@ void process_char( char c ) {
             } else if( 0 == strncmp( g_token, "icmp", 4 ) ) {
                instr_bytecode = VM_SYSC_ICMP;
 
+            } else if( 0 == strncmp( g_token, "exit", 4 ) ) {
+               instr_bytecode = VM_SYSC_EXIT;
+
+            } else if( 0 == strncmp( g_token, "flagoff", 7 ) ) {
+               instr_bytecode = VM_SYSC_FLAGOFF;
+
+            } else if( 0 == strncmp( g_token, "flagon", 6 ) ) {
+               instr_bytecode = VM_SYSC_FLAGON;
+
+            } else if( 0 == strncmp( g_token, "launch", 6 ) ) {
+               instr_bytecode = VM_SYSC_LAUNCH;
+
             } else if( 0 == strncmp( g_token, "droot", 5 ) ) {
                instr_bytecode = VM_SYSC_DROOT;
 
@@ -494,6 +510,9 @@ void process_char( char c ) {
 
             } else if( 0 == strncmp( g_token, "dname", 5 ) ) {
                instr_bytecode = VM_SYSC_DNAME;
+
+            } else if( 0 == strncmp( g_token, "dnext", 5 ) ) {
+               instr_bytecode = VM_SYSC_DNEXT;
 
             }
 

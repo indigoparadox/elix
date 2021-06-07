@@ -48,7 +48,6 @@ union vm_data_type {
    IPC_PTR ipc;
 };
 
-
 static void vm_sysc_puts( TASK_PID pid ) {
    struct adhd_task* task = &(g_tasks[pid]);
    FILEPTR_T ipc_offset = 0,
@@ -56,7 +55,10 @@ static void vm_sysc_puts( TASK_PID pid ) {
    unsigned char cbuf = 0;
 
    /* TODO: Use actual printf w/ format strings. */
-   ipc_offset = vm_stack_pop( task );
+   ipc_offset = vm_stack_dpop( task );
+   if( !(task->flags & ADHD_TASK_FLAG_FOREGROUND) ) {
+      return;
+   }
    bytes_read = mfat_get_dir_entry_data(
       task->file_offset,
       ipc_offset,
@@ -95,8 +97,8 @@ static void vm_sysc_dfirst( TASK_PID pid ) {
    uint8_t disk_id = 0,
       part_id = 0;
 
-   disk_id = vm_stack_pop( task );
    part_id = vm_stack_pop( task );
+   disk_id = vm_stack_pop( task );
    offset = vm_stack_dpop( task );
 
    offset = mfat_get_dir_entry_first_offset( offset, disk_id, part_id );
@@ -105,6 +107,18 @@ static void vm_sysc_dfirst( TASK_PID pid ) {
 }
 
 static void vm_sysc_dnext( TASK_PID pid ) {
+   struct adhd_task* task = &(g_tasks[pid]);
+   uint16_t offset = 0;
+   uint8_t disk_id = 0,
+      part_id = 0;
+
+   part_id = vm_stack_pop( task );
+   disk_id = vm_stack_pop( task );
+   offset = vm_stack_dpop( task );
+
+   offset = mfat_get_dir_entry_next_offset( offset, disk_id, part_id );
+
+   vm_stack_dpush( task, offset );
 }
 
 static void vm_sysc_dname( TASK_PID pid ) {
@@ -116,8 +130,8 @@ static void vm_sysc_dname( TASK_PID pid ) {
 
    filename = mget( pid, vm_stack_dpop( task ), 0 );
    offset = vm_stack_dpop( task );
-   disk_id = vm_stack_pop( task );
    part_id = vm_stack_pop( task );
+   disk_id = vm_stack_pop( task );
 
    mfat_get_dir_entry_name( filename, offset, disk_id, part_id );
 }
@@ -140,37 +154,95 @@ static void vm_sysc_icmp( TASK_PID pid ) {
    vm_stack_push( task, (uint8_t)res );
 }
 
-static void vm_instr_sysc( TASK_PID pid, uint8_t call_id ) {
+static void vm_sysc_launch( TASK_PID pid ) {
+   struct adhd_task* task = &(g_tasks[pid]);
+   uint8_t disk_id = 0,
+      part_id = 0;
+   FILEPTR_T offset = 0;
+
+   offset = vm_stack_dpop( task );
+   part_id = vm_stack_pop( task );
+   disk_id = vm_stack_pop( task );
+
+   printf( "ofs: %d\n", offset );
+
+   adhd_task_launch( disk_id, part_id, offset );
+}
+
+static void vm_sysc_flagon( TASK_PID pid ) {
+   struct adhd_task* task = &(g_tasks[pid]);
+   uint8_t flag = 0;
+
+   flag = vm_stack_pop( task );
+
+   task->flags |= flag;
+}
+
+static void vm_sysc_flagoff( TASK_PID pid ) {
+   struct adhd_task* task = &(g_tasks[pid]);
+   uint8_t flag = 0;
+
+   flag = vm_stack_pop( task );
+
+   task->flags &= ~flag;
+}
+
+static SIPC_PTR vm_instr_sysc( TASK_PID pid, uint8_t call_id ) {
    struct adhd_task* task = &(g_tasks[pid]);
    union vm_data_type data;
    unsigned char cbuf = 0;
    char* str_ptr = NULL;
+   SIPC_PTR retval = task->ipc + 1;
 
    assert( 0 <= pid );
    assert( 0 <= task->ipc );
 
    switch( call_id ) {
+   case VM_SYSC_EXIT:
+      retval = -1;
+      break;
+
    case VM_SYSC_PUTC:
       data.byte = vm_stack_pop( task );
-      tputc( data.byte );
+      if( task->flags & ADHD_TASK_FLAG_FOREGROUND ) {
+         tputc( data.byte );
+      }
       break;
 
    case VM_SYSC_GETC:
-      cbuf = tgetc();
-      vm_stack_push( task, cbuf );
+      if( task->flags & ADHD_TASK_FLAG_FOREGROUND ) {
+         cbuf = tgetc();
+         vm_stack_push( task, cbuf );
+      } else {
+         vm_stack_push( task, 0 );
+      }
       break;
 
    case VM_SYSC_MPUTS:
       data.ipc = vm_stack_dpop( task );
-      str_ptr = mget( pid, data.ipc, 0 );
-      while( '\0' != *str_ptr ) {
-         tputc( *str_ptr );
-         str_ptr++;
+      if( task->flags & ADHD_TASK_FLAG_FOREGROUND ) {
+         str_ptr = mget( pid, data.ipc, 0 );
+         while( '\0' != *str_ptr ) {
+            tputc( *str_ptr );
+            str_ptr++;
+         }
       }
       break;
 
    case VM_SYSC_PUTS:
       vm_sysc_puts( pid );
+      break;
+
+   case VM_SYSC_FLAGON:
+      vm_sysc_flagon( pid );
+      break;
+
+   case VM_SYSC_FLAGOFF:
+      vm_sysc_flagoff( pid );
+      break;
+
+   case VM_SYSC_LAUNCH:
+      vm_sysc_launch( pid );
       break;
 
    case VM_SYSC_DROOT:
@@ -193,6 +265,8 @@ static void vm_instr_sysc( TASK_PID pid, uint8_t call_id ) {
       vm_sysc_icmp( pid );
       break;
    }
+
+   return retval;
 }
 
 static SIPC_PTR vm_instr_branch( TASK_PID pid, uint8_t instr, IPC_PTR addr ) {
@@ -364,7 +438,7 @@ static ssize_t vm_instr_mem( TASK_PID pid, uint8_t instr, MEMLEN_T mid ) {
    return task->ipc + 1;
 }
 
-ssize_t vm_instr_execute( TASK_PID pid, uint16_t instr_full ) {
+SIPC_PTR vm_instr_execute( TASK_PID pid, uint16_t instr_full ) {
    struct adhd_task* task = &(g_tasks[pid]);
    uint8_t instr = instr_full >> 8;
    uint8_t data = instr_full & 0xff;
@@ -465,11 +539,8 @@ ssize_t vm_instr_execute( TASK_PID pid, uint16_t instr_full ) {
       vm_stack_dpush( task, ddata );
 
    } else if( VM_INSTR_SYSC == instr ) {
-      vm_instr_sysc( pid, data );
+      return vm_instr_sysc( pid, data );
    
-   } else if( VM_INSTR_EXIT == instr ) {
-      return -1;
-
    } else if(
       VM_INSTR_JMIN <= instr && VM_INSTR_JMAX >= instr
    ) {

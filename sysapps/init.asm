@@ -14,33 +14,42 @@
    logo7: "   `._|_____/  \n",
    logo8: "               \n"
 
+   starting: "Starting "
+   elipses: "..."
+
 .cpu:
 
-   pushd     #21        ; 20 chars + 1 NULL.
+   ;push     #1          ; Enable foreground I/O.
+   ;syscall  flagon      ; Enable foreground I/O.
+
+   pushd    #21         ; 20 chars + 1 NULL.
    malloc   $line
 
-   pushd     #1
+   pushd    #1
    malloc   $line_offst
 
-   push     logo1
+   pushd    #2
+   malloc   $diskpart_id
+
+   pushd    logo1
    syscall  puts
-   push     logo2
+   pushd    logo2
    syscall  puts
-   push     logo3
+   pushd    logo3
    syscall  puts
-   push     logo4
+   pushd    logo4
    syscall  puts
-   push     logo5
+   pushd    logo5
    syscall  puts
-   push     logo6
+   pushd    logo6
    syscall  puts
-   push     logo7
+   pushd    logo7
    syscall  puts
-   push     logo8
+   pushd    logo8
    syscall  puts
 
 start:
-   push     prompt
+   pushd    prompt
    syscall  puts
 
 poll:
@@ -70,7 +79,7 @@ too_long:
    spop                 ; Remove input char from stack.
    spop                 ; Remove line offset from stack.
    spop                 ; Remove line offset from stack.
-   push     tltext
+   pushd    tltext
    syscall  puts      ; Print warning (pops warning).
    pushd    #0
    mpopd    $line_offst ; Pop 0 offset to memory.
@@ -79,14 +88,25 @@ too_long:
 not_found:
    spop
    spop                 ; Pop FS offset.
-   push     nftext
+   pushd    nftext
    syscall  puts
    jump     start
 
 match:
    spop                 ; Clear icmp result.
+   
+   pushd    starting
+   syscall  puts
    pushd    $filename
    syscall  mputs
+   pushd    elipses
+   syscall  puts
+
+   mpushcd  $diskpart_id   ; Push as double, read popped as 2 uint8_ts.
+   mpushcd  $fs_offset
+   syscall  launch
+   ;push     #1          ; Disable foreground I/O.
+   ;syscall  flagoff     ; Disable foreground I/O.
    mfree    $filename   ; Free filename buffer.
    mfree    $fs_offset
    pushd    #0          ; Push 0 line offset.
@@ -99,21 +119,30 @@ proc_line:
    spop                 ; Remove input char from stack.
    pushd    #13         ; 13-char filenames.
    malloc   $filename   ; Allocate filename buffer.
-   push     #0          ; Push part ID 0
    push     #0          ; Push disk ID 0
+   push     #0          ; Push part ID 0
    syscall  droot       ; Get the root directory offset.
-   push     #0          ; Push part ID 0
    push     #0          ; Push disk ID 0
+   push     #0          ; Push part ID 0
    syscall  dfirst      ; Get the first entry offset.
-   pushd    #2
    jszd     not_found
-   malloc   $fs_offset
+   pushd    #2          ; fs_offset is a double.
+   malloc   $fs_offset  ; Allocate fs_offset.
    mpopd    $fs_offset  ; Store FS offset in memory.
-   push     #0          ; Push part ID 0
+
+fs_iter:
    push     #0          ; Push disk ID 0
+   push     #0          ; Push part ID 0
    mpushcd  $fs_offset  ; Place FS offset on the stack.
    pushd    $filename   ; Push address of filename buffer.
    syscall  dname       ; Store entry name in $filename (pops offset and fname).
+
+   ; DEBUG Show files as iterated.
+   ;push     '\n'
+   ;syscall  putc
+   ;pushd    $filename
+   ;syscall  mputs
+
    pushd    $filename
    pushd    $line
    push     #13         ; Compare at most 13 chars.
@@ -121,6 +150,17 @@ proc_line:
    syscall  icmp
    jsz      match
    spop                 ; Clear icmp result.
+   mpushcd  $fs_offset  ; Place FS offset on the stack.
+   push     #0          ; Push disk ID 0
+   push     #0          ; Push part ID 0
+   syscall  dnext
+   jsz      fs_iter_cleanup   ; No more files in this directory.
+   mpopd    $fs_offset  ; Store FS offset in memory.
+   jump     fs_iter     ; Loop until found or no more.
+
+fs_iter_cleanup:
+   spop                 ; Pop fs_offset.
+   spop                 ; Pop fs_offset.
    pushd    #0          ; Push 0 line offset.
    mpopd    $line_offst ; Pop 0 line offset to memory.
    mfree    $filename   ; Free filename buffer.

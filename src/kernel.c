@@ -33,6 +33,7 @@ int kmain() {
    struct astring* cli = NULL;
    char c = 0;
    int i = 0, j = 0;
+   int fg_pid = -1;
    bool switch_found = false;
    bool do_init = true;
    bool cmd_found = false;
@@ -113,10 +114,22 @@ int kmain() {
 #endif /* USE_EXT_CLI */
 
    while( SYSTEM_SHUTDOWN != g_system_state ) {
+      fg_pid = -1;
       for( active = 0 ; ADHD_TASKS_MAX > active ; active++ ) {
          if( 0 < g_tasks[active].ipc ) {
+            if( g_tasks[active].flags & ADHD_TASK_FLAG_FOREGROUND ) {
+               fg_pid = active;
+            }
             adhd_task_execute_next( active );
          }
+      }
+      if( 0 > fg_pid ) {
+         /* We need at least one foreground process. */
+         g_tasks[init_pid].flags |= ADHD_TASK_FLAG_FOREGROUND;
+      } else if( init_pid != fg_pid ) {
+         /* Shut off init I/O if something else asked for FG. */
+         /* TODO: More nuanced I/O control. */
+         g_tasks[init_pid].flags &= ~ADHD_TASK_FLAG_FOREGROUND;
       }
       if( 0 == g_tasks[init_pid].ipc ) {
          tprintf( "init died; shutting down\n" );

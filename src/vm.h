@@ -5,7 +5,6 @@
 #include "etypes.h"
 
 #define VM_INSTR_NOP       0x00
-#define VM_INSTR_EXIT      0x01
 #define VM_INSTR_SYSC      0x03
 #define VM_INSTR_PUSH      0x04
 #define VM_INSTR_PUSHD     0x05
@@ -39,10 +38,10 @@
 #define VM_INSTR_MPUSHCO   0x48 /* Push copy FROM memory PLUS offset. */
 #define VM_INSTR_MFREE     0x49
 #define VM_INSTR_MPOPO     0x4a /* Pop TO memory PLUS offset. */
-#define VM_INSTR_MMAX      0x4f /* DUMMY */
+#define VM_INSTR_MMAX      0x5f /* DUMMY */
 
 #define VM_SYSC_PUTC    0x01
-#define VM_SYSC_PUTS  0x02
+#define VM_SYSC_PUTS    0x02
 #define VM_SYSC_GETC    0x03
 #define VM_SYSC_CMP     0x04
 #define VM_SYSC_ICMP    0x05
@@ -51,12 +50,16 @@
 #define VM_SYSC_DFIRST  0x08
 #define VM_SYSC_DNEXT   0x09
 #define VM_SYSC_DNAME   0x0a
-#define VM_SYSC_MPUTS 0x0b
+#define VM_SYSC_MPUTS   0x0b
+#define VM_SYSC_FLAGON  0x0c
+#define VM_SYSC_FLAGOFF 0x0d
+#define VM_SYSC_LAUNCH  0x0e
+#define VM_SYSC_EXIT    0x0f
 
 #define VM_SECTION_DATA 0x01
 #define VM_SECTION_CPU  0x02
 
-ssize_t vm_instr_execute( TASK_PID pid, uint16_t instr_full );
+SIPC_PTR vm_instr_execute( TASK_PID pid, uint16_t instr_full );
 
 #endif /* VM_H */
 
