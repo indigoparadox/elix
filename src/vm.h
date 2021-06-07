@@ -13,6 +13,7 @@
 #define VM_INSTR_SPOP      0x10
 #define VM_INSTR_SADDD     0x13
 #define VM_INSTR_SJUMP     0x14
+#define VM_INSTR_SRET      0x15
 #define VM_INSTR_SMAX      0x1f /* DUMMY */
 #define VM_INSTR_JMIN      0x30 /* DUMMY */
 #define VM_INSTR_JUMP      0x30

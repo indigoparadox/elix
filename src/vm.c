@@ -8,6 +8,10 @@
 
 //#define USE_VM_MONITOR 1
 
+#define vm_stack_dpush( task, data ) \
+   (vm_stack_push( task, (uint8_t)(((data) >> 8) & 0x00ff) ) + \
+   vm_stack_push( task, (uint8_t)((data) & 0x00ff) ))
+
 #if USE_VM_MONITOR
 #include "vm_debug.h"
 #endif /* USE_VM_MONITOR */
@@ -54,6 +58,7 @@ static int8_t vm_stack_push( struct adhd_task* task, uint8_t data ) {
    return 0;
 }
 
+#if 0
 static int8_t vm_stack_dpush( struct adhd_task* task, uint16_t data ) {
    if( ADHD_STACK_MAX <= task->stack_len + 2 ) {
       tprintf( "%s", gc_stack_error );
@@ -65,6 +70,7 @@ static int8_t vm_stack_dpush( struct adhd_task* task, uint16_t data ) {
    task->stack_len++;
    return 0;
 }
+#endif
 
 static SIPC_PTR vm_sysc_puts( TASK_PID pid ) {
    struct adhd_task* task = &(g_tasks[pid]);
