@@ -277,6 +277,11 @@ void process_char( char c ) {
             g_state = STATE_PARAMS;
             g_instr = VM_INSTR_SYSC;
 
+         } else if( 0 == strncmp( "sjump", g_token, 5 ) ) {
+            instr_bytecode = VM_INSTR_SJUMP;
+            g_state = STATE_PARAMS;
+            g_instr = VM_INSTR_SJUMP;
+         
          } else if( 0 == strncmp( "jump", g_token, 4 ) ) {
             instr_bytecode = VM_INSTR_JUMP;
             g_state = STATE_PARAMS;

@@ -164,8 +164,6 @@ static void vm_sysc_launch( TASK_PID pid ) {
    part_id = vm_stack_pop( task );
    disk_id = vm_stack_pop( task );
 
-   printf( "ofs: %d\n", offset );
-
    adhd_task_launch( disk_id, part_id, offset );
 }
 
@@ -523,6 +521,9 @@ SIPC_PTR vm_instr_execute( TASK_PID pid, uint16_t instr_full ) {
    } else if( VM_INSTR_PUSHD == instr ) {
       /* Push will happen on next execute with full number. */
       g_double_instr = VM_INSTR_PUSHD;
+
+   } else if( VM_INSTR_SJUMP == instr ) {
+      return vm_stack_dpop( task );
 
    } else if( VM_INSTR_SPOP == instr ) {
       vm_stack_pop( task );
