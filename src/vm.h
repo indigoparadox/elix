@@ -15,6 +15,7 @@
 #define VM_INSTR_SDPOP     0x11
 #define VM_INSTR_SADD      0x12
 #define VM_INSTR_SADDD     0x13
+#define VM_INSTR_SJUMP     0x14
 #define VM_INSTR_SMAX      0x1f /* DUMMY */
 #define VM_INSTR_JMIN      0x30 /* DUMMY */
 #define VM_INSTR_JUMP      0x30
@@ -37,6 +38,7 @@
 #define VM_INSTR_MPUSHCD   0x47 /* Push double copy FROM memory. */
 #define VM_INSTR_MPUSHCO   0x48 /* Push copy FROM memory PLUS offset. */
 #define VM_INSTR_MFREE     0x49
+#define VM_INSTR_MPOPO     0x4a /* Pop TO memory PLUS offset. */
 #define VM_INSTR_MMAX      0x4f /* DUMMY */
 
 #define VM_SYSC_PUTC    0x01

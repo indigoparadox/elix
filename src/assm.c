@@ -210,7 +210,7 @@ void process_char( char c ) {
    case '\'':
       if( VM_SECTION_CPU == g_section ) {
          if( STATE_PARAMS == g_state ) {
-            printf( "state params\n" );
+            printf( "state char\n" );
             g_state = STATE_CHAR;
 
          } else if( STATE_CHAR == g_state ) {
@@ -364,6 +364,11 @@ void process_char( char c ) {
             g_state = STATE_PARAMS;
             g_instr = VM_INSTR_MPOPCD;
 
+         } else if( 0 == strncmp( g_token, "mpopo", 5 ) ) {
+            instr_bytecode = VM_INSTR_MPOPO;
+            g_state = STATE_PARAMS;
+            g_instr = VM_INSTR_MPOPO;
+
          } else if( 0 == strncmp( g_token, "mpopc", 5 ) ) {
             instr_bytecode = VM_INSTR_MPOPC;
             g_state = STATE_PARAMS;
@@ -478,6 +483,9 @@ void process_char( char c ) {
             } else if( 0 == strncmp( g_token, "getc", 4 ) ) {
                instr_bytecode = VM_SYSC_GETC;
 
+            } else if( 0 == strncmp( g_token, "icmp", 4 ) ) {
+               instr_bytecode = VM_SYSC_ICMP;
+
             } else if( 0 == strncmp( g_token, "droot", 5 ) ) {
                instr_bytecode = VM_SYSC_DROOT;
 
@@ -500,6 +508,10 @@ void process_char( char c ) {
             g_instr = 0;
             reset_token();
          }
+
+      } else if( STATE_CHAR == g_state && ' ' == c ) {
+         printf( "c: %c\n", c );
+         write_bin_instr_or_data( c );
       }
       break;
 

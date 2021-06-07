@@ -16,7 +16,7 @@
 
 .cpu:
 
-   pushd     #20
+   pushd     #21        ; 20 chars + 1 NULL.
    malloc   $line
 
    pushd     #1
@@ -60,7 +60,10 @@ proc_char:
    mpushcd  $line_offst
    pushd    #1
    saddd                ; Add 1 to offset (pops #1).
-   mpopd    $line_offst ; Pops offset to memory.
+   mpopd    $line_offst ; Pops of offset to memory.
+   push     #0          ; Push NULL to stack.
+   mpushcd  $line_offst ; Push copy of offset to stack.
+   mpopo    $line       ; Pop NULL to line+new offset (pops offset AND NULL).
    jump     poll
 
 too_long:
@@ -80,12 +83,22 @@ not_found:
    syscall  puts
    jump     start
 
+match:
+   spop                 ; Clear icmp result.
+   pushd    $filename
+   syscall  mputs
+   mfree    $filename   ; Free filename buffer.
+   mfree    $fs_offset
+   pushd    #0          ; Push 0 line offset.
+   mpopd    $line_offst ; Pop 0 line offset to memory.
+   push     #0          ; Push NULL to stack.
+   mpop     $line       ; Pop NULL to line char 0.
+   jump     start       ; TODO: Use sjump.
+
 proc_line:
    spop                 ; Remove input char from stack.
    pushd    #13         ; 13-char filenames.
    malloc   $filename   ; Allocate filename buffer.
-   pushd    #0          ; Push 0 line offset.
-   mpopd    $line_offst ; Pop 0 line offset to memory.
    push     #0          ; Push part ID 0
    push     #0          ; Push disk ID 0
    syscall  droot       ; Get the root directory offset.
@@ -100,10 +113,19 @@ proc_line:
    push     #0          ; Push disk ID 0
    mpushcd  $fs_offset  ; Place FS offset on the stack.
    pushd    $filename   ; Push address of filename buffer.
-   syscall  dname
-   ;pushd    $filename
-   ;syscall  mputs
+   syscall  dname       ; Store entry name in $filename (pops offset and fname).
+   pushd    $filename
+   pushd    $line
+   push     #13         ; Compare at most 13 chars.
+   push     ' '         ; Use space as separator.
+   syscall  icmp
+   jsz      match
+   spop                 ; Clear icmp result.
+   pushd    #0          ; Push 0 line offset.
+   mpopd    $line_offst ; Pop 0 line offset to memory.
    mfree    $filename   ; Free filename buffer.
    mfree    $fs_offset
+   push     #0          ; Push NULL to stack.
+   mpop     $line       ; Pop NULL to line char 0.
    jump     start
 

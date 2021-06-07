@@ -48,6 +48,33 @@ union vm_data_type {
    IPC_PTR ipc;
 };
 
+
+static void vm_sysc_puts( TASK_PID pid ) {
+   struct adhd_task* task = &(g_tasks[pid]);
+   FILEPTR_T ipc_offset = 0,
+      bytes_read = 0;
+   unsigned char cbuf = 0;
+
+   /* TODO: Use actual printf w/ format strings. */
+   ipc_offset = vm_stack_pop( task );
+   bytes_read = mfat_get_dir_entry_data(
+      task->file_offset,
+      ipc_offset,
+      &cbuf, 1,
+      task->disk_id, task->part_id );
+   assert( 0 < bytes_read ); /* TODO: Crash program. */
+   while( 0 < cbuf ) {
+      tputc( cbuf );
+      ipc_offset += 1;
+      bytes_read = mfat_get_dir_entry_data(
+         task->file_offset,
+         ipc_offset,
+         &cbuf, 1,
+         task->disk_id, task->part_id );
+      assert( 0 < bytes_read ); /* TODO: Crash program. */
+   }
+}
+
 static void vm_sysc_droot( TASK_PID pid ) {
    struct adhd_task* task = &(g_tasks[pid]);
    uint16_t offset = 0;
@@ -95,11 +122,28 @@ static void vm_sysc_dname( TASK_PID pid ) {
    mfat_get_dir_entry_name( filename, offset, disk_id, part_id );
 }
 
+static void vm_sysc_icmp( TASK_PID pid ) {
+   struct adhd_task* task = &(g_tasks[pid]);
+   char* cmp1 = NULL,
+      * cmp2 = NULL;
+   STRLEN_T res = 0;
+   uint8_t len = 0;
+   char sep = ' ';
+
+   sep = vm_stack_pop( task );
+   len = vm_stack_pop( task );
+   cmp1 = mget( pid, vm_stack_dpop( task ), 0 );
+   cmp2 = mget( pid, vm_stack_dpop( task ), 0 );
+
+   res = alpha_cmp_cc( cmp1, len, cmp2, len, sep, false, false );
+
+   vm_stack_push( task, (uint8_t)res );
+}
+
 static void vm_instr_sysc( TASK_PID pid, uint8_t call_id ) {
    struct adhd_task* task = &(g_tasks[pid]);
    union vm_data_type data;
    unsigned char cbuf = 0;
-   uint8_t bytes_read = 0;
    char* str_ptr = NULL;
 
    assert( 0 <= pid );
@@ -126,24 +170,7 @@ static void vm_instr_sysc( TASK_PID pid, uint8_t call_id ) {
       break;
 
    case VM_SYSC_PUTS:
-      /* TODO: Use actual printf w/ format strings. */
-      data.ipc = vm_stack_pop( task );
-      bytes_read = mfat_get_dir_entry_data(
-         task->file_offset,
-         data.ipc,
-         &cbuf, 1,
-         task->disk_id, task->part_id );
-      assert( 0 < bytes_read ); /* TODO: Crash program. */
-      while( 0 < cbuf ) {
-         tputc( cbuf );
-         data.ipc += 1;
-         bytes_read = mfat_get_dir_entry_data(
-            task->file_offset,
-            data.ipc,
-            &cbuf, 1,
-            task->disk_id, task->part_id );
-         assert( 0 < bytes_read ); /* TODO: Crash program. */
-      }
+      vm_sysc_puts( pid );
       break;
 
    case VM_SYSC_DROOT:
@@ -161,11 +188,10 @@ static void vm_instr_sysc( TASK_PID pid, uint8_t call_id ) {
    case VM_SYSC_DNAME:
       vm_sysc_dname( pid );
       break;
-   }
 
-   /* TODO: Q&D defeat warning. */
-   if( bytes_read != 0 ) {
-      bytes_read = 1;
+   case VM_SYSC_ICMP:
+      vm_sysc_icmp( pid );
+      break;
    }
 }
 
@@ -297,6 +323,14 @@ static ssize_t vm_instr_mem( TASK_PID pid, uint8_t instr, MEMLEN_T mid ) {
       offset = vm_stack_dpop( task );
       *(addr_tmp + offset) = vm_stack_pop( task );
       vm_stack_push( task, *(addr_tmp + offset) );
+      break;
+
+   case VM_INSTR_MPOPO:
+      addr_tmp = mget( pid, mid, 0 );
+      /* Not NULL or offset of data from NULL.*/
+      assert( NULL != addr_tmp && (void*)0x4 != addr_tmp );
+      offset = vm_stack_dpop( task );
+      *(addr_tmp + offset) = vm_stack_pop( task );
       break;
 
    case VM_INSTR_MPUSHC:
