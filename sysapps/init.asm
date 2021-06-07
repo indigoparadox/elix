@@ -5,17 +5,17 @@
    tltext:  "\nline too long\n"
    nftext:  "\nfile not found\n"
 
-   logo1: "     _____     \n",
-   logo2: "   .`_| |_`.   \n",
-   logo3: "  / /_| |_\\ \\  \n",
-   logo4: " |  __| |___|  \n",
-   logo5: " | |  | |      \n",
-   logo6: "  \\ \\_| |___   \n",
-   logo7: "   `._|_____/  \n",
+   logo1: "     _____     \n"
+   logo2: "   .`_| |_`.   \n"
+   logo3: "  / /_| |_\\ \\  \n"
+   logo4: " |  __| |___|  \n"
+   logo5: " | |  | |      \n"
+   logo6: "  \\ \\_| |___   \n"
+   logo7: "   `._|_____/  \n"
    logo8: "               \n"
 
-   starting: "Starting "
-   elipses: "..."
+   starting: "\nStarting "
+   elipses: "...\n"
 
 .cpu:
 
@@ -64,8 +64,10 @@ proc_char:
    jseq     proc_line   ; JSEQ pops \n.
    mpushcd  $line_offst ; Push offset onto stack.
    pushd    #20         ; Push max line len to compare to offset.
-   jsged    too_long
-   mpopco   $line       ; Pop input char copy to line+offset (pops offset).
+   jsged    too_long    ; Jump if line too long (pops max line len).
+   mpopo    $line       ; Pop input char to line+offset.
+   mpushcd  $line_offst ; Push offset onto stack.
+   mpushco  $line       ; Push input char back from line+offset (pops offset).
    syscall  putc        ; Print input char and remove it from stack.
    mpushcd  $line_offst
    pushd    #1
@@ -127,8 +129,8 @@ proc_line:
    push     #0          ; Push disk ID 0
    push     #0          ; Push part ID 0
    syscall  dfirst      ; Get the first entry offset.
-   push     #0
-   jseq     not_found
+   pushd    #0
+   jsed     not_found
    pushd    #2          ; fs_offset is a double.
    malloc   $fs_offset  ; Allocate fs_offset.
    mpopd    $fs_offset  ; Store FS offset in memory.
@@ -158,8 +160,8 @@ fs_iter:
    push     #0          ; Push disk ID 0
    push     #0          ; Push part ID 0
    syscall  dnext
-   push     #0
-   jseq     fs_iter_cleanup   ; No more files in this directory.
+   pushd    #0
+   jsed     fs_iter_cleanup   ; No more files in this directory.
    mpopd    $fs_offset  ; Store FS offset in memory.
    jump     fs_iter     ; Loop until found or no more.
 

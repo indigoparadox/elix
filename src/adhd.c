@@ -35,6 +35,7 @@ TASK_PID adhd_task_launch(
    task->disk_id = disk_id;
    task->part_id = part_id;
    task->file_offset = offset;
+   task->sz = mfat_get_dir_entry_size( offset, disk_id, part_id );
 
    /* Move the task IPC past the task data section to the first instruction. */
    do {
@@ -93,7 +94,7 @@ void adhd_task_execute_next( TASK_PID pid ) {
    //dprint( "instr: %04x\n", instr );
 
    new_ipc = vm_instr_execute( pid, instr );
-   if( 0 >= new_ipc ) {
+   if( 0 >= new_ipc || task->sz < new_ipc ) {
       adhd_task_kill( pid );
    } else {
       task->ipc = new_ipc;     

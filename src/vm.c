@@ -15,22 +15,20 @@ static const char gc_stack_error[] = "aborting; stack error\n";
 static const char gc_mem_error[] = "aborting; mem error\n";
 static const char gc_stream_error[] = "aborting; stream error\n";
 
-static uint8_t vm_stack_pop( struct adhd_task* task, uint8_t* uf ) {
+static int16_t vm_stack_pop( struct adhd_task* task ) {
    if( 0 >= task->stack_len ) {
-      tputs( gc_stack_error );
-      *uf = 1;
-      return 0;
+      tprintf( "%s", gc_stack_error );
+      return -1;
    }
    task->stack_len--;
    return task->stack[task->stack_len];
 }
 
-static uint16_t vm_stack_dpop( struct adhd_task* task, uint8_t* uf ) {
+static int32_t vm_stack_dpop( struct adhd_task* task ) {
    uint16_t dout = 0;
    if( 1 >= task->stack_len ) {
-      tputs( gc_stack_error );
-      *uf = 1;
-      return 0;
+      tprintf( "%s", gc_stack_error );
+      return -1;
    }
    task->stack_len--;
    dout |= (task->stack[task->stack_len]) & 0x00ff;
@@ -39,43 +37,37 @@ static uint16_t vm_stack_dpop( struct adhd_task* task, uint8_t* uf ) {
    return dout;
 }
 
-static void vm_stack_push( struct adhd_task* task, uint8_t data, uint8_t *of ) {
+static int8_t vm_stack_push( struct adhd_task* task, uint8_t data ) {
    if( ADHD_STACK_MAX <= task->stack_len + 1 ) {
-      tputs( gc_stack_error );
-      *of = 1;
-      return;
+      tprintf( "%s", gc_stack_error );
+      return -1;
    }
    task->stack[task->stack_len] = data;
    task->stack_len++;
+   return 0;
 }
 
-static void vm_stack_dpush( struct adhd_task* task, uint16_t data, uint8_t* of ) {
+static int8_t vm_stack_dpush( struct adhd_task* task, uint16_t data ) {
    if( ADHD_STACK_MAX <= task->stack_len + 2 ) {
-      tputs( gc_stack_error );
-      *of = 1;
-      return;
+      tprintf( "%s", gc_stack_error );
+      return -1;
    }
    task->stack[task->stack_len] = (uint8_t)((data >> 8) & 0x00ff);
    task->stack_len++;
    task->stack[task->stack_len] = (uint8_t)(data & 0x00ff);
    task->stack_len++;
+   return 0;
 }
-
-union vm_data_type {
-   uint8_t byte;
-   IPC_PTR ipc;
-};
 
 static SIPC_PTR vm_sysc_puts( TASK_PID pid ) {
    struct adhd_task* task = &(g_tasks[pid]);
-   FILEPTR_T ipc_offset = 0,
+   SFILEPTR_T ipc_offset = 0,
       bytes_read = 0;
    unsigned char cbuf = 0;
-   uint8_t stack_error = 0;
 
    /* TODO: Use actual printf w/ format strings. */
-   ipc_offset = vm_stack_dpop( task, &stack_error );
-   if( stack_error ) { return -1; }
+   ipc_offset = vm_stack_dpop( task );
+   if( 0 > ipc_offset ) { return -1; }
    if( !(task->flags & ADHD_TASK_FLAG_FOREGROUND) ) {
       return task->ipc + 1;
    }
@@ -85,7 +77,7 @@ static SIPC_PTR vm_sysc_puts( TASK_PID pid ) {
       &cbuf, 1,
       task->disk_id, task->part_id );
    if( 0 == bytes_read ) {
-      tputs( gc_stream_error );
+      tprintf( "%s", gc_stream_error );
       return -1;
    }
    while( 0 < cbuf ) {
@@ -97,7 +89,7 @@ static SIPC_PTR vm_sysc_puts( TASK_PID pid ) {
          &cbuf, 1,
          task->disk_id, task->part_id );
       if( 0 == bytes_read ) {
-         tputs( gc_stream_error );
+         tprintf( "%s", gc_stream_error );
          return -1;
       }
    }
@@ -107,20 +99,22 @@ static SIPC_PTR vm_sysc_puts( TASK_PID pid ) {
 
 static SIPC_PTR vm_sysc_droot( TASK_PID pid ) {
    struct adhd_task* task = &(g_tasks[pid]);
-   uint16_t offset = 0;
-   uint8_t disk_id = 0,
+   int32_t offset = 0;
+   int16_t disk_id = 0,
       part_id = 0;
-   uint8_t stack_error = 0;
 
-   disk_id = vm_stack_pop( task, &stack_error );
-   if( stack_error ) { return -1; }
-   part_id = vm_stack_pop( task, &stack_error );
-   if( stack_error ) { return -1; }
+   disk_id = vm_stack_pop( task );
+   if( 0 > disk_id ) { return -1; }
+   part_id = vm_stack_pop( task );
+   if( 0 > part_id ) { return -1; }
 
    offset = mfat_get_root_dir_offset( disk_id, part_id );
 
-   vm_stack_dpush( task, offset, &stack_error );
-   if( stack_error ) {
+#if USE_VM_MONITOR
+   printf( "droot out: %d\n", offset );
+#endif /* USE_VM_MONITOR */
+
+   if( 0 > vm_stack_dpush( task, offset ) ) {
       return -1;
    }
 
@@ -129,66 +123,81 @@ static SIPC_PTR vm_sysc_droot( TASK_PID pid ) {
 
 static SIPC_PTR vm_sysc_dfirst( TASK_PID pid ) {
    struct adhd_task* task = &(g_tasks[pid]);
-   uint16_t offset = 0;
-   uint8_t disk_id = 0,
+   SFILEPTR_T offset = 0;
+   int16_t disk_id = 0,
       part_id = 0;
-   uint8_t stack_error = 0;
 
-   part_id = vm_stack_pop( task, &stack_error );
-   if( stack_error ) { return -1; }
-   disk_id = vm_stack_pop( task, &stack_error );
-   if( stack_error ) { return -1; }
-   offset = vm_stack_dpop( task, &stack_error );
-   if( stack_error ) { return -1; }
+   part_id = vm_stack_pop( task );
+   if( 0 > part_id ) { return -1; }
+   disk_id = vm_stack_pop( task );
+   if( 0 > disk_id ) { return -1; }
+   offset = vm_stack_dpop( task );
+   if( 0 > offset ) { return -1; }
+
+#if USE_VM_MONITOR
+   printf( "dfirst in: %d\n", offset );
+#endif /* USE_VM_MONITOR */
 
    offset = mfat_get_dir_entry_first_offset( offset, disk_id, part_id );
 
-   vm_stack_dpush( task, offset, &stack_error );
-   if( stack_error ) { return -1; }
+#if USE_VM_MONITOR
+   printf( "dfirst out: %d\n", offset );
+#endif /* USE_VM_MONITOR */
+
+   if( 0 > vm_stack_dpush( task, offset ) ) {
+      return -1;
+   }
 
    return task->ipc + 1;
 }
 
 static SIPC_PTR vm_sysc_dnext( TASK_PID pid ) {
    struct adhd_task* task = &(g_tasks[pid]);
-   uint16_t offset = 0;
-   uint8_t disk_id = 0,
+   SFILEPTR_T offset = 0;
+   int16_t disk_id = 0,
       part_id = 0;
-   uint8_t stack_error = 0;
 
-   part_id = vm_stack_pop( task, &stack_error );
-   if( stack_error ) { return -1; }
-   disk_id = vm_stack_pop( task, &stack_error );
-   if( stack_error ) { return -1; }
-   offset = vm_stack_dpop( task, &stack_error );
-   if( stack_error ) { return -1; }
+   part_id = vm_stack_pop( task );
+   if( 0 > part_id ) { return -1; }
+   disk_id = vm_stack_pop( task );
+   if( 0 > disk_id ) { return -1; }
+   offset = vm_stack_dpop( task );
+   if( 0 > offset ) { return -1; }
+
+#if USE_VM_MONITOR
+   printf( "dnext in: %d\n", offset );
+#endif /* USE_VM_MONITOR */
 
    offset = mfat_get_dir_entry_next_offset( offset, disk_id, part_id );
 
-   vm_stack_dpush( task, offset, &stack_error );
-   if( stack_error ) { return -1; }
+#if USE_VM_MONITOR
+   printf( "dnext out: %d\n", offset );
+#endif /* USE_VM_MONITOR */
+
+   if( 0 > vm_stack_dpush( task, offset ) ) {
+      return -1;
+   }
 
    return task->ipc + 1;
 }
 
 static SIPC_PTR vm_sysc_dname( TASK_PID pid ) {
    struct adhd_task* task = &(g_tasks[pid]);
-   uint16_t offset = 0;
-   uint8_t disk_id = 0,
+   SFILEPTR_T offset = 0;
+   int16_t disk_id = 0,
       part_id = 0;
    char* filename = NULL;
-   uint8_t stack_error = 0;
-   uint8_t mid = 0;
+   int16_t mid = 0;
 
-   mid = vm_stack_dpop( task, &stack_error );
-   if( stack_error ) { return -1; }
+   mid = vm_stack_dpop( task );
+   if( 0 > mid ) { return -1; }
    filename = mget( pid, mid, 0 );
-   offset = vm_stack_dpop( task, &stack_error );
-   if( stack_error ) { return -1; }
-   part_id = vm_stack_pop( task, &stack_error );
-   if( stack_error ) { return -1; }
-   disk_id = vm_stack_pop( task, &stack_error );
-   if( stack_error ) { return -1; }
+   offset = vm_stack_dpop( task );
+   if( 0 > offset ) { return -1; }
+   part_id = vm_stack_pop( task );
+   if( 0 > part_id ) { return -1; }
+   disk_id = vm_stack_pop( task );
+   if( 0 > disk_id ) { return -1; }
 
    mfat_get_dir_entry_name( filename, offset, disk_id, part_id );
 
@@ -200,45 +209,44 @@ static SIPC_PTR vm_sysc_icmp( TASK_PID pid ) {
    char* cmp1 = NULL,
       * cmp2 = NULL;
    STRLEN_T res = 0;
-   uint8_t len = 0;
-   char sep = ' ';
-   uint8_t stack_error = 0;
-   uint8_t mid = 0;
+   int16_t len = 0,
+      sep = 0,
+      mid = 0;
 
-   sep = vm_stack_pop( task, &stack_error );
-   if( stack_error ) { return -1; }
-   len = vm_stack_pop( task, &stack_error );
-   if( stack_error ) { return -1; }
+   sep = vm_stack_pop( task );
+   if( 0 > sep ) { return -1; }
+   len = vm_stack_pop( task );
+   if( 0 > len ) { return -1; }
 
-   mid = vm_stack_dpop( task, &stack_error );
-   if( stack_error ) { return -1; }
+   mid = vm_stack_dpop( task );
+   if( 0 > mid ) { return -1; }
    cmp1 = mget( pid, mid, 0 );
 
-   mid = vm_stack_dpop( task, &stack_error );
-   if( stack_error ) { return -1; }
+   mid = vm_stack_dpop( task );
+   if( 0 > mid ) { return -1; }
    cmp2 = mget( pid, mid, 0 );
 
    res = alpha_cmp_cc( cmp1, len, cmp2, len, sep, false, false );
 
-   vm_stack_push( task, (uint8_t)res, &stack_error );
-   if( stack_error ) { return -1; }
+   if( 0 > vm_stack_push( task, (uint8_t)res ) ) {
+      return -1;
+   }
 
    return task->ipc + 1;
 }
 
 static SIPC_PTR vm_sysc_launch( TASK_PID pid ) {
    struct adhd_task* task = &(g_tasks[pid]);
-   uint8_t disk_id = 0,
+   int16_t disk_id = 0,
       part_id = 0;
-   FILEPTR_T offset = 0;
-   uint8_t stack_error = 0;
+   SFILEPTR_T offset = 0;
 
-   offset = vm_stack_dpop( task, &stack_error );
-   if( stack_error ) { return -1; }
-   part_id = vm_stack_pop( task, &stack_error );
-   if( stack_error ) { return -1; }
-   disk_id = vm_stack_pop( task, &stack_error );
-   if( stack_error ) { return -1; }
+   offset = vm_stack_dpop( task );
+   if( 0 > offset ) { return -1; }
+   part_id = vm_stack_pop( task );
+   if( 0 > part_id ) { return -1; }
+   disk_id = vm_stack_pop( task );
+   if( 0 > disk_id ) { return -1; }
 
    adhd_task_launch( disk_id, part_id, offset );
 
@@ -247,11 +255,10 @@ static SIPC_PTR vm_sysc_launch( TASK_PID pid ) {
 
 static SIPC_PTR vm_sysc_flagon( TASK_PID pid ) {
    struct adhd_task* task = &(g_tasks[pid]);
-   uint8_t flag = 0;
-   uint8_t stack_error = 0;
+   int16_t flag = 0;
 
-   flag = vm_stack_pop( task, &stack_error );
-   if( stack_error ) { return -1; }
+   flag = vm_stack_pop( task );
+   if( 0 > flag ) { return -1; }
 
    task->flags |= flag;
 
@@ -260,11 +267,10 @@ static SIPC_PTR vm_sysc_flagon( TASK_PID pid ) {
 
 static SIPC_PTR vm_sysc_flagoff( TASK_PID pid ) {
    struct adhd_task* task = &(g_tasks[pid]);
-   uint8_t flag = 0;
-   uint8_t stack_error = 0;
+   int16_t flag = 0;
 
-   flag = vm_stack_pop( task, &stack_error );
-   if( stack_error ) { return -1; }
+   flag = vm_stack_pop( task );
+   if( 0 > flag ) { return -1; }
 
    task->flags &= ~flag;
 
@@ -273,11 +279,10 @@ static SIPC_PTR vm_sysc_flagoff( TASK_PID pid ) {
 
 static SIPC_PTR vm_sysc_putc( TASK_PID pid ) {
    struct adhd_task* task = &(g_tasks[pid]);
-   uint8_t c = 0;
-   uint8_t stack_error = 0;
+   int16_t c = 0;
 
-   c = vm_stack_pop( task, &stack_error );
-   if( stack_error ) { return -1; }
+   c = vm_stack_pop( task );
+   if( 0 > c ) { return -1; }
    if( task->flags & ADHD_TASK_FLAG_FOREGROUND ) {
       tputc( c );
    }
@@ -287,10 +292,9 @@ static SIPC_PTR vm_sysc_putc( TASK_PID pid ) {
 
 static SIPC_PTR vm_instr_sysc( TASK_PID pid, uint8_t call_id ) {
    struct adhd_task* task = &(g_tasks[pid]);
-   union vm_data_type data;
    unsigned char cbuf = 0;
    char* str_ptr = NULL;
-   uint8_t stack_error = 0;
+   int16_t mid = 0;
 
    assert( 0 <= pid );
    assert( 0 <= task->ipc );
@@ -305,19 +309,21 @@ static SIPC_PTR vm_instr_sysc( TASK_PID pid, uint8_t call_id ) {
    case VM_SYSC_GETC:
       if( task->flags & ADHD_TASK_FLAG_FOREGROUND ) {
          cbuf = tgetc();
-         vm_stack_push( task, cbuf, &stack_error );
-         if( stack_error ) { return -1; }
+         if( 0 > vm_stack_push( task, cbuf ) ) {
+            return -1;
+         }
       } else {
-         vm_stack_push( task, 0, &stack_error );
-         if( stack_error ) { return -1; }
+         if( 0 > vm_stack_push( task, 0 ) ) {
+            return -1;
+         }
       }
       break;
 
    case VM_SYSC_MPUTS:
-      data.ipc = vm_stack_dpop( task, &stack_error );
-      if( stack_error ) { return -1; }
+      mid = vm_stack_dpop( task );
+      if( 0 > mid ) { return -1; }
       if( task->flags & ADHD_TASK_FLAG_FOREGROUND ) {
-         str_ptr = mget( pid, data.ipc, 0 );
+         str_ptr = mget( pid, mid, 0 );
          while( '\0' != *str_ptr ) {
             tputc( *str_ptr );
             str_ptr++;
@@ -358,83 +364,70 @@ static SIPC_PTR vm_instr_sysc( TASK_PID pid, uint8_t call_id ) {
 
 static SIPC_PTR vm_instr_branch( TASK_PID pid, uint8_t instr, IPC_PTR addr ) {
    struct adhd_task* task = &(g_tasks[pid]);
-   uint8_t comp1 = 0,
+   int32_t comp1 = 0,
       comp2 = 0;
-   uint16_t dcomp1 = 0,
-      dcomp2 = 0;
    IPC_PTR retval = task->ipc + 1;
-   uint8_t stack_error = 0;
    
    switch( instr ) {
    case VM_INSTR_JUMP:
       return addr;
 
-#if 0
-   case VM_INSTR_JSNZ:
-      comp1 = vm_stack_pop( task, &stack_error );
-      if( stack_error ) { return -1; }
-      if( 0 != comp1 ) {
-         retval = addr;
-      }
-      vm_stack_push( task, comp1, &stack_error );
-      if( stack_error ) { return -1; }
-      break;
-
-   case VM_INSTR_JSZ:
-      comp1 = vm_stack_pop( task, &stack_error );
-      if( stack_error ) { return -1; }
-      if( 0 == comp1 ) {
-         retval = addr;
-      }
-      vm_stack_push( task, comp1, &stack_error );
-      if( stack_error ) { return -1; }
-      break;
-
-   case VM_INSTR_JSZD:
-      dcomp1 = vm_stack_dpop( task, &stack_error );
-      if( stack_error ) { return -1; }
-      if( 0 == dcomp1 ) {
-         retval = addr;
-      }
-      vm_stack_dpush( task, dcomp1, &stack_error );
-      if( stack_error ) { return -1; }
-      break;
-#endif
-
    case VM_INSTR_JSEQ:
-      comp2 = vm_stack_pop( task, &stack_error );
-      if( stack_error ) { return -1; }
-      comp1 = vm_stack_pop( task, &stack_error );
-      if( stack_error ) { return -1; }
+      comp2 = vm_stack_pop( task );
+      if( 0 > comp2 ) { return -1; }
+      comp1 = vm_stack_pop( task );
+      if( 0 > comp1 ) { return -1; }
+#if USE_VM_MONITOR
+      printf( "%d vs %d\n", comp1, comp2 );
+#endif /* USE_VM_MONITOR */
       if( comp1 == comp2 ) {
          retval = addr;
       }
-      vm_stack_push( task, comp1, &stack_error );
-      if( stack_error ) { return -1; }
+      if( 0 > vm_stack_push( task, comp1 ) ) {
+         return -1;
+      }
+      break;
+
+   case VM_INSTR_JSED:
+      comp2 = vm_stack_dpop( task );
+      if( 0 > comp2 ) { return -1; }
+      comp1 = vm_stack_dpop( task );
+      if( 0 > comp1 ) { return -1; }
+#if USE_VM_MONITOR
+      printf( "%d vs %d\n", comp1, comp2 );
+#endif /* USE_VM_MONITOR */
+      if( comp1 == comp2 ) {
+         retval = addr;
+      }
+      if( 0 > vm_stack_dpush( task, comp1 ) ) {
+         return -1;
+      }
       break;
 
    case VM_INSTR_JSNED:
-      dcomp2 = vm_stack_dpop( task, &stack_error );
-      if( stack_error ) { return -1; }
-      dcomp1 = vm_stack_dpop( task, &stack_error );
-      if( stack_error ) { return -1; }
-      if( dcomp1 != dcomp2 ) {
-         retval = addr;
-      }
-      vm_stack_push( task, dcomp1, &stack_error );
-      if( stack_error ) { return -1; }
-      break;
-
-   case VM_INSTR_JSNE:
-      comp2 = vm_stack_pop( task, &stack_error );
-      if( stack_error ) { return -1; }
-      comp1 = vm_stack_pop( task, &stack_error );
-      if( stack_error ) { return -1; }
+      comp2 = vm_stack_dpop( task );
+      if( 0 > comp2 ) { return -1; }
+      comp1 = vm_stack_dpop( task );
+      if( 0 > comp1 ) { return -1; }
       if( comp1 != comp2 ) {
          retval = addr;
       }
-      vm_stack_push( task, comp1, &stack_error );
-      if( stack_error ) { return -1; }
+      if( 0 > vm_stack_push( task, comp1 ) ) {
+         return -1;
+      }
+      break;
+
+   case VM_INSTR_JSNE:
+      comp2 = vm_stack_pop( task );
+      if( 0 > comp2 ) { return -1; }
+      comp1 = vm_stack_pop( task );
+      if( 0 > comp1 ) { return -1; }
+      if( comp1 != comp2 ) {
+         retval = addr;
+      }
+      if( 0 > vm_stack_push( task, comp1 ) ) {
+         return -1;
+      }
       break;
 
 #if 0
@@ -452,15 +445,16 @@ static SIPC_PTR vm_instr_branch( TASK_PID pid, uint8_t instr, IPC_PTR addr ) {
 #endif
 
    case VM_INSTR_JSGED:
-      dcomp2 = vm_stack_dpop( task, &stack_error );
-      if( stack_error ) { return -1; }
-      dcomp1 = vm_stack_dpop( task, &stack_error );
-      if( stack_error ) { return -1; }
-      if( dcomp1 >= dcomp2 ) {
+      comp2 = vm_stack_dpop( task );
+      if( 0 > comp2 ) { return -1; }
+      comp1 = vm_stack_dpop( task );
+      if( 0 > comp1 ) { return -1; }
+      if( comp1 >= comp2 ) {
          retval = addr;
       }
-      vm_stack_dpush( task, dcomp1, &stack_error );
-      if( stack_error ) { return -1; }
+      if( 0 > vm_stack_dpush( task, comp1 ) ) {
+         return -1;
+      }
       break;
    }
 
@@ -470,18 +464,17 @@ static SIPC_PTR vm_instr_branch( TASK_PID pid, uint8_t instr, IPC_PTR addr ) {
 static ssize_t vm_instr_mem( TASK_PID pid, uint8_t instr, MEMLEN_T mid ) {
    struct adhd_task* task = &(g_tasks[pid]);
    uint8_t* addr_tmp = NULL;
-   MEMLEN_T offset = 0;
-   MEMLEN_T sz = 0;
-   uint8_t stack_error = 0;
+   SMEMLEN_T sz_or_offset = 0;
+   int32_t buf = 0;
 
    switch( instr ) {
    case VM_INSTR_MALLOC:
-      sz = vm_stack_dpop( task, &stack_error );
-      if( stack_error ) { return -1; }
-      addr_tmp = mget( pid, mid, sz );
+      sz_or_offset = vm_stack_dpop( task );
+      if( 0 > sz_or_offset ) { return -1; }
+      addr_tmp = mget( pid, mid, sz_or_offset );
       /* Not NULL or offset of data from NULL.*/
       if( NULL == addr_tmp || (void*)0x4 == addr_tmp ) {
-         tputs( gc_mem_error );
+         tprintf( "%s", gc_mem_error );
          return -1;
       }
       break;
@@ -490,48 +483,57 @@ static ssize_t vm_instr_mem( TASK_PID pid, uint8_t instr, MEMLEN_T mid ) {
       addr_tmp = mget( pid, mid, 0 );
       /* Not NULL or offset of data from NULL.*/
       if( NULL == addr_tmp || (void*)0x4 == addr_tmp ) {
-         tputs( gc_mem_error );
+         tprintf( "%s", gc_mem_error );
          return -1;
       }
-      *addr_tmp = vm_stack_pop( task, &stack_error );
-      if( stack_error ) { return -1; }
+      buf = vm_stack_pop( task );
+      if( 0 > buf ) { return -1; }
+      *addr_tmp = buf;
       break;
 
+#if 0
    case VM_INSTR_MPOPC:
       addr_tmp = mget( pid, mid, 0 );
       /* Not NULL or offset of data from NULL.*/
       if( NULL == addr_tmp || (void*)0x4 == addr_tmp ) {
-         tputs( gc_mem_error );
+         tprintf( "%s", gc_mem_error );
          return -1;
       }
-      *addr_tmp = vm_stack_pop( task, &stack_error );
-      if( stack_error ) { return -1; }
-      vm_stack_push( task, *addr_tmp, &stack_error );
-      if( stack_error ) { return -1; }
+      buf = vm_stack_pop( task );
+      if( 0 > buf ) { return -1; }
+      *addr_tmp = buf
+      if( 0 > vm_stack_push( task, *addr_tmp ) ) {
+         /* This is a "copy", so push it back onto the stack. */
+         return -1;
+      }
       break;
+#endif
 
    case VM_INSTR_MPOPD:
       addr_tmp = mget( pid, mid, 0 );
       /* Not NULL or offset of data from NULL.*/
       /* TODO: Verify memory sz is >=2 */
       if( NULL == addr_tmp || (void*)0x4 == addr_tmp ) {
-         tputs( gc_mem_error );
+         tprintf( "%s", gc_mem_error );
          return -1;
       }
-      *((uint16_t*)addr_tmp) = vm_stack_dpop( task, &stack_error );
-      if( stack_error ) { return -1; }
+      buf = vm_stack_dpop( task );
+      if( 0 > buf ) { return -1; }
+      *((uint16_t*)addr_tmp) = buf;
       break;
 
+#if 0
    case VM_INSTR_MPOPCD:
       addr_tmp = mget( pid, mid, 0 );
       /* Not NULL or offset of data from NULL.*/
       /* TODO: Verify memory sz is >=2 */
       if( NULL == addr_tmp || (void*)0x4 == addr_tmp ) {
-         tputs( gc_mem_error );
+         tprintf( "%s", gc_mem_error );
          return -1;
       }
-      *((uint16_t*)addr_tmp) = vm_stack_dpop( task, &stack_error );
-      if( stack_error ) { return -1; }
+      buf = vm_stack_dpop( task, &stack_error );
+      if( 0 > buf ) { return -1; }
+      *((uint16_t*)addr_tmp) = buf;
       vm_stack_dpush( task, *((uint16_t*)addr_tmp), &stack_error );
       if( stack_error ) { return -1; }
       break;
@@ -540,7 +542,7 @@ static ssize_t vm_instr_mem( TASK_PID pid, uint8_t instr, MEMLEN_T mid ) {
       addr_tmp = mget( pid, mid, 0 );
       /* Not NULL or offset of data from NULL.*/
       if( NULL == addr_tmp || (void*)0x4 == addr_tmp ) {
-         tputs( gc_mem_error );
+         tprintf( "%s", gc_mem_error );
          return -1;
       }
       offset = vm_stack_dpop( task, &stack_error );
@@ -550,29 +552,32 @@ static ssize_t vm_instr_mem( TASK_PID pid, uint8_t instr, MEMLEN_T mid ) {
       vm_stack_push( task, *(addr_tmp + offset), &stack_error );
       if( stack_error ) { return -1; }
       break;
+#endif
 
    case VM_INSTR_MPOPO:
       addr_tmp = mget( pid, mid, 0 );
       /* Not NULL or offset of data from NULL.*/
       if( NULL == addr_tmp || (void*)0x4 == addr_tmp ) {
-         tputs( gc_mem_error );
+         tprintf( "%s", gc_mem_error );
          return -1;
       }
-      offset = vm_stack_dpop( task, &stack_error );
-      if( stack_error ) { return -1; }
-      *(addr_tmp + offset) = vm_stack_pop( task, &stack_error );
-      if( stack_error ) { return -1; }
+      sz_or_offset = vm_stack_dpop( task );
+      if( 0 > sz_or_offset ) { return -1; }
+      buf = vm_stack_pop( task );
+      if( 0 > buf ) { return -1; }
+      *(addr_tmp + sz_or_offset) = buf;
       break;
 
    case VM_INSTR_MPUSHC:
       addr_tmp = mget( pid, mid, 0 );
       /* Not NULL or offset of data from NULL.*/
       if( NULL == addr_tmp || (void*)0x4 == addr_tmp ) {
-         tputs( gc_mem_error );
+         tprintf( "%s", gc_mem_error );
          return -1;
       }
-      vm_stack_push( task, *addr_tmp, &stack_error );
-      if( stack_error ) { return -1; }
+      if( 0 > vm_stack_push( task, *addr_tmp ) ) {
+         return -1;
+      }
       break;
 
    case VM_INSTR_MPUSHCD:
@@ -580,24 +585,26 @@ static ssize_t vm_instr_mem( TASK_PID pid, uint8_t instr, MEMLEN_T mid ) {
       /* Not NULL or offset of data from NULL.*/
       /* TODO: Verify memory sz is >=2 */
       if( NULL == addr_tmp || (void*)0x4 == addr_tmp ) {
-         tputs( gc_mem_error );
+         tprintf( "%s", gc_mem_error );
          return -1;
       }
-      vm_stack_dpush( task, *((uint16_t*)addr_tmp), &stack_error );
-      if( stack_error ) { return -1; }
+      if( 0 > vm_stack_dpush( task, *((uint16_t*)addr_tmp) ) ) {
+         return -1;
+      }
       break;
 
    case VM_INSTR_MPUSHCO:
       addr_tmp = mget( pid, mid, 0 );
       /* Not NULL or offset of data from NULL.*/
       if( NULL == addr_tmp || (void*)0x4 == addr_tmp ) {
-         tputs( gc_mem_error );
+         tprintf( "%s", gc_mem_error );
          return -1;
       }
-      offset = vm_stack_pop( task, &stack_error );
-      if( stack_error ) { return -1; }
-      vm_stack_push( task, *(addr_tmp + offset), &stack_error );
-      if( stack_error ) { return -1; }
+      sz_or_offset = vm_stack_dpop( task );
+      if( 0 > sz_or_offset ) { return -1; }
+      if( 0 > vm_stack_push( task, *(addr_tmp + sz_or_offset) ) ) {
+         return -1;
+      }
       break;
 
    case VM_INSTR_MFREE:
@@ -610,20 +617,18 @@ static ssize_t vm_instr_mem( TASK_PID pid, uint8_t instr, MEMLEN_T mid ) {
 
 static SIPC_PTR vm_instr_stack( TASK_PID pid, uint8_t instr ) {
    struct adhd_task* task = &(g_tasks[pid]);
-   uint16_t data1 = 0,
+   int32_t data1 = 0,
       data2 = 0;
-   uint8_t stack_error = 0;
    SIPC_PTR retval = task->ipc + 1;
 
    switch( instr ) {
    case VM_INSTR_SJUMP:
-      retval = vm_stack_dpop( task, &stack_error );
-      if( stack_error ) { return -1; }
-      break;
+      return vm_stack_dpop( task );
 
    case VM_INSTR_SPOP:
-      vm_stack_pop( task, &stack_error );
-      if( stack_error ) { return -1; }
+      if( 0 > vm_stack_pop( task ) ) {
+         return -1;
+      }
       break;
 
 #if 0
@@ -643,12 +648,13 @@ static SIPC_PTR vm_instr_stack( TASK_PID pid, uint8_t instr ) {
 #endif
 
    case VM_INSTR_SADDD:
-      data1 = vm_stack_dpop( task, &stack_error );
-      if( stack_error ) { return -1; }
-      data2 = vm_stack_dpop( task, &stack_error );
-      if( stack_error ) { return -1; }
-      vm_stack_dpush( task, data1 + data2, &stack_error );
-      if( stack_error ) { return -1; }
+      data1 = vm_stack_dpop( task );
+      if( 0 > data1 ) { return -1; }
+      data2 = vm_stack_dpop( task );
+      if( 0 > data2 ) { return -1; }
+      if( 0 > vm_stack_dpush( task, data1 + data2 ) ) {
+         return -1;
+      }
       break;
    }
 
@@ -660,7 +666,6 @@ SIPC_PTR vm_instr_execute( TASK_PID pid, uint16_t instr_full ) {
    uint8_t instr = instr_full >> 8;
    uint8_t data = instr_full & 0xff;
    uint16_t ddata = 0;
-   uint8_t stack_error = 0;
 
    assert( 0 <= pid );
    assert( 0 <= task->ipc );
@@ -716,8 +721,9 @@ SIPC_PTR vm_instr_execute( TASK_PID pid, uint16_t instr_full ) {
    if( VM_INSTR_PUSHD == task->prev_instr ) {
       task->prev_instr = 0;
       /* instr_full is double data, here. */
-      vm_stack_dpush( task, instr_full, &stack_error );
-      if( stack_error ) { return -1; }
+      if( 0 > vm_stack_dpush( task, instr_full ) ) {
+         return -1;
+      }
       return task->ipc + 1; /* Done processing. */
    
    } else if(
@@ -740,8 +746,9 @@ SIPC_PTR vm_instr_execute( TASK_PID pid, uint16_t instr_full ) {
 
    /* Process normal instructions and 1st cycles. */
    if( VM_INSTR_PUSH == instr ) {
-      vm_stack_push( task, data, &stack_error );
-      if( stack_error ) { return -1; }
+      if( 0 > vm_stack_push( task, data ) ) {
+         return -1;
+      }
 
    } else if( VM_INSTR_PUSHD == instr ) {
       /* Push will happen on next execute with full number. */

@@ -321,6 +321,11 @@ void process_char( char c ) {
             g_state = STATE_PARAMS;
             g_instr = VM_INSTR_JSEQ;
          
+         } else if( 0 == strncmp( "jsed", g_token, 4 ) ) {
+            instr_bytecode = VM_INSTR_JSED;
+            g_state = STATE_PARAMS;
+            g_instr = VM_INSTR_JSED;
+         
          } else if( 0 == strncmp( "jsned", g_token, 5 ) ) {
             instr_bytecode = VM_INSTR_JSNED;
             g_state = STATE_PARAMS;
@@ -378,6 +383,7 @@ void process_char( char c ) {
             g_state = STATE_PARAMS;
             g_instr = VM_INSTR_MPUSHC;
 
+#if 0
          } else if( 0 == strncmp( g_token, "mpopco", 6 ) ) {
             instr_bytecode = VM_INSTR_MPOPCO;
             g_state = STATE_PARAMS;
@@ -387,16 +393,19 @@ void process_char( char c ) {
             instr_bytecode = VM_INSTR_MPOPCD;
             g_state = STATE_PARAMS;
             g_instr = VM_INSTR_MPOPCD;
+#endif
 
          } else if( 0 == strncmp( g_token, "mpopo", 5 ) ) {
             instr_bytecode = VM_INSTR_MPOPO;
             g_state = STATE_PARAMS;
             g_instr = VM_INSTR_MPOPO;
 
+#if 0
          } else if( 0 == strncmp( g_token, "mpopc", 5 ) ) {
             instr_bytecode = VM_INSTR_MPOPC;
             g_state = STATE_PARAMS;
             g_instr = VM_INSTR_MPOPC;
+#endif
 
          } else if( 0 == strncmp( g_token, "mpopd", 5 ) ) {
             instr_bytecode = VM_INSTR_MPOPD;
@@ -419,6 +428,7 @@ void process_char( char c ) {
             '\r' != g_token[0]
          ) {
             printf( "\n--- UNKNOWN INSTRUCTION: %s ---\n", g_token );
+            assert( 1 == 0 );
          }
 
          if( 0 <= instr_bytecode ) {

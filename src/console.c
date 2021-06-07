@@ -65,8 +65,8 @@ void tprintf( const char* pattern, ... ) {
                spec.s = va_arg( args, char* );
 
                /* Print padding. */
-               pad_len -= alpha_strlen_c( spec.s, STRLEN_MAX );
-               tpad( pad_char, pad_len );
+               //pad_len -= alpha_strlen_c( spec.s, STRLEN_MAX );
+               //tpad( pad_char, pad_len );
 
                /* Print string. */
                j = 0;
