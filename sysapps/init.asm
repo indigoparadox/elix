@@ -54,7 +54,8 @@ start:
 
 poll:
    syscall  getc        ; Put input char on the stack.
-   jsnz     proc_char   ; If input char != 0, process it.
+   push     #0
+   jsne     proc_char   ; If input char != 0, process it.
    spop                 ; Else clear the stack.
    jump     poll        ; Poll again.
 
@@ -126,7 +127,8 @@ proc_line:
    push     #0          ; Push disk ID 0
    push     #0          ; Push part ID 0
    syscall  dfirst      ; Get the first entry offset.
-   jszd     not_found
+   push     #0
+   jseq     not_found
    pushd    #2          ; fs_offset is a double.
    malloc   $fs_offset  ; Allocate fs_offset.
    mpopd    $fs_offset  ; Store FS offset in memory.
@@ -149,13 +151,15 @@ fs_iter:
    push     #13         ; Compare at most 13 chars.
    push     ' '         ; Use space as separator.
    syscall  icmp
-   jsz      match
+   push     #0
+   jseq     match
    spop                 ; Clear icmp result.
    mpushcd  $fs_offset  ; Place FS offset on the stack.
    push     #0          ; Push disk ID 0
    push     #0          ; Push part ID 0
    syscall  dnext
-   jsz      fs_iter_cleanup   ; No more files in this directory.
+   push     #0
+   jseq     fs_iter_cleanup   ; No more files in this directory.
    mpopd    $fs_offset  ; Store FS offset in memory.
    jump     fs_iter     ; Loop until found or no more.
 

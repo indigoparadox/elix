@@ -11,20 +11,21 @@
 #define VM_INSTR_SECT      0x0f
 #define VM_INSTR_SMIN      0x10 /* DUMMY */
 #define VM_INSTR_SPOP      0x10
-#define VM_INSTR_SDPOP     0x11
-#define VM_INSTR_SADD      0x12
+//#define VM_INSTR_SDPOP     0x11
+//#define VM_INSTR_SADD      0x12
 #define VM_INSTR_SADDD     0x13
 #define VM_INSTR_SJUMP     0x14
 #define VM_INSTR_SMAX      0x1f /* DUMMY */
 #define VM_INSTR_JMIN      0x30 /* DUMMY */
 #define VM_INSTR_JUMP      0x30
-#define VM_INSTR_JSNZ      0x31
+//#define VM_INSTR_JSNZ      0x31
 #define VM_INSTR_JSEQ      0x32
 #define VM_INSTR_JSNE      0x33
 #define VM_INSTR_JSGE      0x34
 #define VM_INSTR_JSGED     0x35
-#define VM_INSTR_JSZ       0x36
-#define VM_INSTR_JSZD      0x37
+//#define VM_INSTR_JSZ       0x36
+//#define VM_INSTR_JSZD      0x37
+#define VM_INSTR_JSNED     0x38
 #define VM_INSTR_JMAX      0x3f /* DUMMY */
 #define VM_INSTR_MMIN      0x40 /* DUMMY */
 #define VM_INSTR_MALLOC    0x40

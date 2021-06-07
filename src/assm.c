@@ -78,13 +78,17 @@ unsigned short get_label_ipc( char* label, unsigned short ipc_of_call ) {
       (0 != strncmp( label_iter->name, label, strlen( label_iter->name ) ) ||
       strlen( label ) != strlen( label_iter->name ))
    ) {
+#if EXTRA_VERBOSE
       printf( "searching for %s, found %s (%d)...\n",
          label, label_iter->name, label_iter->ipc );
+#endif /* EXTRA_VERBOSE */
       label_iter = label_iter->next;
    }
    if( NULL != label_iter ) {
+#if EXTRA_VERBOSE
       printf( "searching for %s, found %s (%d)...\n",
          label, label_iter->name, label_iter->ipc );
+#endif /* EXTRA_VERBOSE */
       assert( 0 == strncmp(
          label_iter->name, label, strlen( label_iter->name ) ) );
       assert( strlen( label ) == strlen( label_iter->name ) );
@@ -291,14 +295,17 @@ void process_char( char c ) {
             instr_bytecode = VM_INSTR_SPOP;
             g_state = STATE_NONE;
 
+#if 0
          } else if( 0 == strncmp( "sdpop", g_token, 5 ) ) {
             instr_bytecode = VM_INSTR_SDPOP;
             g_state = STATE_NONE;
+#endif
 
          } else if( 0 == strncmp( "saddd", g_token, 5 ) ) {
             instr_bytecode = VM_INSTR_SADDD;
             g_state = STATE_NONE;
 
+#if 0
          } else if( 0 == strncmp( "sadd", g_token, 4 ) ) {
             instr_bytecode = VM_INSTR_SADD;
             g_state = STATE_NONE;
@@ -307,17 +314,23 @@ void process_char( char c ) {
             instr_bytecode = VM_INSTR_JSNZ;
             g_state = STATE_PARAMS;
             g_instr = VM_INSTR_JSNZ;
-         
+#endif
+
          } else if( 0 == strncmp( "jseq", g_token, 4 ) ) {
             instr_bytecode = VM_INSTR_JSEQ;
             g_state = STATE_PARAMS;
             g_instr = VM_INSTR_JSEQ;
          
+         } else if( 0 == strncmp( "jsned", g_token, 5 ) ) {
+            instr_bytecode = VM_INSTR_JSNED;
+            g_state = STATE_PARAMS;
+            g_instr = VM_INSTR_JSNED;
+
          } else if( 0 == strncmp( "jsne", g_token, 4 ) ) {
             instr_bytecode = VM_INSTR_JSNE;
             g_state = STATE_PARAMS;
             g_instr = VM_INSTR_JSNE;
-         
+
          } else if( 0 == strncmp( "jsged", g_token, 5 ) ) {
             instr_bytecode = VM_INSTR_JSGED;
             g_state = STATE_PARAMS;
@@ -328,6 +341,7 @@ void process_char( char c ) {
             g_state = STATE_PARAMS;
             g_instr = VM_INSTR_JSGE;
          
+#if 0
          } else if( 0 == strncmp( "jszd", g_token, 4 ) ) {
             instr_bytecode = VM_INSTR_JSZD;
             g_state = STATE_PARAMS;
@@ -337,7 +351,8 @@ void process_char( char c ) {
             instr_bytecode = VM_INSTR_JSZ;
             g_state = STATE_PARAMS;
             g_instr = VM_INSTR_JSZ;
-         
+#endif
+
          } else if( 0 == strncmp( g_token, "malloc", 6 ) ) {
             instr_bytecode = VM_INSTR_MALLOC;
             g_state = STATE_PARAMS;
@@ -397,8 +412,15 @@ void process_char( char c ) {
             instr_bytecode = VM_INSTR_MFREE;
             g_state = STATE_PARAMS;
             g_instr = VM_INSTR_MFREE;
+         } else if(
+            '\0' != g_token[0] &&
+            ' ' != g_token[0] && 
+            '\n' != g_token[0] &&
+            '\r' != g_token[0]
+         ) {
+            printf( "\n--- UNKNOWN INSTRUCTION: %s ---\n", g_token );
          }
-         
+
          if( 0 <= instr_bytecode ) {
             printf( "instr: %s ", g_token );
             printf( "(%d)\n", instr_bytecode );
@@ -589,7 +611,9 @@ int main( int argc, char* argv[] ) {
 
    bytes_read = fread( &buf, sizeof( char ), BUF_SZ, g_src_file );
    while( 0 < bytes_read ) {
+#if EXTRA_VERBOSE
       printf( "%s\n", buf );
+#endif /* EXTRA_VERBOSE */
       for( i = 0 ; bytes_read > i ; i++ ) {
          process_char( buf[i] );
       }

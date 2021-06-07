@@ -11,9 +11,13 @@
 #include "vm_debug.h"
 #endif /* USE_VM_MONITOR */
 
+static const char gc_stack_error[] = "aborting; stack error\n";
+static const char gc_mem_error[] = "aborting; mem error\n";
+static const char gc_stream_error[] = "aborting; stream error\n";
+
 static uint8_t vm_stack_pop( struct adhd_task* task, uint8_t* uf ) {
    if( 0 >= task->stack_len ) {
-      tputs( "aborting; stack underflow\n" );
+      tputs( gc_stack_error );
       *uf = 1;
       return 0;
    }
@@ -24,7 +28,7 @@ static uint8_t vm_stack_pop( struct adhd_task* task, uint8_t* uf ) {
 static uint16_t vm_stack_dpop( struct adhd_task* task, uint8_t* uf ) {
    uint16_t dout = 0;
    if( 1 >= task->stack_len ) {
-      tputs( "aborting; stack underflow\n" );
+      tputs( gc_stack_error );
       *uf = 1;
       return 0;
    }
@@ -37,7 +41,7 @@ static uint16_t vm_stack_dpop( struct adhd_task* task, uint8_t* uf ) {
 
 static void vm_stack_push( struct adhd_task* task, uint8_t data, uint8_t *of ) {
    if( ADHD_STACK_MAX <= task->stack_len + 1 ) {
-      tputs( "aborting; stack overflow\n" );
+      tputs( gc_stack_error );
       *of = 1;
       return;
    }
@@ -47,7 +51,7 @@ static void vm_stack_push( struct adhd_task* task, uint8_t data, uint8_t *of ) {
 
 static void vm_stack_dpush( struct adhd_task* task, uint16_t data, uint8_t* of ) {
    if( ADHD_STACK_MAX <= task->stack_len + 2 ) {
-      tputs( "aborting; stack overflow\n" );
+      tputs( gc_stack_error );
       *of = 1;
       return;
    }
@@ -67,14 +71,13 @@ static SIPC_PTR vm_sysc_puts( TASK_PID pid ) {
    FILEPTR_T ipc_offset = 0,
       bytes_read = 0;
    unsigned char cbuf = 0;
-   SIPC_PTR retval = task->ipc + 1;
    uint8_t stack_error = 0;
 
    /* TODO: Use actual printf w/ format strings. */
    ipc_offset = vm_stack_dpop( task, &stack_error );
-   if( stack_error ) { retval = -1; goto cleanup; }
+   if( stack_error ) { return -1; }
    if( !(task->flags & ADHD_TASK_FLAG_FOREGROUND) ) {
-      return retval;
+      return task->ipc + 1;
    }
    bytes_read = mfat_get_dir_entry_data(
       task->file_offset,
@@ -82,9 +85,8 @@ static SIPC_PTR vm_sysc_puts( TASK_PID pid ) {
       &cbuf, 1,
       task->disk_id, task->part_id );
    if( 0 == bytes_read ) {
-      tputs( "abort; no bytes read\n" );
-      retval = -1;
-      goto cleanup;
+      tputs( gc_stream_error );
+      return -1;
    }
    while( 0 < cbuf ) {
       tputc( cbuf );
@@ -95,15 +97,12 @@ static SIPC_PTR vm_sysc_puts( TASK_PID pid ) {
          &cbuf, 1,
          task->disk_id, task->part_id );
       if( 0 == bytes_read ) {
-         tputs( "abort; no bytes read\n" );
-         retval = -1;
-         goto cleanup;
+         tputs( gc_stream_error );
+         return -1;
       }
    }
 
-cleanup:
-
-   return retval;
+   return task->ipc + 1;
 }
 
 static SIPC_PTR vm_sysc_droot( TASK_PID pid ) {
@@ -112,22 +111,20 @@ static SIPC_PTR vm_sysc_droot( TASK_PID pid ) {
    uint8_t disk_id = 0,
       part_id = 0;
    uint8_t stack_error = 0;
-   SIPC_PTR retval = task->ipc + 1;
 
    disk_id = vm_stack_pop( task, &stack_error );
-   if( stack_error ) { retval = -1; goto cleanup; }
+   if( stack_error ) { return -1; }
    part_id = vm_stack_pop( task, &stack_error );
-   if( stack_error ) { retval = -1; goto cleanup; }
+   if( stack_error ) { return -1; }
 
    offset = mfat_get_root_dir_offset( disk_id, part_id );
 
    vm_stack_dpush( task, offset, &stack_error );
    if( stack_error ) {
-      retval = -1;
+      return -1;
    }
 
-cleanup:
-   return retval;
+   return task->ipc + 1;
 }
 
 static SIPC_PTR vm_sysc_dfirst( TASK_PID pid ) {
@@ -136,22 +133,20 @@ static SIPC_PTR vm_sysc_dfirst( TASK_PID pid ) {
    uint8_t disk_id = 0,
       part_id = 0;
    uint8_t stack_error = 0;
-   SIPC_PTR retval = task->ipc + 1;
 
    part_id = vm_stack_pop( task, &stack_error );
-   if( stack_error ) { retval = -1; goto cleanup; }
+   if( stack_error ) { return -1; }
    disk_id = vm_stack_pop( task, &stack_error );
-   if( stack_error ) { retval = -1; goto cleanup; }
+   if( stack_error ) { return -1; }
    offset = vm_stack_dpop( task, &stack_error );
-   if( stack_error ) { retval = -1; goto cleanup; }
+   if( stack_error ) { return -1; }
 
    offset = mfat_get_dir_entry_first_offset( offset, disk_id, part_id );
 
    vm_stack_dpush( task, offset, &stack_error );
-   if( stack_error ) { retval = -1; goto cleanup; }
+   if( stack_error ) { return -1; }
 
-cleanup:
-   return retval;
+   return task->ipc + 1;
 }
 
 static SIPC_PTR vm_sysc_dnext( TASK_PID pid ) {
@@ -160,22 +155,20 @@ static SIPC_PTR vm_sysc_dnext( TASK_PID pid ) {
    uint8_t disk_id = 0,
       part_id = 0;
    uint8_t stack_error = 0;
-   SIPC_PTR retval = task->ipc + 1;
 
    part_id = vm_stack_pop( task, &stack_error );
-   if( stack_error ) { retval = -1; goto cleanup; }
+   if( stack_error ) { return -1; }
    disk_id = vm_stack_pop( task, &stack_error );
-   if( stack_error ) { retval = -1; goto cleanup; }
+   if( stack_error ) { return -1; }
    offset = vm_stack_dpop( task, &stack_error );
-   if( stack_error ) { retval = -1; goto cleanup; }
+   if( stack_error ) { return -1; }
 
    offset = mfat_get_dir_entry_next_offset( offset, disk_id, part_id );
 
    vm_stack_dpush( task, offset, &stack_error );
-   if( stack_error ) { retval = -1; goto cleanup; }
+   if( stack_error ) { return -1; }
 
-cleanup:
-   return retval;
+   return task->ipc + 1;
 }
 
 static SIPC_PTR vm_sysc_dname( TASK_PID pid ) {
@@ -186,22 +179,20 @@ static SIPC_PTR vm_sysc_dname( TASK_PID pid ) {
    char* filename = NULL;
    uint8_t stack_error = 0;
    uint8_t mid = 0;
-   SIPC_PTR retval = task->ipc + 1;
 
    mid = vm_stack_dpop( task, &stack_error );
-   if( stack_error ) { retval = -1; goto cleanup; }
+   if( stack_error ) { return -1; }
    filename = mget( pid, mid, 0 );
    offset = vm_stack_dpop( task, &stack_error );
-   if( stack_error ) { retval = -1; goto cleanup; }
+   if( stack_error ) { return -1; }
    part_id = vm_stack_pop( task, &stack_error );
-   if( stack_error ) { retval = -1; goto cleanup; }
+   if( stack_error ) { return -1; }
    disk_id = vm_stack_pop( task, &stack_error );
-   if( stack_error ) { retval = -1; goto cleanup; }
+   if( stack_error ) { return -1; }
 
    mfat_get_dir_entry_name( filename, offset, disk_id, part_id );
 
-cleanup:
-   return retval;
+   return task->ipc + 1;
 }
 
 static SIPC_PTR vm_sysc_icmp( TASK_PID pid ) {
@@ -212,29 +203,27 @@ static SIPC_PTR vm_sysc_icmp( TASK_PID pid ) {
    uint8_t len = 0;
    char sep = ' ';
    uint8_t stack_error = 0;
-   SIPC_PTR retval = task->ipc + 1;
    uint8_t mid = 0;
 
    sep = vm_stack_pop( task, &stack_error );
-   if( stack_error ) { retval = -1; goto cleanup; }
+   if( stack_error ) { return -1; }
    len = vm_stack_pop( task, &stack_error );
-   if( stack_error ) { retval = -1; goto cleanup; }
+   if( stack_error ) { return -1; }
 
    mid = vm_stack_dpop( task, &stack_error );
-   if( stack_error ) { retval = -1; goto cleanup; }
+   if( stack_error ) { return -1; }
    cmp1 = mget( pid, mid, 0 );
 
    mid = vm_stack_dpop( task, &stack_error );
-   if( stack_error ) { retval = -1; goto cleanup; }
+   if( stack_error ) { return -1; }
    cmp2 = mget( pid, mid, 0 );
 
    res = alpha_cmp_cc( cmp1, len, cmp2, len, sep, false, false );
 
    vm_stack_push( task, (uint8_t)res, &stack_error );
-   if( stack_error ) { retval = -1; goto cleanup; }
+   if( stack_error ) { return -1; }
 
-cleanup:
-   return retval;
+   return task->ipc + 1;
 }
 
 static SIPC_PTR vm_sysc_launch( TASK_PID pid ) {
@@ -243,49 +232,43 @@ static SIPC_PTR vm_sysc_launch( TASK_PID pid ) {
       part_id = 0;
    FILEPTR_T offset = 0;
    uint8_t stack_error = 0;
-   SIPC_PTR retval = task->ipc + 1;
 
    offset = vm_stack_dpop( task, &stack_error );
-   if( stack_error ) { retval = -1; goto cleanup; }
+   if( stack_error ) { return -1; }
    part_id = vm_stack_pop( task, &stack_error );
-   if( stack_error ) { retval = -1; goto cleanup; }
+   if( stack_error ) { return -1; }
    disk_id = vm_stack_pop( task, &stack_error );
-   if( stack_error ) { retval = -1; goto cleanup; }
+   if( stack_error ) { return -1; }
 
    adhd_task_launch( disk_id, part_id, offset );
 
-cleanup:
-   return retval;
+   return task->ipc + 1;
 }
 
 static SIPC_PTR vm_sysc_flagon( TASK_PID pid ) {
    struct adhd_task* task = &(g_tasks[pid]);
    uint8_t flag = 0;
    uint8_t stack_error = 0;
-   SIPC_PTR retval = task->ipc + 1;
 
    flag = vm_stack_pop( task, &stack_error );
-   if( stack_error ) { retval = -1; goto cleanup; }
+   if( stack_error ) { return -1; }
 
    task->flags |= flag;
 
-cleanup:
-   return retval;
+   return task->ipc + 1;
 }
 
 static SIPC_PTR vm_sysc_flagoff( TASK_PID pid ) {
    struct adhd_task* task = &(g_tasks[pid]);
    uint8_t flag = 0;
    uint8_t stack_error = 0;
-   SIPC_PTR retval = task->ipc + 1;
 
    flag = vm_stack_pop( task, &stack_error );
-   if( stack_error ) { retval = -1; goto cleanup; }
+   if( stack_error ) { return -1; }
 
    task->flags &= ~flag;
 
-cleanup:
-   return retval;
+   return task->ipc + 1;
 }
 
 static SIPC_PTR vm_instr_sysc( TASK_PID pid, uint8_t call_id ) {
@@ -293,7 +276,6 @@ static SIPC_PTR vm_instr_sysc( TASK_PID pid, uint8_t call_id ) {
    union vm_data_type data;
    unsigned char cbuf = 0;
    char* str_ptr = NULL;
-   SIPC_PTR retval = task->ipc + 1;
    uint8_t stack_error = 0;
 
    assert( 0 <= pid );
@@ -301,12 +283,11 @@ static SIPC_PTR vm_instr_sysc( TASK_PID pid, uint8_t call_id ) {
 
    switch( call_id ) {
    case VM_SYSC_EXIT:
-      retval = -1;
-      break;
+      return -1;
 
    case VM_SYSC_PUTC:
       data.byte = vm_stack_pop( task, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       if( task->flags & ADHD_TASK_FLAG_FOREGROUND ) {
          tputc( data.byte );
       }
@@ -316,16 +297,16 @@ static SIPC_PTR vm_instr_sysc( TASK_PID pid, uint8_t call_id ) {
       if( task->flags & ADHD_TASK_FLAG_FOREGROUND ) {
          cbuf = tgetc();
          vm_stack_push( task, cbuf, &stack_error );
-         if( stack_error ) { retval = -1; goto cleanup; }
+         if( stack_error ) { return -1; }
       } else {
          vm_stack_push( task, 0, &stack_error );
-         if( stack_error ) { retval = -1; goto cleanup; }
+         if( stack_error ) { return -1; }
       }
       break;
 
    case VM_SYSC_MPUTS:
       data.ipc = vm_stack_dpop( task, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       if( task->flags & ADHD_TASK_FLAG_FOREGROUND ) {
          str_ptr = mget( pid, data.ipc, 0 );
          while( '\0' != *str_ptr ) {
@@ -336,44 +317,34 @@ static SIPC_PTR vm_instr_sysc( TASK_PID pid, uint8_t call_id ) {
       break;
 
    case VM_SYSC_PUTS:
-      retval = vm_sysc_puts( pid );
-      break;
+      return vm_sysc_puts( pid );
 
    case VM_SYSC_FLAGON:
-      vm_sysc_flagon( pid );
-      break;
+      return vm_sysc_flagon( pid );
 
    case VM_SYSC_FLAGOFF:
-      vm_sysc_flagoff( pid );
-      break;
+      return vm_sysc_flagoff( pid );
 
    case VM_SYSC_LAUNCH:
-      vm_sysc_launch( pid );
-      break;
+      return vm_sysc_launch( pid );
 
    case VM_SYSC_DROOT:
-      vm_sysc_droot( pid );
-      break;
+      return vm_sysc_droot( pid );
       
    case VM_SYSC_DFIRST:
-      vm_sysc_dfirst( pid );
-      break;
+      return vm_sysc_dfirst( pid );
       
    case VM_SYSC_DNEXT:
-      vm_sysc_dnext( pid );
-      break;
+      return vm_sysc_dnext( pid );
       
    case VM_SYSC_DNAME:
-      vm_sysc_dname( pid );
-      break;
+      return vm_sysc_dname( pid );
 
    case VM_SYSC_ICMP:
-      vm_sysc_icmp( pid );
-      break;
+      return vm_sysc_icmp( pid );
    }
 
-cleanup:
-   return retval;
+   return task->ipc + 1;
 }
 
 static SIPC_PTR vm_instr_branch( TASK_PID pid, uint8_t instr, IPC_PTR addr ) {
@@ -387,89 +358,103 @@ static SIPC_PTR vm_instr_branch( TASK_PID pid, uint8_t instr, IPC_PTR addr ) {
    
    switch( instr ) {
    case VM_INSTR_JUMP:
-      retval = addr;
-      break;
+      return addr;
 
+#if 0
    case VM_INSTR_JSNZ:
       comp1 = vm_stack_pop( task, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       if( 0 != comp1 ) {
          retval = addr;
       }
       vm_stack_push( task, comp1, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       break;
 
    case VM_INSTR_JSZ:
       comp1 = vm_stack_pop( task, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       if( 0 == comp1 ) {
          retval = addr;
       }
       vm_stack_push( task, comp1, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       break;
 
    case VM_INSTR_JSZD:
       dcomp1 = vm_stack_dpop( task, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       if( 0 == dcomp1 ) {
          retval = addr;
       }
       vm_stack_dpush( task, dcomp1, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       break;
+#endif
 
    case VM_INSTR_JSEQ:
       comp2 = vm_stack_pop( task, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       comp1 = vm_stack_pop( task, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       if( comp1 == comp2 ) {
          retval = addr;
       }
       vm_stack_push( task, comp1, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
+      break;
+
+   case VM_INSTR_JSNED:
+      dcomp2 = vm_stack_dpop( task, &stack_error );
+      if( stack_error ) { return -1; }
+      dcomp1 = vm_stack_dpop( task, &stack_error );
+      if( stack_error ) { return -1; }
+      if( dcomp1 != dcomp2 ) {
+         retval = addr;
+      }
+      vm_stack_push( task, dcomp1, &stack_error );
+      if( stack_error ) { return -1; }
       break;
 
    case VM_INSTR_JSNE:
       comp2 = vm_stack_pop( task, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       comp1 = vm_stack_pop( task, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       if( comp1 != comp2 ) {
          retval = addr;
       }
       vm_stack_push( task, comp1, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       break;
 
+#if 0
    case VM_INSTR_JSGE:
       comp2 = vm_stack_pop( task, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       comp1 = vm_stack_pop( task, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       if( comp1 >= comp2 ) {
          retval = addr;
       }
       vm_stack_push( task, comp1, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       break;
+#endif
 
    case VM_INSTR_JSGED:
       dcomp2 = vm_stack_dpop( task, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       dcomp1 = vm_stack_dpop( task, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       if( dcomp1 >= dcomp2 ) {
          retval = addr;
       }
       vm_stack_dpush( task, dcomp1, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       break;
    }
 
-cleanup:
    return retval;
 }
 
@@ -477,20 +462,18 @@ static ssize_t vm_instr_mem( TASK_PID pid, uint8_t instr, MEMLEN_T mid ) {
    struct adhd_task* task = &(g_tasks[pid]);
    uint8_t* addr_tmp = NULL;
    MEMLEN_T offset = 0;
-   SIPC_PTR retval = task->ipc + 1;
    MEMLEN_T sz = 0;
    uint8_t stack_error = 0;
 
    switch( instr ) {
    case VM_INSTR_MALLOC:
       sz = vm_stack_dpop( task, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       addr_tmp = mget( pid, mid, sz );
       /* Not NULL or offset of data from NULL.*/
       if( NULL == addr_tmp || (void*)0x4 == addr_tmp ) {
-         tputs( "aborting; allocation error\n" );
-         retval = -1;
-         goto cleanup;
+         tputs( gc_mem_error );
+         return -1;
       }
       break;
 
@@ -498,26 +481,24 @@ static ssize_t vm_instr_mem( TASK_PID pid, uint8_t instr, MEMLEN_T mid ) {
       addr_tmp = mget( pid, mid, 0 );
       /* Not NULL or offset of data from NULL.*/
       if( NULL == addr_tmp || (void*)0x4 == addr_tmp ) {
-         tputs( "aborting; allocation error\n" );
-         retval = -1;
-         goto cleanup;
+         tputs( gc_mem_error );
+         return -1;
       }
       *addr_tmp = vm_stack_pop( task, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       break;
 
    case VM_INSTR_MPOPC:
       addr_tmp = mget( pid, mid, 0 );
       /* Not NULL or offset of data from NULL.*/
       if( NULL == addr_tmp || (void*)0x4 == addr_tmp ) {
-         tputs( "aborting; allocation error\n" );
-         retval = -1;
-         goto cleanup;
+         tputs( gc_mem_error );
+         return -1;
       }
       *addr_tmp = vm_stack_pop( task, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       vm_stack_push( task, *addr_tmp, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       break;
 
    case VM_INSTR_MPOPD:
@@ -525,12 +506,11 @@ static ssize_t vm_instr_mem( TASK_PID pid, uint8_t instr, MEMLEN_T mid ) {
       /* Not NULL or offset of data from NULL.*/
       /* TODO: Verify memory sz is >=2 */
       if( NULL == addr_tmp || (void*)0x4 == addr_tmp ) {
-         tputs( "aborting; allocation error\n" );
-         retval = -1;
-         goto cleanup;
+         tputs( gc_mem_error );
+         return -1;
       }
       *((uint16_t*)addr_tmp) = vm_stack_dpop( task, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       break;
 
    case VM_INSTR_MPOPCD:
@@ -538,56 +518,52 @@ static ssize_t vm_instr_mem( TASK_PID pid, uint8_t instr, MEMLEN_T mid ) {
       /* Not NULL or offset of data from NULL.*/
       /* TODO: Verify memory sz is >=2 */
       if( NULL == addr_tmp || (void*)0x4 == addr_tmp ) {
-         tputs( "aborting; allocation error\n" );
-         retval = -1;
-         goto cleanup;
+         tputs( gc_mem_error );
+         return -1;
       }
       *((uint16_t*)addr_tmp) = vm_stack_dpop( task, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       vm_stack_dpush( task, *((uint16_t*)addr_tmp), &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       break;
 
    case VM_INSTR_MPOPCO:
       addr_tmp = mget( pid, mid, 0 );
       /* Not NULL or offset of data from NULL.*/
       if( NULL == addr_tmp || (void*)0x4 == addr_tmp ) {
-         tputs( "aborting; allocation error\n" );
-         retval = -1;
-         goto cleanup;
+         tputs( gc_mem_error );
+         return -1;
       }
       offset = vm_stack_dpop( task, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       *(addr_tmp + offset) = vm_stack_pop( task, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       vm_stack_push( task, *(addr_tmp + offset), &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       break;
 
    case VM_INSTR_MPOPO:
       addr_tmp = mget( pid, mid, 0 );
       /* Not NULL or offset of data from NULL.*/
       if( NULL == addr_tmp || (void*)0x4 == addr_tmp ) {
-         tputs( "aborting; allocation error\n" );
-         retval = -1;
-         goto cleanup;
+         tputs( gc_mem_error );
+         return -1;
       }
       offset = vm_stack_dpop( task, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       *(addr_tmp + offset) = vm_stack_pop( task, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       break;
 
    case VM_INSTR_MPUSHC:
       addr_tmp = mget( pid, mid, 0 );
       /* Not NULL or offset of data from NULL.*/
       if( NULL == addr_tmp || (void*)0x4 == addr_tmp ) {
-         tputs( "aborting; allocation error\n" );
-         retval = -1;
-         goto cleanup;
+         tputs( gc_mem_error );
+         return -1;
       }
       vm_stack_push( task, *addr_tmp, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       break;
 
    case VM_INSTR_MPUSHCD:
@@ -595,26 +571,24 @@ static ssize_t vm_instr_mem( TASK_PID pid, uint8_t instr, MEMLEN_T mid ) {
       /* Not NULL or offset of data from NULL.*/
       /* TODO: Verify memory sz is >=2 */
       if( NULL == addr_tmp || (void*)0x4 == addr_tmp ) {
-         tputs( "aborting; allocation error\n" );
-         retval = -1;
-         goto cleanup;
+         tputs( gc_mem_error );
+         return -1;
       }
       vm_stack_dpush( task, *((uint16_t*)addr_tmp), &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       break;
 
    case VM_INSTR_MPUSHCO:
       addr_tmp = mget( pid, mid, 0 );
       /* Not NULL or offset of data from NULL.*/
       if( NULL == addr_tmp || (void*)0x4 == addr_tmp ) {
-         tputs( "aborting; allocation error\n" );
-         retval = -1;
-         goto cleanup;
+         tputs( gc_mem_error );
+         return -1;
       }
       offset = vm_stack_pop( task, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       vm_stack_push( task, *(addr_tmp + offset), &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       break;
 
    case VM_INSTR_MFREE:
@@ -622,53 +596,53 @@ static ssize_t vm_instr_mem( TASK_PID pid, uint8_t instr, MEMLEN_T mid ) {
       break;
    }
 
-cleanup:
-   return retval;
+   return task->ipc + 1;
 }
 
 static SIPC_PTR vm_instr_stack( TASK_PID pid, uint8_t instr ) {
    struct adhd_task* task = &(g_tasks[pid]);
    uint16_t data1 = 0,
       data2 = 0;
-   SIPC_PTR retval = task->ipc + 1;
    uint8_t stack_error = 0;
+   SIPC_PTR retval = task->ipc + 1;
 
    switch( instr ) {
    case VM_INSTR_SJUMP:
       retval = vm_stack_dpop( task, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       break;
 
    case VM_INSTR_SPOP:
       vm_stack_pop( task, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       break;
 
+#if 0
    case VM_INSTR_SDPOP:
       vm_stack_dpop( task, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       break;
 
    case VM_INSTR_SADD:
       data1 = vm_stack_pop( task, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       data2 = vm_stack_pop( task, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       vm_stack_push( task, data1 + data2, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       break;
+#endif
 
    case VM_INSTR_SADDD:
       data1 = vm_stack_dpop( task, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       data2 = vm_stack_dpop( task, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       vm_stack_dpush( task, data1 + data2, &stack_error );
-      if( stack_error ) { retval = -1; goto cleanup; }
+      if( stack_error ) { return -1; }
       break;
    }
 
-cleanup:
    return retval;
 }
 
@@ -770,11 +744,11 @@ SIPC_PTR vm_instr_execute( TASK_PID pid, uint16_t instr_full ) {
    } else if( VM_INSTR_SPOP == instr ) {
       return vm_instr_stack( pid, instr );
 
-   } else if( VM_INSTR_SDPOP == instr ) {
-      return vm_instr_stack( pid, instr );
+   //} else if( VM_INSTR_SDPOP == instr ) {
+   //   return vm_instr_stack( pid, instr );
 
-   } else if( VM_INSTR_SADD == instr ) {
-      return vm_instr_stack( pid, instr );
+   //} else if( VM_INSTR_SADD == instr ) {
+   //   return vm_instr_stack( pid, instr );
 
    } else if( VM_INSTR_SADDD == instr ) {
       return vm_instr_stack( pid, instr );
