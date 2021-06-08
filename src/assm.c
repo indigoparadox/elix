@@ -30,6 +30,7 @@ unsigned short g_ipc = 0;
 int g_section = 0;
 int g_escape = 0;
 int g_instr = 0;
+int g_deref = 0;
 int g_state = STATE_NONE;
 int g_plus = 0;
 char g_token[BUF_SZ + 1] = { 0 };
@@ -263,6 +264,15 @@ void process_char( char c ) {
       }
       break;
 
+   case '*':
+      if( STATE_STRING == g_state || STATE_CHAR == g_state ) {
+         printf( "c: %c\n", c );
+         write_bin_instr_or_data( c );
+      } else if( STATE_NONE == g_state ) {
+         printf( "deref on\n" );
+         g_deref = 1;
+      }
+
    case '\n':
    case '\r':
    case ' ':
@@ -390,9 +400,16 @@ void process_char( char c ) {
          }
 
          if( 0 <= instr_bytecode ) {
+            if( g_deref ) {
+               printf( "(deref) " );
+               g_deref = 0;
+               instr_bytecode |= VM_IFLAG_DEREF;
+            }
+
             printf( "instr: %s ", g_token );
             printf( "(%d)\n", instr_bytecode );
             write_bin_instr_or_data( (unsigned char)instr_bytecode );
+            instr_bytecode &= ~VM_IFLAG_DEREF;
             if(
                (VM_INSTR_SMIN <= instr_bytecode &&
                VM_INSTR_SMAX >= instr_bytecode) ||

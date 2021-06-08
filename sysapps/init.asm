@@ -138,11 +138,10 @@ fs_iter:
    ;pushd    $filename
    ;syscall  mputs
 
-   ;pushd    $filename
-   ;pushd    $line
-   jump     icmp        ; Compare line and filename.
-
-icmp_finish:
+   pushd    $filename
+   pushd    $line
+   pushd    #13
+   sjump    icmp        ; Compare line and filename.
    push     #0
    jseq     fs_match
    spop                 ; Clear icmp result.
@@ -168,18 +167,32 @@ fs_iter_cleanup:
 
 ; Should be called after pushing:
 ; - line compare length
+; - cmp1
+; - cmp2
 ; Pushes 0 before jumping back if match; otherwise 1.
 icmp:
    pushd    #2
+   malloc   $icmp_max
+   mpopd    $icmp_max   ; Pop compare max length to memory.
+
+   pushd    #2
    malloc   $icmp_idx   ; Start at index/offset 0.
+
+   pushd    #2
+   malloc   $icmp_a
+   *mpopd    icmp_a
+
+   pushd    #2
+   malloc   $icmp_b
+   *mpopd   $icmp_b
 
 icmp_loop:
 
    ; TODO: Insensitive comparison.
 
-   mpushcd  $icmp_idx      ;
-   pushd    #13            ; Compare 13 chars.
-   jsed     icmp_match     ; Reached max chars (pops #13).
+   mpushcd  $icmp_idx
+   mpushcd  $icmp_max
+   jsed     icmp_match     ; Reached max chars (pops icmp_max).
    
    mpushco  $line          ; Push line address (idx still on stack from before).
    mpushcd  $icmp_idx      ; Push compare offset.

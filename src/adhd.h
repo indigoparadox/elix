@@ -22,6 +22,7 @@
 #define RETVAL_KILL 255
 
 #define ADHD_TASK_FLAG_FOREGROUND   0x01
+#define ADHD_TASK_FLAG_DEREF        0x02 /* Next memory instruction will deref. */
 
 struct adhd_task {
    uint16_t ipc;

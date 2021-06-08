@@ -54,6 +54,8 @@
 #define VM_SECTION_DATA 0x01
 #define VM_SECTION_CPU  0x02
 
+#define VM_IFLAG_DEREF  0x80
+
 SIPC_PTR vm_instr_execute( TASK_PID pid, uint16_t instr_full );
 
 #endif /* VM_H */

@@ -383,7 +383,9 @@ static SIPC_PTR vm_instr_branch( TASK_PID pid, uint8_t instr, IPC_PTR addr ) {
    return retval;
 }
 
-static ssize_t vm_instr_mem( TASK_PID pid, uint8_t instr, MEMLEN_T mid ) {
+static ssize_t vm_instr_mem( 
+   TASK_PID pid, uint8_t instr, MEMLEN_T mid, uint8_t deref
+) {
    struct adhd_task* task = &(g_tasks[pid]);
    uint8_t* addr_tmp = NULL;
    SMEMLEN_T sz_or_offset = 0;
@@ -552,12 +554,22 @@ static SIPC_PTR vm_instr_stack( TASK_PID pid, uint8_t instr ) {
 
 SIPC_PTR vm_instr_execute( TASK_PID pid, uint16_t instr_full ) {
    struct adhd_task* task = &(g_tasks[pid]);
-   uint8_t instr = instr_full >> 8;
+   uint8_t instr = 0;
    uint8_t data = instr_full & 0xff;
+   uint8_t deref = 0;
    uint16_t ddata = 0;
 
    assert( 0 <= pid );
    assert( 0 <= task->ipc );
+
+   if( !task->prev_instr && (instr_full & VM_IFLAG_DEREF) ) {
+      task->flags |= ADHD_TASK_FLAG_DEREF;
+      instr_full &= ~VM_IFLAG_DEREF;
+   } else if( task->flags & ADHD_TASK_FLAG_DEREF ) {
+      deref = 1;
+   }
+
+   instr = instr_full >> 8;
 
 #if USE_VM_MONITOR
    if( task->prev_instr ) {
@@ -621,7 +633,7 @@ SIPC_PTR vm_instr_execute( TASK_PID pid, uint16_t instr_full ) {
       ddata = task->prev_instr;
       task->prev_instr = 0;
       /* instr_full is double data, here. */
-      return vm_instr_mem( pid, ddata, instr_full );
+      return vm_instr_mem( pid, ddata, instr_full, deref );
 
    } else if(
       VM_INSTR_JMIN <= task->prev_instr && VM_INSTR_JMAX >= task->prev_instr
