@@ -27,6 +27,14 @@ the primary drawbacks at the moment are:
  * Speed: Streaming from the disk severely limits performance.
  * Hardware: Low-resource environments may require hardware they would not ordinarily need (extra RAM, a disk interface).
 
+## Compiling
+
+This project uses cmake to generate its build files.
+
+*MSP430*:
+
+mkdir build && cd build && cmake -DCMAKE_TOOLCHAIN_FILE=path-to-msp430-gcc/generic-msp430-gcc.cmake -DMSP430_MCU=msp430g2553  ..
+
 ## Status
 
 ![Code Grade](https://www.code-inspector.com/project/579/status/svg)
