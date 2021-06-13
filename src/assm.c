@@ -565,7 +565,10 @@ int main( int argc, char* argv[] ) {
    struct label* unresolved_iter = NULL;
    unsigned short resolve_ipc = 0;
 
-   assert( 2 < argc );
+   if( 2 >= argc ) {
+      printf( "elix cross-assembler\n\n" );
+      printf( "usage: %s <input source file> <binary output>\n\n", argv[0] );
+   }
 
    g_src_file = fopen( argv[1], "r" );
    if( NULL == g_src_file ) {

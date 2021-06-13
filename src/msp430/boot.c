@@ -108,7 +108,9 @@ int main() {
 
    __enable_interrupt();
 
+#ifdef USE_SSD1306
    ssd1306_init();
+#endif /* USE_SSD1306 */
 
    kmain();
    return 0;
