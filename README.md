@@ -3,11 +3,29 @@
 
 elix is a hobby-grade "operating system"-sh thing designed to be portable and explore various ideas out of curiousity. It is not intended to be used in production of any sort.
 
-In line with the goals of system-level software coming out of Project Free Time, elix should be:
+elix initially started as MiSPOS, a relatively high-level "framework" with hardware drivers, intended for the rapid development of MSP430 software. elix has deviated from this quite a bit, and now has the following aims:
 
-* Portable to very old and/or very constrained systems.
-* "Interesting" from a paradigm perspective OR
-* "Useful" from a personal (to indigoparadox) perspective.
+ * Cross-platform source compatibility for software written to run under elix.
+ * Ability to be ported (relatively) easily to new platforms.
+ * A layer of "drivers" that sit between the common elix core and hardware.
+ * For these reasons, a core written in entirely in C.
+
+## Virtual Macine
+
+The elix virtual machine is stack-based, and provides a limited number of opcodes. These can be executed continuously in a cross-platform, multitasking environment. The opcodes are continually streamed from the disk layer.
+
+This approach provides the following benefits, pursuant to elix's purpose:
+
+ * Flexibility: Streaming from disk allows functioning in extremely RAM-limited environments.
+ * Portability: This approach can be binary-compatible, as well as source-compatible.
+ * Security: With proper setup, the VM can isolate tasks from each other.
+ * Multitasking: This avoids setjmp/longjmp, for which extremely low-resource environments lack available memory.
+
+the primary drawbacks at the moment are:
+
+ * Code Size: The opcodes take up space in the core.
+ * Speed: Streaming from the disk severely limits performance.
+ * Hardware: Low-resource environments may require hardware they would not ordinarily need (extra RAM, a disk interface).
 
 ## Status
 
