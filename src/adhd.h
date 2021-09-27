@@ -3,8 +3,8 @@
 #define ADHD_H
 
 #include "etypes.h"
-#include "vm.h"
 
+#include <mvm.h>
 #include <mfat.h>
 
 #define ADHD_MID_ENV_MAIN 1
@@ -12,7 +12,6 @@
 #define ADHD_MID_ENV_CURRENT 3
 
 #define ADHD_TASKS_MAX 4
-#define ADHD_STACK_MAX 12
 
 #define TASK_PID_INVALID -1
 
@@ -24,15 +23,12 @@
 #define ADHD_TASK_FLAG_FOREGROUND   0x01
 
 struct adhd_task {
-   uint16_t ipc;
    uint8_t flags;
    uint8_t disk_id;
    uint8_t part_id;
-   uint8_t prev_instr;
    uint16_t sz;
    FILEPTR_T file_offset;
-   uint8_t stack[ADHD_STACK_MAX];
-   uint8_t stack_len;
+   struct mvm_state state;
 };
 
 void adhd_start();

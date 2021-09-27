@@ -115,7 +115,7 @@ int kmain() {
    while( SYSTEM_SHUTDOWN != g_system_state ) {
       fg_pid = -1;
       for( active = 0 ; ADHD_TASKS_MAX > active ; active++ ) {
-         if( 0 < g_tasks[active].ipc ) {
+         if( 0 < g_tasks[active].state.ipc ) {
             if( g_tasks[active].flags & ADHD_TASK_FLAG_FOREGROUND ) {
                fg_pid = active;
             }
@@ -130,7 +130,7 @@ int kmain() {
          /* TODO: More nuanced I/O control. */
          g_tasks[init_pid].flags &= ~ADHD_TASK_FLAG_FOREGROUND;
       }
-      if( 0 == g_tasks[init_pid].ipc ) {
+      if( 0 == g_tasks[init_pid].state.ipc ) {
          tprintf( "init died; shutting down\n" );
          g_system_state = SYSTEM_SHUTDOWN;
       }

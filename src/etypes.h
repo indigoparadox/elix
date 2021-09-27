@@ -139,8 +139,6 @@ typedef uint64_t UTOA_T; /*!< Biggest type utoa can convert to string. */
 /*! \brief The PID for a running task.
  */
 typedef int16_t TASK_PID;
-typedef uint16_t IPC_PTR;
-typedef int32_t SIPC_PTR;
 typedef uint8_t TASK_RETVAL;
 typedef TASK_RETVAL (*ADHD_TASK)();
 

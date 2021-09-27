@@ -21,7 +21,7 @@ TASK_PID adhd_task_launch(
 
    /* Check for next available PID by using IPC (running tasks will always 
       have IPC > 0!) */
-   while( 0 < g_tasks[pid_iter].ipc ) {
+   while( 0 < g_tasks[pid_iter].state.ipc ) {
       pid_iter++;
    }
    if( ADHD_TASKS_MAX <= pid_iter ) {
@@ -41,16 +41,16 @@ TASK_PID adhd_task_launch(
    do {
       bytes_read = mfat_get_dir_entry_data(
          task->file_offset,
-         task->ipc,
+         task->state.ipc,
          (unsigned char*)(&byte_iter), 1,
          task->disk_id, task->part_id );
 
       if( 0 == bytes_read ) {
-         task->ipc = 0;
+         task->state.ipc = 0;
          return RETVAL_TASK_INVALID;
       }
 
-      task->ipc += bytes_read;
+      task->state.ipc += bytes_read;
 
       if( VM_INSTR_SECT == byte_iter && !section_instr_found ) {
          section_instr_found = 1;
@@ -72,37 +72,37 @@ void adhd_task_execute_next( TASK_PID pid ) {
    uint8_t byte_iter = 0;
 
    assert( 0 <= pid );
-   assert( 0 < task->ipc );
+   assert( 0 < task->state.ipc );
 
    //dprint( "---\nipc: %ld\n", task->ipc );
 
    mfat_get_dir_entry_data(
       task->file_offset,
-      task->ipc,
+      task->state.ipc,
       (unsigned char*)(&byte_iter), 1,
       task->disk_id, task->part_id );
    //dprint( "instr upper: %04x\n", instr );
    instr = byte_iter;
    instr <<= 8;
-   task->ipc++;
+   task->state.ipc++;
    mfat_get_dir_entry_data(
       task->file_offset,
-      task->ipc,
+      task->state.ipc,
       (unsigned char*)(&byte_iter), 1,
       task->disk_id, task->part_id );
    instr |= byte_iter;
    //dprint( "instr: %04x\n", instr );
 
-   new_ipc = vm_instr_execute( pid, instr );
+   new_ipc = vm_instr_execute( pid, &(task->state), instr );
    if( 0 >= new_ipc || task->sz < new_ipc ) {
       adhd_task_kill( pid );
    } else {
-      task->ipc = new_ipc;     
+      task->state.ipc = new_ipc;     
    }
 }
 
 void adhd_task_kill( TASK_PID pid ) {
-   if( 0 > pid || pid >= ADHD_TASKS_MAX || 0 == g_tasks[pid].ipc ) {
+   if( 0 > pid || pid >= ADHD_TASKS_MAX || 0 == g_tasks[pid].state.ipc ) {
       /* Invalid task index. */
       return;
    }
@@ -110,6 +110,6 @@ void adhd_task_kill( TASK_PID pid ) {
    /* TODO: Go through memory and remove any allocated blocks for this PID. */
    mfree_all( pid );
    
-   g_tasks[pid].ipc = 0;
+   g_tasks[pid].state.ipc = 0;
 }
 

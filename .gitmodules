@@ -16,3 +16,6 @@
 [submodule "libs/msign"]
 	path = libs/msign
 	url = https://github.com/indigoparadox/msign
+[submodule "libs/mvm"]
+	path = libs/mvm
+	url = https://github.com/indigoparadox/mvm

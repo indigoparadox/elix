@@ -9,13 +9,15 @@ project(elix)
 include_directories(libs/mfat/src)
 include_directories(libs/mbmp/src)
 include_directories(libs/mnet/src)
+include_directories(libs/mvm/src)
 
 add_subdirectory(libs/mbmp)
 add_subdirectory(libs/mfat)
 add_subdirectory(libs/mnet)
+add_subdirectory(libs/mvm)
 
 set(ELIX_DRIVERS)
-set(ELIX_LINK_EXTERNAL mfat mnet)
+set(ELIX_LINK_EXTERNAL mfat mnet mvm)
 
 if(UNIX)
     set(ELIX_DRIVER_PATH src/colinux)
@@ -66,7 +68,8 @@ endif(UNIX)
 set(ELIX_SOURCES
     src/console.c
     src/adhd.c
-    src/vm.c
+    src/vmsysc.c
+    src/vmmem.c
     src/mem.c
     src/kernel.c)
 
