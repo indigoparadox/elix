@@ -1,6 +1,14 @@
 
 #include <mvm.h>
 
+#include "mem.h"
+
+#ifdef USE_ERROR_CODES
+static const char gc_mem_error[] = "EVM02\n";
+#else
+static const char gc_mem_error[] = "aborting; mem error\n";
+#endif /* USE_ERROR_CODES */
+
 IPC_PTR vm_instr_mem(
    TASK_PID pid, struct mvm_state* state, uint8_t instr, MEMLEN_T mid
 ) {

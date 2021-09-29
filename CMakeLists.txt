@@ -85,7 +85,5 @@ else()
    add_executable(elix ${ELIX_SOURCES} ${ELIX_DRIVERS} ${ELIX_BOOT_MODULE})
    target_compile_definitions(elix PUBLIC ${ELIX_DEFINES})
    target_link_libraries(elix PUBLIC ${ELIX_LINK_EXTERNAL})
-
-   add_executable(assm src/assm.c)
 endif()
 
