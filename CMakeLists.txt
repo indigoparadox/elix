@@ -4,6 +4,8 @@ cmake_minimum_required(VERSION 3.10)
 set(CMAKE_C_STANDARD 90)
 set(CMAKE_C_STANDARD_REQUIRED TRUE)
 
+set(TESTIMG_FAT_FILENAME testimg.fat.img)
+
 project(elix)
 
 include_directories(libs/mfat/src)
@@ -16,6 +18,11 @@ add_subdirectory(libs/mnet)
 
 set(ELIX_DRIVERS)
 set(ELIX_LINK_EXTERNAL mfat mnet)
+
+set(ELIX_TESTIMG_CONTENTS
+   init.elx
+   ${CMAKE_CURRENT_SOURCE_DIR}/README.md
+   random.bmp)
 
 if(UNIX)
     set(ELIX_DRIVER_PATH src/colinux)
@@ -73,6 +80,23 @@ set(ELIX_SOURCES
 list(APPEND ELIX_DRIVERS
     ${ELIX_DRIVER_PATH}/disk.c)
 
+# Build test data.
+
+add_custom_command(
+   OUTPUT ${TESTIMG_FAT_FILENAME}
+   COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/mktestimg.sh
+      ${TESTIMG_FAT_FILENAME} ${ELIX_TESTIMG_CONTENTS}
+   DEPENDS ${ELIX_TESTIMG_CONTENTS})
+
+add_custom_command(
+   OUTPUT random.bmp
+   COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/mktestbmp.sh random.bmp)
+
+add_custom_command(
+   OUTPUT init.elx
+   COMMAND assm ${CMAKE_CURRENT_SOURCE_DIR}/sysapps/init.asm init.elx
+   DEPENDS assm ${CMAKE_CURRENT_SOURCE_DIR}/sysapps/init.asm)
+
 if(MSP430_MCU)
    msp430_add_executable_compilation(elix ${ELIX_SOURCES} ${ELIX_DRIVERS} ${ELIX_BOOT_MODULE})
    target_compile_definitions(elix.elf PUBLIC ${ELIX_DEFINES})
@@ -84,5 +108,7 @@ else()
    target_link_libraries(elix PUBLIC ${ELIX_LINK_EXTERNAL})
 
    add_executable(assm src/assm.c)
+
+   add_custom_target(testfat ALL DEPENDS ${TESTIMG_FAT_FILENAME})
 endif()
 
