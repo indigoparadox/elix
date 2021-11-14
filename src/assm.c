@@ -1,6 +1,8 @@
 
+#define VM_ASSM
 #include "assm.h"
 #include "vm.h"
+#include "sysc.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -63,11 +65,8 @@ void add_label( char* name, int ipc, struct label** head ) {
    strncpy( label_iter->name, name, BUF_SZ );
    label_iter->ipc = ipc;
 
-   printf( "label: %s @ %d", name, ipc );
-   if( '$' == name[0] ) {
-      printf( " (dynamic)" );
-   }
-   printf( "\n" );
+   assm_dprintf( 1, "label: %s @ %d%s", name, ipc,
+      '$' == name[0] ? " (dynamic)" : "" );
 }
 
 unsigned short get_label_ipc( char* label, unsigned short ipc_of_call ) {
@@ -78,17 +77,13 @@ unsigned short get_label_ipc( char* label, unsigned short ipc_of_call ) {
       (0 != strncmp( label_iter->name, label, strlen( label_iter->name ) ) ||
       strlen( label ) != strlen( label_iter->name ))
    ) {
-#if EXTRA_VERBOSE
-      printf( "searching for %s, found %s (%d)...\n",
+      assm_dprintf( 0, "searching for %s, found %s (%d)...",
          label, label_iter->name, label_iter->ipc );
-#endif /* EXTRA_VERBOSE */
       label_iter = label_iter->next;
    }
    if( NULL != label_iter ) {
-#if EXTRA_VERBOSE
-      printf( "searching for %s, found %s (%d)...\n",
+      assm_dprintf( 0, "searching for %s, found %s (%d)...",
          label, label_iter->name, label_iter->ipc );
-#endif /* EXTRA_VERBOSE */
       assert( 0 == strncmp(
          label_iter->name, label, strlen( label_iter->name ) ) );
       assert( strlen( label ) == strlen( label_iter->name ) );
@@ -96,13 +91,13 @@ unsigned short get_label_ipc( char* label, unsigned short ipc_of_call ) {
 
    if( NULL == label_iter ) {
       if( '$' != label[0] ) {
-         printf( "label not found; added to unresolved list\n" );
+         assm_eprintf( "label not found; added to unresolved list" );
          add_label( label, ipc_of_call, &g_unresolved );
       }
       return 0;
    }
 
-   printf( "label for %s: %d\n", label, label_iter->ipc );
+   assm_dprintf( 1, "label for %s: %d", label, label_iter->ipc );
 
    return label_iter->ipc;
 }
@@ -110,15 +105,15 @@ unsigned short get_label_ipc( char* label, unsigned short ipc_of_call ) {
 void write_bin_instr_or_data( unsigned char c ) {
    fwrite( &c, sizeof( char ), 1, g_bin_file );
    g_ipc++;
-   printf( "wrote %d (0x%x), ipc: %d\n\n", c, c, g_ipc );
+   assm_dprintf( 1, "wrote %d (0x%x), ipc: %d", c, c, g_ipc );
 }
 
 void write_double_bin_instr_or_data( unsigned short u ) {
-   printf( "first byte:\n" );
+   assm_dprintf( 1, "first byte:" );
    write_bin_instr_or_data( (uint8_t)((u >> 8) & 0x00ff) );
-   printf( "second byte:\n" );
+   assm_dprintf( 1, "second byte:" );
    write_bin_instr_or_data( (uint8_t)(u & 0x00ff) );
-   printf( "previous writes wrote %d (0x%x) (0x%x 0x%x), ipc: %d, %d\n\n",
+   assm_dprintf( 1, "previous writes wrote %d (0x%x) (0x%x 0x%x), ipc: %d, %d",
       u,
       u,
       (uint8_t)((u >> 8) & 0x00ff),
@@ -133,33 +128,87 @@ void append_to_token( char c ) {
    g_token_len++;
 }
 
+uint8_t token_to_op( char* token, int* instr_args ) {
+   uint8_t i = 0,
+      op_out = 0;
+
+   /* Find the instruction with this token. */
+   while( '\0' != gc_vm_op_tokens[i][0] ) {
+      if( 0 == strncmp(
+         token, gc_vm_op_tokens[i], strlen( gc_vm_op_tokens[i] )
+      ) ) {
+         op_out = i;
+         break;
+      }
+      i++;
+   }
+
+   if( 0 == op_out ) {
+      assm_eprintf( "invalid token specified: %s", token );
+      goto cleanup;
+   }
+
+   *instr_args = gc_vm_op_argcs[op_out];
+
+   if( 'd' == token[strlen( gc_vm_op_tokens[op_out] )] ) {
+      /* Set the high bit to indicate op on a double. */
+      op_out |= 0x80;
+   }
+
+cleanup:
+
+   return op_out;
+}
+
+uint8_t token_to_sysc( char* token ) {
+   uint8_t i = 0,
+      sysc_out = 0;
+
+   while( '\0' != gc_sysc_tokens[i][0] ) {
+      if( 0 == strncmp(
+         token, gc_sysc_tokens[i], strlen( gc_sysc_tokens[i] )
+      ) ) {
+         sysc_out = i;
+         break;
+      }
+      i++;
+   }
+
+   if( 0 == sysc_out ) {
+      assm_eprintf( "invalid token specified: %s\n", token );
+   }
+
+   return sysc_out;
+}
+
 void process_char( char c ) {
    char buf_out[BUF_SZ + 1] = { 0 };
    unsigned short label_ipc = 0;
-   int instr_bytecode = 0;
+   int instr_bytecode = 0,
+      instr_args = 0;
 
    switch( c ) {
    case '.':
       if( STATE_NONE == g_state ) {
-         printf( "state section\n" );
+         assm_dprintf( 1, "state section" );
          g_state = STATE_SECTION;
          reset_token();
       } else if( STATE_STRING == g_state ) {
-         printf( "c: %c\n", c );
+         assm_dprintf( 1, "c: %c", c );
          write_bin_instr_or_data( c );
       }
       break;
 
    case ':':
       if( STATE_SECTION == g_state ) {
-         printf( "section: %s\n", g_token );
+         assm_dprintf( 1, "section: %s", g_token );
          if( 0 == strncmp( "cpu", g_token, 3 ) ) {
-            write_bin_instr_or_data( VM_INSTR_SECT );
+            write_bin_instr_or_data( VM_OP_SECT );
             write_bin_instr_or_data( VM_SECTION_CPU );
             g_section = VM_SECTION_CPU;
 
          } else if( 0 == strncmp( "data", g_token, 4 ) ) {
-            write_bin_instr_or_data( VM_INSTR_SECT );
+            write_bin_instr_or_data( VM_OP_SECT );
             write_bin_instr_or_data( VM_SECTION_DATA );
             g_section = VM_SECTION_DATA;
 
@@ -172,7 +221,7 @@ void process_char( char c ) {
          reset_token();
 
       } else if( STATE_STRING == g_state ) {
-         printf( "c: %c\n", c );
+         assm_dprintf( 1, "c: %c", c );
          write_bin_instr_or_data( c );
       }
       break;
@@ -186,14 +235,14 @@ void process_char( char c ) {
       ) {
          g_state = STATE_COMMENT;
       } else if( STATE_STRING == g_state || STATE_CHAR == g_state ) {
-         printf( "c: %c\n", c );
+         assm_dprintf( 1, "c: %c", c );
          write_bin_instr_or_data( c );
       }
       break;
 
    case '#':
       if( STATE_STRING == g_state ) {
-         printf( "c: %c\n", c );
+         assm_dprintf( 1, "c: %c", c );
          write_bin_instr_or_data( c );
       } else if( STATE_PARAMS == g_state ) {
          g_state = STATE_NUM;
@@ -205,12 +254,12 @@ void process_char( char c ) {
       /* TODO: Handled escaped quote. */
       if( STATE_STRING == g_state ) {
          write_bin_instr_or_data( 0 ); /* Append NULL byte. */
-         printf( "state none\n" );
+         assm_dprintf( 1, "state none" );
          g_state = STATE_NONE;
 
       } else {
          assert( STATE_NONE == g_state );
-         printf( "state string\n" );
+         assm_dprintf( 1, "state string" );
          g_state = STATE_STRING;
       }
       break;
@@ -218,11 +267,11 @@ void process_char( char c ) {
    case '\'':
       if( VM_SECTION_CPU == g_section ) {
          if( STATE_PARAMS == g_state ) {
-            printf( "state char\n" );
+            assm_dprintf( 1, "state char" );
             g_state = STATE_CHAR;
 
          } else if( STATE_CHAR == g_state ) {
-            printf( "state none\n" );
+            assm_dprintf( 1, "state none" );
             reset_token();
             g_state = STATE_NONE;
 
@@ -230,7 +279,7 @@ void process_char( char c ) {
             /* Do nothing. */
 
          } else {
-            printf( "c: %c\n", c );
+            assm_dprintf( 1, "c: %c", c );
             write_bin_instr_or_data( c );
 
          }
@@ -245,7 +294,7 @@ void process_char( char c ) {
          (STATE_CHAR == g_state || STATE_STRING == g_state) && g_escape
       ) {
          g_escape = 0;
-         printf( "c: %c\n", c );
+         assm_dprintf( 1, "c: %c", c );
          write_bin_instr_or_data( c );
 
       }
@@ -253,13 +302,13 @@ void process_char( char c ) {
 
    case '+':
       if( STATE_STRING == g_state || STATE_CHAR == g_state ) {
-         printf( "c: %c\n", c );
+         assm_dprintf( 1, "c: %c", c );
          write_bin_instr_or_data( c );
 
       } else if( STATE_PARAMS == g_state ) {
          g_state = STATE_PLUS;
          g_plus = 0;
-         printf( "state plus" );
+         assm_dprintf( 1, "state plus" );
       }
       break;
 
@@ -268,143 +317,35 @@ void process_char( char c ) {
    case ' ':
       if( STATE_NONE == g_state ) {
          /* Try to decode token as an instruction. */
-         instr_bytecode = -1;
-         if( 0 == strncmp( "pushd", g_token, 5 ) ) {
-            instr_bytecode = VM_INSTR_PUSHD;
-            g_state = STATE_PARAMS;
-            g_instr = VM_INSTR_PUSHD;
+         instr_bytecode = token_to_op( g_token, &instr_args );
+         if( 0 < instr_bytecode ) {
+            if( 0 < instr_args ) {
+               g_state = STATE_PARAMS;
+               g_instr = instr_bytecode;
+            } else {
+               g_state = STATE_NONE;
+            }
 
-         } else if( 0 == strncmp( "push", g_token, 4 ) ) {
-            instr_bytecode = VM_INSTR_PUSH;
-            g_state = STATE_PARAMS;
-            g_instr = VM_INSTR_PUSH;
-
-         } else if( 0 == strncmp( "syscall", g_token, 7 ) ) {
-            instr_bytecode = VM_INSTR_SYSC;
-            g_state = STATE_PARAMS;
-            g_instr = VM_INSTR_SYSC;
-
-         } else if( 0 == strncmp( "sret", g_token, 4 ) ) {
-            instr_bytecode = VM_INSTR_SRET;
-            g_state = STATE_NONE;
-         
-         } else if( 0 == strncmp( "sjump", g_token, 5 ) ) {
-            instr_bytecode = VM_INSTR_SJUMP;
-            g_state = STATE_NONE;
-         
-         } else if( 0 == strncmp( "jump", g_token, 4 ) ) {
-            instr_bytecode = VM_INSTR_JUMP;
-            g_state = STATE_PARAMS;
-            g_instr = VM_INSTR_JUMP;
-         
-         } else if( 0 == strncmp( "spop", g_token, 4 ) ) {
-            instr_bytecode = VM_INSTR_SPOP;
-            g_state = STATE_NONE;
-
-         } else if( 0 == strncmp( "saddd", g_token, 5 ) ) {
-            instr_bytecode = VM_INSTR_SADDD;
-            g_state = STATE_NONE;
-
-         } else if( 0 == strncmp( "jseq", g_token, 4 ) ) {
-            instr_bytecode = VM_INSTR_JSEQ;
-            g_state = STATE_PARAMS;
-            g_instr = VM_INSTR_JSEQ;
-         
-         } else if( 0 == strncmp( "jsed", g_token, 4 ) ) {
-            instr_bytecode = VM_INSTR_JSED;
-            g_state = STATE_PARAMS;
-            g_instr = VM_INSTR_JSED;
-         
-         } else if( 0 == strncmp( "jsned", g_token, 5 ) ) {
-            instr_bytecode = VM_INSTR_JSNED;
-            g_state = STATE_PARAMS;
-            g_instr = VM_INSTR_JSNED;
-
-         } else if( 0 == strncmp( "jsne", g_token, 4 ) ) {
-            instr_bytecode = VM_INSTR_JSNE;
-            g_state = STATE_PARAMS;
-            g_instr = VM_INSTR_JSNE;
-
-         } else if( 0 == strncmp( "jsged", g_token, 5 ) ) {
-            instr_bytecode = VM_INSTR_JSGED;
-            g_state = STATE_PARAMS;
-            g_instr = VM_INSTR_JSGED;
-         
-         } else if( 0 == strncmp( "jsge", g_token, 4 ) ) {
-            instr_bytecode = VM_INSTR_JSGE;
-            g_state = STATE_PARAMS;
-            g_instr = VM_INSTR_JSGE;
-         
-         } else if( 0 == strncmp( g_token, "malloc", 6 ) ) {
-            instr_bytecode = VM_INSTR_MALLOC;
-            g_state = STATE_PARAMS;
-            g_instr = VM_INSTR_MALLOC;
-
-         } else if( 0 == strncmp( g_token, "mstore", 6 ) ) {
-            instr_bytecode = VM_INSTR_MPOP;
-            g_state = STATE_PARAMS;
-            g_instr = VM_INSTR_MPOP;
-
-         } else if( 0 == strncmp( g_token, "mpushco", 7 ) ) {
-            instr_bytecode = VM_INSTR_MPUSHCO;
-            g_state = STATE_PARAMS;
-            g_instr = VM_INSTR_MPUSHCO;
-
-         } else if( 0 == strncmp( g_token, "mpushcd", 7 ) ) {
-            instr_bytecode = VM_INSTR_MPUSHCD;
-            g_state = STATE_PARAMS;
-            g_instr = VM_INSTR_MPUSHCD;
-
-         } else if( 0 == strncmp( g_token, "mpushc", 6 ) ) {
-            instr_bytecode = VM_INSTR_MPUSHC;
-            g_state = STATE_PARAMS;
-            g_instr = VM_INSTR_MPUSHC;
-
-         } else if( 0 == strncmp( g_token, "mpopo", 5 ) ) {
-            instr_bytecode = VM_INSTR_MPOPO;
-            g_state = STATE_PARAMS;
-            g_instr = VM_INSTR_MPOPO;
-
-         } else if( 0 == strncmp( g_token, "mpopd", 5 ) ) {
-            instr_bytecode = VM_INSTR_MPOPD;
-            g_state = STATE_PARAMS;
-            g_instr = VM_INSTR_MPOPD;
-
-         } else if( 0 == strncmp( g_token, "mpop", 4 ) ) {
-            instr_bytecode = VM_INSTR_MPOP;
-            g_state = STATE_PARAMS;
-            g_instr = VM_INSTR_MPOP;
-
-         } else if( 0 == strncmp( g_token, "mfree", 5 ) ) {
-            instr_bytecode = VM_INSTR_MFREE;
-            g_state = STATE_PARAMS;
-            g_instr = VM_INSTR_MFREE;
          } else if(
             '\0' != g_token[0] &&
             ' ' != g_token[0] && 
             '\n' != g_token[0] &&
             '\r' != g_token[0]
          ) {
-            printf( "\n--- UNKNOWN INSTRUCTION: %s ---\n", g_token );
+            assm_eprintf( "unknown instruction: %s", g_token );
             assert( 1 == 0 );
          }
 
-         if( 0 <= instr_bytecode ) {
-            printf( "instr: %s ", g_token );
-            printf( "(%d)\n", instr_bytecode );
+         if( 0 < instr_bytecode ) {
+            assm_dprintf( 1, "instr: %s (%d)", g_token, instr_bytecode );
             write_bin_instr_or_data( (unsigned char)instr_bytecode );
             if(
-               (VM_INSTR_SMIN <= instr_bytecode &&
-               VM_INSTR_SMAX >= instr_bytecode) ||
-               (VM_INSTR_MMIN <= instr_bytecode &&
-               VM_INSTR_MMAX >= instr_bytecode) ||
-               (VM_INSTR_JMIN <= instr_bytecode &&
-               VM_INSTR_JMAX >= instr_bytecode) ||
-               VM_INSTR_PUSHD == instr_bytecode
+               0 == gc_vm_op_argcs[instr_bytecode & 0x7f] ||
+               0x80 == instr_bytecode & 0x80
             ) {
                /* Stack instruction has no data or 16-bit-wide data,
                   so put a null padding in instruction data field. */
-               printf( "padding:\n" );
+               assm_dprintf( 1, "padding:" );
                write_bin_instr_or_data( 0 );
             }
          } else {
@@ -421,26 +362,26 @@ void process_char( char c ) {
 
       } else if( STATE_NUM == g_state || STATE_PLUS == g_state ) {
          /* Decode token as number. */
-         if(
-            VM_INSTR_PUSHD == g_instr ||
-            (VM_INSTR_JMIN <= instr_bytecode &&
-            VM_INSTR_JMAX >= instr_bytecode) ||
-            (VM_INSTR_MMIN <= instr_bytecode &&
-            VM_INSTR_MMAX >= instr_bytecode)
+         if( 
+            1 == gc_vm_op_argcs[instr_bytecode & 0x7f] &&
+            0x80 == instr_bytecode & 0x80
          ) {
             write_double_bin_instr_or_data( atoi( g_token ) );
          } else {
-            printf( "num: %d\n", atoi( g_token ) );
+            assm_dprintf( 1, "num: %d", atoi( g_token ) );
             write_bin_instr_or_data( atoi( g_token ) );
          }
          reset_token();
          g_state = STATE_NONE;
 
       } else if(
-         (VM_INSTR_PUSH == g_instr ||
+         /* (0 == gc_vm_op_argcs[instr_bytecode & 0x7f] ||
+            (1 == gc_vm_op_argcs[instr_bytecode & 0x7f] &&
+               0x80 == instr_bytecode & 0x80)) && */
+         /* (VM_INSTR_PUSH == g_instr ||
             VM_INSTR_PUSHD == g_instr ||
             (VM_INSTR_JMIN <= g_instr && VM_INSTR_JMAX >= g_instr) ||
-            (VM_INSTR_MMIN <= g_instr && VM_INSTR_MMAX >= g_instr)) &&
+            (VM_INSTR_MMIN <= g_instr && VM_INSTR_MMAX >= g_instr)) && */
          STATE_PARAMS == g_state &&
          0 < g_token_len
       ) {
@@ -453,9 +394,8 @@ void process_char( char c ) {
             g_next_alloc_mid++;
          }
          if(
-            VM_INSTR_PUSHD == g_instr ||
-            (VM_INSTR_MMIN <= g_instr && VM_INSTR_MMAX >= g_instr) ||
-            (VM_INSTR_JMIN <= g_instr && VM_INSTR_JMAX >= g_instr)
+            1 == gc_vm_op_argcs[instr_bytecode & 0x7f] &&
+            0x80 == instr_bytecode & 0x80
          ) {
             write_double_bin_instr_or_data( label_ipc );
          } else {
@@ -465,57 +405,14 @@ void process_char( char c ) {
          g_instr = 0;
          reset_token();
 
-      } else if( STATE_PARAMS == g_state && VM_INSTR_SYSC == g_instr ) {
+      } else if( STATE_PARAMS == g_state && VM_OP_SYSC == g_instr ) {
          if( 0 < g_token_len ) {
-            printf( "param: %s", g_token );
-            instr_bytecode = -1;
+            instr_bytecode = token_to_sysc( g_token );
+            assm_dprintf( 1, "param: %s%s", g_token,
+               0 < instr_bytecode ? " (%d)" : "(invalid token)" );
 
-            if( 0 == strncmp( g_token, "putc", 4 ) ) {
-               instr_bytecode = VM_SYSC_PUTC;
-
-            } else if( 0 == strncmp( g_token, "puts", 4 ) ) {
-               instr_bytecode = VM_SYSC_PUTS;
-
-            } else if( 0 == strncmp( g_token, "mputs", 5 ) ) {
-               instr_bytecode = VM_SYSC_MPUTS;
-
-            } else if( 0 == strncmp( g_token, "getc", 4 ) ) {
-               instr_bytecode = VM_SYSC_GETC;
-
-            } else if( 0 == strncmp( g_token, "icmp", 4 ) ) {
-               instr_bytecode = VM_SYSC_ICMP;
-
-            } else if( 0 == strncmp( g_token, "exit", 4 ) ) {
-               instr_bytecode = VM_SYSC_EXIT;
-
-            } else if( 0 == strncmp( g_token, "flagoff", 7 ) ) {
-               instr_bytecode = VM_SYSC_FLAGOFF;
-
-            } else if( 0 == strncmp( g_token, "flagon", 6 ) ) {
-               instr_bytecode = VM_SYSC_FLAGON;
-
-            } else if( 0 == strncmp( g_token, "launch", 6 ) ) {
-               instr_bytecode = VM_SYSC_LAUNCH;
-
-            } else if( 0 == strncmp( g_token, "droot", 5 ) ) {
-               instr_bytecode = VM_SYSC_DROOT;
-
-            } else if( 0 == strncmp( g_token, "dfirst", 6 ) ) {
-               instr_bytecode = VM_SYSC_DFIRST;
-
-            } else if( 0 == strncmp( g_token, "dname", 5 ) ) {
-               instr_bytecode = VM_SYSC_DNAME;
-
-            } else if( 0 == strncmp( g_token, "dnext", 5 ) ) {
-               instr_bytecode = VM_SYSC_DNEXT;
-
-            }
-
-            if( 0 <= instr_bytecode ) {
-               printf( " (%d)\n", instr_bytecode );
+            if( 0 < instr_bytecode ) {
                write_bin_instr_or_data( (unsigned char)instr_bytecode );
-            } else {
-               printf( "\n" );
             }
   
             g_state = STATE_NONE;
@@ -524,7 +421,7 @@ void process_char( char c ) {
          }
 
       } else if( STATE_CHAR == g_state && ' ' == c ) {
-         printf( "c: %c\n", c );
+         assm_dprintf( 1, "c: %c", c );
          write_bin_instr_or_data( c );
       }
       break;
@@ -558,6 +455,8 @@ void process_char( char c ) {
    //printf( "c: %c\n", c );
 }
 
+#ifdef ASSM_MAIN
+
 int main( int argc, char* argv[] ) {
    int bytes_read = 0,
       i = 0;
@@ -582,9 +481,7 @@ int main( int argc, char* argv[] ) {
 
    bytes_read = fread( &buf, sizeof( char ), BUF_SZ, g_src_file );
    while( 0 < bytes_read ) {
-#if EXTRA_VERBOSE
-      printf( "%s\n", buf );
-#endif /* EXTRA_VERBOSE */
+      assm_dprintf( 0, "read: %s", buf );
       for( i = 0 ; bytes_read > i ; i++ ) {
          process_char( buf[i] );
       }
@@ -594,7 +491,7 @@ int main( int argc, char* argv[] ) {
 
    unresolved_iter = g_unresolved;
    while( NULL != unresolved_iter ) {
-      printf( "unres: %s\n", unresolved_iter->name );
+      assm_dprintf( 1, "unres: %s", unresolved_iter->name );
 
       resolve_ipc = 
          get_label_ipc( unresolved_iter->name, unresolved_iter->ipc );
@@ -603,7 +500,7 @@ int main( int argc, char* argv[] ) {
       g_ipc = unresolved_iter->ipc;
       write_double_bin_instr_or_data( resolve_ipc );
 
-      printf( "resolved to %d, placed at %d\n",
+      assm_dprintf( 1, "resolved to %d, placed at %d",
          resolve_ipc, unresolved_iter->ipc );
 
       unresolved_iter = unresolved_iter->next;
@@ -620,4 +517,6 @@ cleanup:
 
    return 0;
 }
+
+#endif /* ASSM_MAIN */
 

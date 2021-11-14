@@ -24,58 +24,65 @@ set(ELIX_TESTIMG_CONTENTS
    ${CMAKE_CURRENT_SOURCE_DIR}/README.md
    random.bmp)
 
+set(ELIX_CHECK_SOURCES
+   src/assm.c
+   src/mem.c
+   tests/check.c
+   tests/check_mem.c
+   tests/check_assm.c)
+
 if(UNIX)
-    set(ELIX_DRIVER_PATH src/colinux)
-    set(ELIX_DEFINES
-        USE_NET
-        USE_BMP
-        USE_DISK
-        QD_PLATFORM=QD_PLATFORM_COLINUX
-        DEBUG
-        MBMP_AGGRESSIVE_VALIDATE
-        COLINUX_TERMIOS)
-    find_package(PkgConfig REQUIRED)
+   set(ELIX_DRIVER_PATH src/colinux)
+   set(ELIX_DEFINES
+      USE_NET
+      USE_BMP
+      USE_DISK
+      QD_PLATFORM=QD_PLATFORM_COLINUX
+      DEBUG
+      MBMP_AGGRESSIVE_VALIDATE
+      COLINUX_TERMIOS)
+   find_package(PkgConfig REQUIRED)
 
-    # Use PCAP for networking.
-    pkg_check_modules(PCAP REQUIRED IMPORTED_TARGET libpcap)
-    
-    set(ELIX_BOOT_MODULE src/colinux/boot.c)
+   # Use PCAP for networking.
+   pkg_check_modules(PCAP REQUIRED IMPORTED_TARGET libpcap)
+   
+   set(ELIX_BOOT_MODULE src/colinux/boot.c)
 
-    list(APPEND ELIX_LINK_EXTERNAL PkgConfig::PCAP mbmp)
-    list(APPEND ELIX_DRIVERS
-        ${ELIX_DRIVER_PATH}/net.c
-        ${ELIX_DRIVER_PATH}/display.c
-        ${ELIX_DRIVER_PATH}/keyboard.c)
+   list(APPEND ELIX_LINK_EXTERNAL PkgConfig::PCAP mbmp)
+   list(APPEND ELIX_DRIVERS
+      ${ELIX_DRIVER_PATH}/net.c
+      ${ELIX_DRIVER_PATH}/display.c
+      ${ELIX_DRIVER_PATH}/keyboard.c)
 elseif(MSP430_MCU)
-    set(ELIX_DRIVER_PATH src/msp430)
-    set(ELIX_DEFINES
-        USE_DISK
-	     USE_DISK_RO
-        QD_UART_HW
-        QD_CPU_MHZ=16
-        QD_SPI
-        QD_UART
-	     USE_ERROR_CODES
-	     CONSOLE_IN=uart
-	     CONSOLE_OUT=uart
-	     MEM_HEAP_SIZE=274
-	     UART_TX_BUFFER_LENGTH=0
-        UART_RX_BUFFER_LENGTH=20
-        QD_WDT_DISABLED
-        QD_PLATFORM=QD_PLATFORM_MSP430)
-    set(ELIX_BOOT_MODULE src/msp430/boot.c)
-    list(APPEND ELIX_DRIVERS
-        ${ELIX_DRIVER_PATH}/irqal.c
-        ${ELIX_DRIVER_PATH}/i2c.c
-        ${ELIX_DRIVER_PATH}/uart.c)
+   set(ELIX_DRIVER_PATH src/msp430)
+   set(ELIX_DEFINES
+      USE_DISK
+      USE_DISK_RO
+      QD_UART_HW
+      QD_CPU_MHZ=16
+      QD_SPI
+      QD_UART
+      USE_ERROR_CODES
+      CONSOLE_IN=uart
+      CONSOLE_OUT=uart
+      MEM_HEAP_SIZE=274
+      UART_TX_BUFFER_LENGTH=0
+      UART_RX_BUFFER_LENGTH=20
+      QD_WDT_DISABLED
+      QD_PLATFORM=QD_PLATFORM_MSP430)
+   set(ELIX_BOOT_MODULE src/msp430/boot.c)
+   list(APPEND ELIX_DRIVERS
+      ${ELIX_DRIVER_PATH}/irqal.c
+      ${ELIX_DRIVER_PATH}/i2c.c
+      ${ELIX_DRIVER_PATH}/uart.c)
 endif(UNIX)
 
 set(ELIX_SOURCES
-    src/console.c
-    src/adhd.c
-    src/vm.c
-    src/mem.c
-    src/kernel.c)
+   src/console.c
+   src/adhd.c
+   src/vm.c
+   src/mem.c
+   src/kernel.c)
 
 list(APPEND ELIX_DRIVERS
     ${ELIX_DRIVER_PATH}/disk.c)
@@ -108,6 +115,14 @@ else()
    target_link_libraries(elix PUBLIC ${ELIX_LINK_EXTERNAL})
 
    add_executable(assm src/assm.c)
+   target_compile_definitions(assm PUBLIC ASSM_MAIN)
+
+   add_executable(tests ${ELIX_CHECK_SOURCES})
+   pkg_check_modules(PCAP REQUIRED IMPORTED_TARGET libpcap)
+   pkg_check_modules(CHECK REQUIRED IMPORTED_TARGET check)
+   target_compile_definitions(tests PUBLIC
+      CHECK QD_PLATFORM=QD_PLATFORM_COLINUX USE_NET MEM_SAVE)
+   target_link_libraries(tests PUBLIC PkgConfig::PCAP PkgConfig::CHECK)
 
    add_custom_target(testfat ALL DEPENDS ${TESTIMG_FAT_FILENAME})
 endif()

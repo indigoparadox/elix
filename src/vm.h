@@ -4,57 +4,83 @@
 
 #include "etypes.h"
 
-#define VM_INSTR_NOP       0x00
-#define VM_INSTR_SYSC      0x03
-#define VM_INSTR_PUSH      0x04
-#define VM_INSTR_PUSHD     0x05
-#define VM_INSTR_SECT      0x0f
-#define VM_INSTR_SMIN      0x10 /* DUMMY */
-#define VM_INSTR_SPOP      0x10
-#define VM_INSTR_SADDD     0x13
-#define VM_INSTR_SJUMP     0x14
-#define VM_INSTR_SRET      0x15
-#define VM_INSTR_SMAX      0x1f /* DUMMY */
-#define VM_INSTR_JMIN      0x30 /* DUMMY */
-#define VM_INSTR_JUMP      0x30
-#define VM_INSTR_JSEQ      0x32
-#define VM_INSTR_JSNE      0x33
-#define VM_INSTR_JSGE      0x34
-#define VM_INSTR_JSGED     0x35
-#define VM_INSTR_JSNED     0x38
-#define VM_INSTR_JSED      0x39
-#define VM_INSTR_JMAX      0x3f /* DUMMY */
-#define VM_INSTR_MMIN      0x40 /* DUMMY */
-#define VM_INSTR_MALLOC    0x40
-#define VM_INSTR_MPOP      0x41 /* Pop TO memory. */
-#define VM_INSTR_MPOPD     0x43 /* Pop double TO memory. */
-#define VM_INSTR_MPUSHC    0x46 /* Push copy FROM memory. */
-#define VM_INSTR_MPUSHCD   0x47 /* Push double copy FROM memory. */
-#define VM_INSTR_MPUSHCO   0x48 /* Push copy FROM memory PLUS offset. */
-#define VM_INSTR_MFREE     0x49
-#define VM_INSTR_MPOPO     0x4a /* Pop TO memory PLUS offset. */
-#define VM_INSTR_MMAX      0x5f /* DUMMY */
+#define VM_FLAG_DBL        0x80
+#define VM_FLAG_OFFSET     0x
 
-#define VM_SYSC_PUTC    0x01
-#define VM_SYSC_PUTS    0x02
-#define VM_SYSC_GETC    0x03
-#define VM_SYSC_CMP     0x04
-#define VM_SYSC_ICMP    0x05
-#define VM_SYSC_DENTRY  0x06
-#define VM_SYSC_DROOT   0x07
-#define VM_SYSC_DFIRST  0x08
-#define VM_SYSC_DNEXT   0x09
-#define VM_SYSC_DNAME   0x0a
-#define VM_SYSC_MPUTS   0x0b
-#define VM_SYSC_FLAGON  0x0c
-#define VM_SYSC_FLAGOFF 0x0d
-#define VM_SYSC_LAUNCH  0x0e
-#define VM_SYSC_EXIT    0x0f
+#ifndef VM_STACK_MAX
+#define VM_STACK_MAX 12
+#endif /* !VM_STACK_MAX */
+
+struct VM_PROC {
+   uint16_t ipc;
+   uint8_t prev_instr;
+   uint8_t stack[VM_STACK_MAX];
+   uint8_t stack_len;
+};
+
+#define VM_OP_TABLE( f ) \
+   f(   0,  0, NOP,     "nop" ) \
+   f(   1,  0, SECT,    "sect" ) \
+   f(   2,  1, SYSC,    "sysc" ) \
+   f(   3,  1, PUSH,    "push" ) \
+   f(   4,  0, SPOP,    "spop" ) \
+   f(   5,  0, SADD,    "saddd" ) \
+   f(   6,  0, SJUMP,   "sjump" ) \
+   f(   7,  0, SRET,    "sret" ) \
+   f(   8,  1, JUMP,    "jump" ) \
+   f(   9,  1, JSEQ,    "jseq" ) \
+   f(  10,  1, JSNE,    "jsne" ) \
+   f(  11,  1, JSGE,    "jsge" ) \
+   f(  12,  1, MPOPO,   "mpopo" ) \
+   f(  13,  1, MPOP,    "mpop" ) \
+   f(  14,  1, MPUSHCO, "mpushco" ) \
+   f(  15,  1, MPUSHC,  "mpushc" ) \
+   f(  16,  1, MALLOC,  "malloc" ) \
+   f(  17,  1, MFREE,   "mfree" )
 
 #define VM_SECTION_DATA 0x01
 #define VM_SECTION_CPU  0x02
 
-SIPC_PTR vm_instr_execute( TASK_PID pid, uint16_t instr_full );
+/* SIPC_PTR vm_instr_execute( TASK_PID pid, uint16_t instr_full ); */
+
+typedef uint16_t (*VM_OP)( struct VM_PROC proc, uint8_t flags );
+
+#define VM_OP_PROTOTYPES( idx, argc, op, token ) \
+   uint16_t vm_op_ ## op ( struct VM_PROC proc, uint8_t flags );
+
+VM_OP_TABLE( VM_OP_PROTOTYPES )
+
+#ifdef VM_ASSM
+
+/* === If we're being called inside vm.c === */
+
+#define VM_OP_STR_LIST( idx, argc, op, token ) token,
+
+const char* gc_vm_op_tokens[] = {
+   VM_OP_TABLE( VM_OP_STR_LIST )
+   "" /* Terminator for easier looping. */
+};
+
+#define VM_OP_IDX_LIST( idx, argc, op, token ) \
+   const uint8_t VM_OP_ ## op = idx;
+
+VM_OP_TABLE( VM_OP_IDX_LIST );
+
+#define VM_OP_ARGC_LIST( idx, argc, op, token ) argc,
+
+const uint8_t gc_vm_op_argcs[] = {
+   VM_OP_TABLE( VM_OP_ARGC_LIST )
+};
+
+#endif /* !VM_ASSM */
+
+#ifdef VM_C
+
+#define VM_OP_LIST( idx, argc, op, token ) vm_op_ ## op,
+
+#else
+
+#endif /* VM_C */
 
 #endif /* VM_H */
 

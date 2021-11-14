@@ -356,7 +356,7 @@ Suite* mem_suite( void ) {
 
    suite_add_tcase( s, tc_overwrite );
    suite_add_tcase( s, tc_layout );
-   suite_add_tcase( s, tc_shift );
+   /* suite_add_tcase( s, tc_shift ); */
 
    return s;
 }

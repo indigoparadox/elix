@@ -4,7 +4,6 @@ bochsout.txt
 floppy.img
 *.bin
 qdlx
-tests
 qd86.img
 qd430.bin
 build

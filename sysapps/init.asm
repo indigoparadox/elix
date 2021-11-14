@@ -118,7 +118,7 @@ proc_line:
    push     #0          ; Push part ID 0
    syscall  dfirst      ; Get the first entry offset.
    pushd    #0
-   jsed     not_found
+   jseqd    not_found
    pushd    #2          ; fs_offset is a double.
    malloc   $fs_offset  ; Allocate fs_offset.
    mpopd    $fs_offset  ; Store FS offset in memory.
@@ -151,7 +151,7 @@ icmp_finish:
    push     #0          ; Push part ID 0
    syscall  dnext
    pushd    #0
-   jsed     fs_iter_cleanup   ; No more files in this directory.
+   jseqd    fs_iter_cleanup   ; No more files in this directory.
    mpopd    $fs_offset  ; Store FS offset in memory.
    jump     fs_iter     ; Loop until found or no more.
 
@@ -179,7 +179,7 @@ icmp_loop:
 
    mpushcd  $icmp_idx      ;
    pushd    #13            ; Compare 13 chars.
-   jsed     icmp_match     ; Reached max chars (pops #13).
+   jseqd    icmp_match     ; Reached max chars (pops #13).
    
    mpushco  $line          ; Push line address (idx still on stack from before).
    mpushcd  $icmp_idx      ; Push compare offset.
