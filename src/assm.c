@@ -1,4 +1,5 @@
 
+#define ASSM_C
 #define VM_ASSM
 #include "assm.h"
 #include "vm.h"
@@ -10,15 +11,6 @@
 #include <stdlib.h>
 
 #define BUF_SZ 40960
-
-#define STATE_NONE      0
-#define STATE_SECTION   1
-#define STATE_PARAMS    2
-#define STATE_CHAR      3
-#define STATE_STRING    4
-#define STATE_NUM       5
-#define STATE_COMMENT   6
-#define STATE_PLUS      7
 
 struct label {
    unsigned short ipc;
@@ -33,7 +25,6 @@ int g_section = 0;
 int g_escape = 0;
 int g_instr = 0;
 int g_state = STATE_NONE;
-int g_plus = 0;
 char g_token[BUF_SZ + 1] = { 0 };
 unsigned short g_token_len = 0;
 FILE* g_src_file = NULL,
@@ -128,7 +119,12 @@ void append_to_token( char c ) {
    g_token_len++;
 }
 
-uint8_t token_to_op( char* token, int* instr_args ) {
+void append_to_string( char c ) {
+   assm_dprintf( 1, "str c: %c", c );
+   write_bin_instr_or_data( c );
+}
+
+uint8_t token_to_op( char* token ) {
    uint8_t i = 0,
       op_out = 0;
 
@@ -144,11 +140,11 @@ uint8_t token_to_op( char* token, int* instr_args ) {
    }
 
    if( 0 == op_out ) {
-      assm_eprintf( "invalid token specified: %s", token );
+      if( 0 < strlen( token ) ) {
+         assm_eprintf( "invalid token specified: %s", token );
+      }
       goto cleanup;
    }
-
-   *instr_args = gc_vm_op_argcs[op_out];
 
    if( 'd' == token[strlen( gc_vm_op_tokens[op_out] )] ) {
       /* Set the high bit to indicate op on a double. */
@@ -181,9 +177,120 @@ uint8_t token_to_sysc( char* token ) {
    return sysc_out;
 }
 
+void set_global_instr( int instr_bytecode ) {
+   if( 0 == instr_bytecode ) {
+      assm_dprintf( 1, "no longer processing instruction" );
+   } else {
+      assm_dprintf( 1, "processing instruction: %s",
+         gc_vm_op_tokens[instr_bytecode & 0x7f] );
+   }
+   g_instr = instr_bytecode;
+}
+
+void process_token( char* token ) {
+   int instr_bytecode = 0;
+   unsigned short label_ipc = 0;
+
+   switch( g_state ) {
+   case STATE_NONE:
+      /* Try to decode token as an instruction. */
+      instr_bytecode = token_to_op( g_token );
+      if( 0 < instr_bytecode ) {
+         assm_dprintf( 2, "token: %s (%d)",
+            gc_vm_op_tokens[instr_bytecode & 0x7f],
+            instr_bytecode );
+         if( 0 < gc_vm_op_argcs[instr_bytecode & 0x7f] ) {
+            set_global_state( STATE_PARAMS );
+            set_global_instr( instr_bytecode );
+         } else {
+            set_global_state( STATE_NONE );
+         }
+
+         write_bin_instr_or_data( (unsigned char)instr_bytecode );
+         if(
+            0 == gc_vm_op_argcs[instr_bytecode & 0x7f] ||
+            0x80 == instr_bytecode & 0x80
+         ) {
+            /* Stack instruction has no data or 16-bit-wide data,
+               so put a null padding in instruction data field. */
+            assm_dprintf( 1, "padding:" );
+            write_bin_instr_or_data( 0 );
+         }
+
+      } else if( 0 < strlen( g_token ) ) {
+         assm_eprintf( "unknown instruction: %s", g_token );
+         assert( 1 == 0 );
+      }
+
+      reset_token();
+      break;
+
+   case STATE_NUM:
+      /* Decode token as number. */
+      if(
+         0x80 == g_instr & 0x80 &&
+         0 < gc_vm_op_argcs[g_instr & 0x7f]
+      ) {
+         write_double_bin_instr_or_data( atoi( g_token ) );
+      } else {
+         assm_dprintf( 1, "num: %d", atoi( g_token ) );
+         write_bin_instr_or_data( atoi( g_token ) );
+      }
+      set_global_state( STATE_NONE );
+      reset_token();
+      break;
+
+   case STATE_ALLOC:
+      add_label( g_token, g_next_alloc_mid, &g_labels );
+      label_ipc = g_next_alloc_mid;
+      g_next_alloc_mid++;
+      set_global_state( STATE_NONE );
+      set_global_instr( 0 );
+      reset_token();
+      break;
+
+   case STATE_LABEL:
+      /* Decode token as label param (or alloc). */
+      label_ipc = get_label_ipc( g_token, g_ipc );
+      if(
+         1 == gc_vm_op_argcs[instr_bytecode & 0x7f] &&
+         0x80 == instr_bytecode & 0x80
+      ) {
+         write_double_bin_instr_or_data( label_ipc );
+      } else {
+         write_bin_instr_or_data( (unsigned char)label_ipc );
+      }
+      set_global_state( STATE_NONE );
+      set_global_instr( 0 );
+      reset_token();
+      break;
+
+   case STATE_SYSC:
+      if( 0 < g_token_len ) {
+         instr_bytecode = token_to_sysc( g_token );
+         assm_dprintf( 1, "param: %s%s", g_token,
+            0 < instr_bytecode ? " (%d)" : "(invalid token)" );
+
+         if( 0 < instr_bytecode ) {
+            write_bin_instr_or_data( (unsigned char)instr_bytecode );
+         }
+
+         set_global_state( STATE_NONE );
+         set_global_instr( 0 );
+         reset_token();
+      }
+      break;
+
+   }
+}
+
+void set_global_state( int state ) {
+   assm_dprintf( 2, "state: %s", gc_assm_states[state] );
+   g_state = state;
+}
+
 void process_char( char c ) {
    char buf_out[BUF_SZ + 1] = { 0 };
-   unsigned short label_ipc = 0;
    int instr_bytecode = 0,
       instr_args = 0;
 
@@ -191,11 +298,10 @@ void process_char( char c ) {
    case '.':
       if( STATE_NONE == g_state ) {
          assm_dprintf( 1, "state section" );
-         g_state = STATE_SECTION;
+         set_global_state( STATE_SECTION );
          reset_token();
-      } else if( STATE_STRING == g_state ) {
-         assm_dprintf( 1, "c: %c", c );
-         write_bin_instr_or_data( c );
+      } else if( STATE_STRING == g_state || STATE_CHAR == g_state ) {
+         append_to_string( c );
       }
       break;
 
@@ -212,17 +318,20 @@ void process_char( char c ) {
             write_bin_instr_or_data( VM_SECTION_DATA );
             g_section = VM_SECTION_DATA;
 
+         } else {
+            assm_eprintf( "invalid section: %s", g_token );
+            assert( 1 == 0 );
          }
+         set_global_state( STATE_NONE );
          reset_token();
-         g_state = STATE_NONE;
 
       } else if( STATE_NONE == g_state ) {
          add_label( g_token, g_ipc, &g_labels );
+         /* TODO: Set state? */
          reset_token();
 
-      } else if( STATE_STRING == g_state ) {
-         assm_dprintf( 1, "c: %c", c );
-         write_bin_instr_or_data( c );
+      } else if( STATE_STRING == g_state || STATE_CHAR == g_state ) {
+         append_to_string( c );
       }
       break;
 
@@ -230,22 +339,28 @@ void process_char( char c ) {
       if(
          STATE_NONE == g_state ||
          STATE_PARAMS == g_state ||
-         STATE_NUM == g_state ||
-         STATE_PLUS == g_state
+         STATE_NUM == g_state
       ) {
-         g_state = STATE_COMMENT;
+         set_global_state( STATE_COMMENT );
       } else if( STATE_STRING == g_state || STATE_CHAR == g_state ) {
-         assm_dprintf( 1, "c: %c", c );
-         write_bin_instr_or_data( c );
+         append_to_string( c );
       }
       break;
 
    case '#':
-      if( STATE_STRING == g_state ) {
-         assm_dprintf( 1, "c: %c", c );
-         write_bin_instr_or_data( c );
+      if( STATE_STRING == g_state || STATE_CHAR == g_state ) {
+         append_to_string( c );
       } else if( STATE_PARAMS == g_state ) {
-         g_state = STATE_NUM;
+         set_global_state( STATE_NUM );
+      }
+      break;
+
+   case '$':
+      if( STATE_STRING == g_state || STATE_CHAR == g_state ) {
+         append_to_string( c );
+      } else if( STATE_PARAMS == g_state ) {
+         append_to_token( c );
+         set_global_state( STATE_ALLOC );
       }
       break;
 
@@ -254,26 +369,22 @@ void process_char( char c ) {
       /* TODO: Handled escaped quote. */
       if( STATE_STRING == g_state ) {
          write_bin_instr_or_data( 0 ); /* Append NULL byte. */
-         assm_dprintf( 1, "state none" );
-         g_state = STATE_NONE;
+         set_global_state( STATE_NONE );
 
       } else {
          assert( STATE_NONE == g_state );
-         assm_dprintf( 1, "state string" );
-         g_state = STATE_STRING;
+         set_global_state( STATE_STRING );
       }
       break;
 
    case '\'':
       if( VM_SECTION_CPU == g_section ) {
          if( STATE_PARAMS == g_state ) {
-            assm_dprintf( 1, "state char" );
-            g_state = STATE_CHAR;
+            set_global_state( STATE_CHAR );
 
          } else if( STATE_CHAR == g_state ) {
-            assm_dprintf( 1, "state none" );
+            set_global_state( STATE_NONE );
             reset_token();
-            g_state = STATE_NONE;
 
          } else if( STATE_COMMENT == g_state ) {
             /* Do nothing. */
@@ -294,135 +405,32 @@ void process_char( char c ) {
          (STATE_CHAR == g_state || STATE_STRING == g_state) && g_escape
       ) {
          g_escape = 0;
-         assm_dprintf( 1, "c: %c", c );
-         write_bin_instr_or_data( c );
+         append_to_string( c );
 
       }
       break;
 
    case '+':
       if( STATE_STRING == g_state || STATE_CHAR == g_state ) {
-         assm_dprintf( 1, "c: %c", c );
-         write_bin_instr_or_data( c );
+         append_to_string( c );
 
       } else if( STATE_PARAMS == g_state ) {
-         g_state = STATE_PLUS;
-         g_plus = 0;
-         assm_dprintf( 1, "state plus" );
+         set_global_state( STATE_NUM );
       }
       break;
 
    case '\n':
    case '\r':
    case ' ':
-      if( STATE_NONE == g_state ) {
-         /* Try to decode token as an instruction. */
-         instr_bytecode = token_to_op( g_token, &instr_args );
-         if( 0 < instr_bytecode ) {
-            if( 0 < instr_args ) {
-               g_state = STATE_PARAMS;
-               g_instr = instr_bytecode;
-            } else {
-               g_state = STATE_NONE;
-            }
+      if( STATE_STRING == g_state || STATE_CHAR == g_state ) {
+         append_to_string( c );
 
-         } else if(
-            '\0' != g_token[0] &&
-            ' ' != g_token[0] && 
-            '\n' != g_token[0] &&
-            '\r' != g_token[0]
-         ) {
-            assm_eprintf( "unknown instruction: %s", g_token );
-            assert( 1 == 0 );
-         }
+      } else if( STATE_COMMENT == g_state && '\n' == c || '\r' == c ) {
+         /* Comments end at newline. */
+         set_global_state( STATE_NONE );
 
-         if( 0 < instr_bytecode ) {
-            assm_dprintf( 1, "instr: %s (%d)", g_token, instr_bytecode );
-            write_bin_instr_or_data( (unsigned char)instr_bytecode );
-            if(
-               0 == gc_vm_op_argcs[instr_bytecode & 0x7f] ||
-               0x80 == instr_bytecode & 0x80
-            ) {
-               /* Stack instruction has no data or 16-bit-wide data,
-                  so put a null padding in instruction data field. */
-               assm_dprintf( 1, "padding:" );
-               write_bin_instr_or_data( 0 );
-            }
-         } else {
-            //printf( "(bad instruction)\n" );
-         }
-         reset_token();
-
-      } else if( STATE_COMMENT == g_state && ('\n' == c || '\r' == c) ) {
-         g_state = STATE_NONE;
-
-      } else if( STATE_STRING == g_state ) {
-         /* Add whitespace character to string literal. */
-         write_bin_instr_or_data( c );
-
-      } else if( STATE_NUM == g_state || STATE_PLUS == g_state ) {
-         /* Decode token as number. */
-         if( 
-            1 == gc_vm_op_argcs[instr_bytecode & 0x7f] &&
-            0x80 == instr_bytecode & 0x80
-         ) {
-            write_double_bin_instr_or_data( atoi( g_token ) );
-         } else {
-            assm_dprintf( 1, "num: %d", atoi( g_token ) );
-            write_bin_instr_or_data( atoi( g_token ) );
-         }
-         reset_token();
-         g_state = STATE_NONE;
-
-      } else if(
-         /* (0 == gc_vm_op_argcs[instr_bytecode & 0x7f] ||
-            (1 == gc_vm_op_argcs[instr_bytecode & 0x7f] &&
-               0x80 == instr_bytecode & 0x80)) && */
-         /* (VM_INSTR_PUSH == g_instr ||
-            VM_INSTR_PUSHD == g_instr ||
-            (VM_INSTR_JMIN <= g_instr && VM_INSTR_JMAX >= g_instr) ||
-            (VM_INSTR_MMIN <= g_instr && VM_INSTR_MMAX >= g_instr)) && */
-         STATE_PARAMS == g_state &&
-         0 < g_token_len
-      ) {
-         /* Decode token as label (or alloc). */
-         label_ipc = get_label_ipc( g_token, g_ipc );
-         if( '$' == g_token[0] && 0 == label_ipc ) {
-            /* Token is an alloc, so create if doesn't exist. */
-            add_label( g_token, g_next_alloc_mid, &g_labels );
-            label_ipc = g_next_alloc_mid;
-            g_next_alloc_mid++;
-         }
-         if(
-            1 == gc_vm_op_argcs[instr_bytecode & 0x7f] &&
-            0x80 == instr_bytecode & 0x80
-         ) {
-            write_double_bin_instr_or_data( label_ipc );
-         } else {
-            write_bin_instr_or_data( (unsigned char)label_ipc );
-         }
-         g_state = STATE_NONE;
-         g_instr = 0;
-         reset_token();
-
-      } else if( STATE_PARAMS == g_state && VM_OP_SYSC == g_instr ) {
-         if( 0 < g_token_len ) {
-            instr_bytecode = token_to_sysc( g_token );
-            assm_dprintf( 1, "param: %s%s", g_token,
-               0 < instr_bytecode ? " (%d)" : "(invalid token)" );
-
-            if( 0 < instr_bytecode ) {
-               write_bin_instr_or_data( (unsigned char)instr_bytecode );
-            }
-  
-            g_state = STATE_NONE;
-            g_instr = 0;
-            reset_token();
-         }
-
-      } else if( STATE_CHAR == g_state && ' ' == c ) {
-         assm_dprintf( 1, "c: %c", c );
-         write_bin_instr_or_data( c );
+      } else {
+         process_token( g_token );
       }
       break;
 
@@ -445,6 +453,16 @@ void process_char( char c ) {
 
       } else if( STATE_COMMENT == g_state ) {
          /* Do nothing. */
+
+      } else if( STATE_PARAMS == g_state ) {
+         if( VM_OP_SYSC == g_instr & 0x7f ) {
+            /* Last instruction was syscall, so expect a syscall. */
+            set_global_state( STATE_SYSC );
+         } else {
+            /* Expect a label to jump to/push/etc. */
+            set_global_state( STATE_LABEL );
+         }
+         append_to_token( c );
 
       } else {
          append_to_token( c );

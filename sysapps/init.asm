@@ -43,7 +43,8 @@ poll:
    push     #0
    jsne     proc_char   ; If input char != 0, process it.
    spop                 ; Else clear the stack.
-   jump     poll        ; Poll again.
+   pushd    poll
+   sjump                ; Poll again.
 
 proc_char:
    push     '\n'        ; Push \n char to compare to input char in jseq.
@@ -62,7 +63,8 @@ proc_char:
    push     #0          ; Push NULL to stack.
    mpushcd  $line_offst ; Push copy of offset to stack.
    mpopo    $line       ; Pop NULL to line+new offset (pops offset AND NULL).
-   jump     poll
+   pushd    poll
+   sjump
 
 too_long:
    spop                 ; Remove input char from stack.
@@ -72,14 +74,16 @@ too_long:
    syscall  puts      ; Print warning (pops warning).
    pushd    #0
    mpopd    $line_offst ; Pop 0 offset to memory.
-   jump     start
+   pushd    start
+   sjump
 
 not_found:
    spop
    spop                 ; Pop FS offset.
    pushd    nftext
    syscall  puts
-   jump     start
+   pushd    start
+   sjump
 
 fs_match:
    spop                 ; Clear icmp result.
@@ -105,7 +109,8 @@ fs_match:
    mpopd    $line_offst ; Pop 0 line offset to memory.
    push     #0          ; Push NULL to stack.
    mpop     $line       ; Pop NULL to line char 0.
-   jump     start       ; TODO: Use sjump.
+   pushd    start
+   sjump
 
 proc_line:
    spop                 ; Remove input char from stack.
@@ -140,7 +145,8 @@ fs_iter:
 
    ;pushd    $filename
    ;pushd    $line
-   jump     icmp        ; Compare line and filename.
+   pushd    icmp  ; Compare line and filename.
+   sjump
 
 icmp_finish:
    push     #0
@@ -153,7 +159,8 @@ icmp_finish:
    pushd    #0
    jseqd    fs_iter_cleanup   ; No more files in this directory.
    mpopd    $fs_offset  ; Store FS offset in memory.
-   jump     fs_iter     ; Loop until found or no more.
+   pushd    fs_iter ; Loop until found or no more.
+   sjump
 
 fs_iter_cleanup:
    spop                 ; Pop fs_offset.
@@ -164,7 +171,8 @@ fs_iter_cleanup:
    mfree    $fs_offset
    push     #0          ; Push NULL to stack.
    mpop     $line       ; Pop NULL to line char 0.
-   jump     start
+   pushd    start
+   sjump
 
 ; Should be called after pushing:
 ; - line compare length
@@ -195,23 +203,27 @@ icmp_loop:
    saddd                   ; Add 1 to offset (pops #1).
    mpopd    $icmp_idx
 
-   jump     icmp_loop
+   pushd    icmp_loop
+   sjump
 
 icmp_no_match:
    spop                    ; Pop filename comparison char.
    push     #1             ; 1 for no match.
-   jump     icmp_cleanup
+   pushd    icmp_cleanup
+   sjump
 
 icmp_match:
    spop                    ; Pop filename comparison char.
    push     #0             ; 0 for match.
-   jump     icmp_cleanup
+   pushd    icmp_cleanup
+   sjump
 
 icmp_cleanup:
 
    mfree    $icmp_idx
 
-   jump     icmp_finish
+   pushd    icmp_finish
+   sjump
 
 sub_logo:
 

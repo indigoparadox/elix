@@ -1,6 +1,8 @@
 
 #include <check.h>
 
+const char* gc_test_in = "";
+
 START_TEST( test_assm_encode_single ) {
 }
 END_TEST
