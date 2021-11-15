@@ -1,9 +1,9 @@
 
 #define ASSM_C
-#define VM_ASSM
+#ifdef ASSM_NO_VM
+#define VM_C
+#endif /* ASSM_NO_VM */
 #include "assm.h"
-#include "vm.h"
-#include "sysc.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -12,56 +12,38 @@
 
 #define BUF_SZ 40960
 
-struct label {
-   unsigned short ipc;
-   char name[BUF_SZ + 1];
-   struct label* next;
-};
-
-struct label* g_labels = NULL;
-struct label* g_unresolved = NULL;
-unsigned short g_ipc = 0;
-int g_section = 0;
-int g_escape = 0;
-int g_instr = 0;
-int g_state = STATE_NONE;
-char g_token[BUF_SZ + 1] = { 0 };
-unsigned short g_token_len = 0;
-FILE* g_src_file = NULL,
-   * g_bin_file = NULL;
-uint8_t g_next_alloc_mid = 1;
-
-void reset_token() {
-   memset( g_token, '\0', BUF_SZ + 1 );
-   g_token_len = 0;
+void reset_token( struct ASSM_STATE* global ) {
+   memset( global->token, '\0', ASSM_TOKEN_MAX );
 }
 
-void add_label( char* name, int ipc, struct label** head ) {
-   struct label* label_iter = *head;
+void add_label( char* name, int ipc, struct ASSM_STATE* global ) {
+   struct ASSM_LABEL* label_iter = global->labels;
 
-   if( NULL == *head ) {
-      *head = calloc( 1, sizeof( struct label ) );
-      assert( NULL != *head );
-      label_iter = *head;
+   if( NULL == global->labels ) {
+      global->labels = calloc( 1, sizeof( struct ASSM_LABEL ) );
+      assert( NULL != global->labels );
+      label_iter = global->labels;
 
    } else {
       while( NULL != label_iter->next ) {
          label_iter = label_iter->next;
       }
-      label_iter->next = calloc( 1, sizeof( struct label ) );
+      label_iter->next = calloc( 1, sizeof( struct ASSM_LABEL ) );
       assert( NULL != label_iter->next );
       label_iter = label_iter->next;
    }
 
-   strncpy( label_iter->name, name, BUF_SZ );
+   strncpy( label_iter->name, name, ASSM_TOKEN_MAX );
    label_iter->ipc = ipc;
 
    assm_dprintf( 1, "label: %s @ %d%s", name, ipc,
       '$' == name[0] ? " (dynamic)" : "" );
 }
 
-unsigned short get_label_ipc( char* label, unsigned short ipc_of_call ) {
-   struct label* label_iter = g_labels;
+unsigned short get_label_ipc(
+   char* label, unsigned short ipc_of_call, struct ASSM_STATE* global
+) {
+   struct ASSM_LABEL* label_iter = global->labels;
 
    while(
       NULL != label_iter &&
@@ -83,7 +65,7 @@ unsigned short get_label_ipc( char* label, unsigned short ipc_of_call ) {
    if( NULL == label_iter ) {
       if( '$' != label[0] ) {
          assm_eprintf( "label not found; added to unresolved list" );
-         add_label( label, ipc_of_call, &g_unresolved );
+         add_label( label, ipc_of_call, global );
       }
       return 0;
    }
@@ -93,35 +75,55 @@ unsigned short get_label_ipc( char* label, unsigned short ipc_of_call ) {
    return label_iter->ipc;
 }
 
-void write_bin_instr_or_data( unsigned char c ) {
-   fwrite( &c, sizeof( char ), 1, g_bin_file );
-   g_ipc++;
-   assm_dprintf( 1, "wrote %d (0x%x), ipc: %d", c, c, g_ipc );
+void write_bin_instr_or_data( unsigned char c, struct ASSM_STATE* global ) {
+   unsigned char* new_out_buffer = NULL;
+
+   if( NULL == global->out_buffer ) {
+      global->out_buffer_sz = ASSM_OUT_BUFFER_INITIAL_SZ;
+      global->out_buffer = calloc( global->out_buffer_sz, 1 );
+      assert( NULL != global->out_buffer );
+   } else if( global->out_buffer_pos + 1 >= global->out_buffer_sz ) {
+      global->out_buffer_sz *= 2;
+      new_out_buffer = realloc( global->out_buffer, global->out_buffer_sz );
+      assert( NULL != new_out_buffer );
+      global->out_buffer = new_out_buffer;
+   }
+   
+   /* fwrite( &c, sizeof( char ), 1, bin_file ); */
+
+   global->out_buffer[global->out_buffer_pos] = c;
+   if( global->out_buffer_pos == global->out_buffer_len ) {
+      global->out_buffer_len++;
+   }
+   global->out_buffer_pos++;
+   global->ipc++;
+   assm_dprintf( 1, "wrote %d (0x%x), ipc: %d", c, c, global->ipc );
 }
 
-void write_double_bin_instr_or_data( unsigned short u ) {
+void write_double_bin_instr_or_data(
+   unsigned short u, struct ASSM_STATE* global
+) {
    assm_dprintf( 1, "first byte:" );
-   write_bin_instr_or_data( (uint8_t)((u >> 8) & 0x00ff) );
+   write_bin_instr_or_data( (uint8_t)((u >> 8) & 0x00ff), global );
    assm_dprintf( 1, "second byte:" );
-   write_bin_instr_or_data( (uint8_t)(u & 0x00ff) );
+   write_bin_instr_or_data( (uint8_t)(u & 0x00ff), global );
    assm_dprintf( 1, "previous writes wrote %d (0x%x) (0x%x 0x%x), ipc: %d, %d",
       u,
       u,
       (uint8_t)((u >> 8) & 0x00ff),
       (uint8_t)(u & 0x00ff),
-      g_ipc - 1,
-      g_ipc);
+      global->ipc - 1,
+      global->ipc);
 }
 
-void append_to_token( char c ) {
-   assert( g_token_len < BUF_SZ );
-   g_token[g_token_len] = c;
-   g_token_len++;
+void append_to_token( char c, struct ASSM_STATE* global ) {
+   assert( strlen( global->token ) < ASSM_TOKEN_MAX );
+   global->token[strlen( global->token )] = c;
 }
 
-void append_to_string( char c ) {
+void append_to_string( char c, struct ASSM_STATE* global ) {
    assm_dprintf( 1, "str c: %c", c );
-   write_bin_instr_or_data( c );
+   write_bin_instr_or_data( c, global );
 }
 
 uint8_t token_to_op( char* token ) {
@@ -177,300 +179,333 @@ uint8_t token_to_sysc( char* token ) {
    return sysc_out;
 }
 
-void set_global_instr( int instr_bytecode ) {
+void set_global_instr( int instr_bytecode, struct ASSM_STATE* global ) {
    if( 0 == instr_bytecode ) {
       assm_dprintf( 1, "no longer processing instruction" );
    } else {
       assm_dprintf( 1, "processing instruction: %s",
-         gc_vm_op_tokens[instr_bytecode & 0x7f] );
+         gc_vm_op_tokens[instr_bytecode & ASSM_MASK_OP] );
    }
-   g_instr = instr_bytecode;
+   global->instr = instr_bytecode;
 }
 
-void process_token( char* token ) {
+void set_global_section( int section, struct ASSM_STATE* global ) {
+   assm_dprintf( 1, "new section: %d", section );
+   global->section = section;
+}
+
+void process_token( struct ASSM_STATE* global ) {
    int instr_bytecode = 0;
    unsigned short label_ipc = 0;
 
-   switch( g_state ) {
+   switch( global->state ) {
    case STATE_NONE:
       /* Try to decode token as an instruction. */
-      instr_bytecode = token_to_op( g_token );
-      if( 0 < instr_bytecode ) {
-         assm_dprintf( 2, "token: %s (%d)",
-            gc_vm_op_tokens[instr_bytecode & 0x7f],
-            instr_bytecode );
-         if( 0 < gc_vm_op_argcs[instr_bytecode & 0x7f] ) {
-            set_global_state( STATE_PARAMS );
-            set_global_instr( instr_bytecode );
-         } else {
-            set_global_state( STATE_NONE );
-         }
-
-         write_bin_instr_or_data( (unsigned char)instr_bytecode );
-         if(
-            0 == gc_vm_op_argcs[instr_bytecode & 0x7f] ||
-            0x80 == instr_bytecode & 0x80
-         ) {
-            /* Stack instruction has no data or 16-bit-wide data,
-               so put a null padding in instruction data field. */
-            assm_dprintf( 1, "padding:" );
-            write_bin_instr_or_data( 0 );
-         }
-
-      } else if( 0 < strlen( g_token ) ) {
-         assm_eprintf( "unknown instruction: %s", g_token );
+      instr_bytecode = token_to_op( global->token );
+      if( 0 >= instr_bytecode && 0 > strlen( global->token ) ) {
+         assm_eprintf( "unknown instruction: %s", global->token );
          assert( 1 == 0 );
       }
 
-      reset_token();
+      assm_dprintf( 2, "token: %s (%d)",
+         gc_vm_op_tokens[instr_bytecode & ASSM_MASK_OP],
+         instr_bytecode );
+      if( 0 < gc_vm_op_argcs[instr_bytecode & ASSM_MASK_OP] ) {
+         /* Tokens that take arguments mean arguments are next. */
+         set_global_state( STATE_PARAMS, global );
+         set_global_instr( instr_bytecode, global );
+      } else {
+         set_global_state( STATE_NONE, global );
+      }
+
+      write_bin_instr_or_data( (unsigned char)instr_bytecode, global );
+      if(
+         0 == gc_vm_op_argcs[instr_bytecode & ASSM_MASK_OP] ||
+         ASSM_MASK_DOUBLE == instr_bytecode & ASSM_MASK_DOUBLE
+      ) {
+         /* Stack instruction has no data or 16-bit-wide data,
+            so put a null padding in instruction data field. */
+         assm_dprintf( 1, "padding:" );
+         write_bin_instr_or_data( 0, global );
+      }
+
+      reset_token( global );
       break;
 
    case STATE_NUM:
       /* Decode token as number. */
       if(
-         0x80 == g_instr & 0x80 &&
-         0 < gc_vm_op_argcs[g_instr & 0x7f]
+         ASSM_MASK_DOUBLE == global->instr & ASSM_MASK_DOUBLE &&
+         0 < gc_vm_op_argcs[global->instr & ASSM_MASK_OP]
       ) {
-         write_double_bin_instr_or_data( atoi( g_token ) );
+         assm_dprintf( 1, "double num: %d", atoi( global->token ) );
+         write_double_bin_instr_or_data( atoi( global->token ), global );
+
       } else {
-         assm_dprintf( 1, "num: %d", atoi( g_token ) );
-         write_bin_instr_or_data( atoi( g_token ) );
+         assm_dprintf( 1, "num: %d", atoi( global->token ) );
+         write_bin_instr_or_data( atoi( global->token ), global );
+
       }
-      set_global_state( STATE_NONE );
-      reset_token();
+      set_global_state( STATE_NONE, global );
+      reset_token( global );
       break;
 
    case STATE_ALLOC:
-      add_label( g_token, g_next_alloc_mid, &g_labels );
-      label_ipc = g_next_alloc_mid;
-      g_next_alloc_mid++;
-      set_global_state( STATE_NONE );
-      set_global_instr( 0 );
-      reset_token();
+      /* Allocs are special labels with memory index instead of file offset. */
+      add_label( global->token, global->next_alloc_mid, global );
+      label_ipc = global->next_alloc_mid;
+      global->next_alloc_mid++;
+
+      /* As with label offsets, MIDs are always 16 bits wide. */
+      write_double_bin_instr_or_data( label_ipc, global );
+
+      /* Reset state. */
+      set_global_state( STATE_NONE, global );
+      set_global_instr( 0, global );
+      reset_token( global );
       break;
 
    case STATE_LABEL:
       /* Decode token as label param (or alloc). */
-      label_ipc = get_label_ipc( g_token, g_ipc );
-      if(
-         1 == gc_vm_op_argcs[instr_bytecode & 0x7f] &&
-         0x80 == instr_bytecode & 0x80
-      ) {
-         write_double_bin_instr_or_data( label_ipc );
-      } else {
-         write_bin_instr_or_data( (unsigned char)label_ipc );
-      }
-      set_global_state( STATE_NONE );
-      set_global_instr( 0 );
-      reset_token();
+      label_ipc = get_label_ipc( global->token, global->ipc, global );
+
+      /* Label offsets are always 16 bits wide. */
+      write_double_bin_instr_or_data( label_ipc, global );
+
+      /* Reset state. */
+      set_global_state( STATE_NONE, global );
+      set_global_instr( 0, global );
+      reset_token( global );
       break;
 
    case STATE_SYSC:
-      if( 0 < g_token_len ) {
-         instr_bytecode = token_to_sysc( g_token );
-         assm_dprintf( 1, "param: %s%s", g_token,
-            0 < instr_bytecode ? " (%d)" : "(invalid token)" );
+      assert( 0 < strlen( global->token ) );
 
-         if( 0 < instr_bytecode ) {
-            write_bin_instr_or_data( (unsigned char)instr_bytecode );
-         }
+      instr_bytecode = token_to_sysc( global->token );
+      assm_dprintf( 1, "param: %s%s", global->token,
+         0 < instr_bytecode ? " (%d)" : "(invalid token)" );
 
-         set_global_state( STATE_NONE );
-         set_global_instr( 0 );
-         reset_token();
+      if( 0 < instr_bytecode ) {
+         write_bin_instr_or_data( (unsigned char)instr_bytecode, global );
       }
+
+      set_global_state( STATE_NONE, global );
+      set_global_instr( 0, global );
+      reset_token( global );
       break;
 
    }
 }
 
-void set_global_state( int state ) {
+void set_global_state( int state, struct ASSM_STATE* global ) {
    assm_dprintf( 2, "state: %s", gc_assm_states[state] );
-   g_state = state;
+   global->state = state;
 }
 
-void process_char( char c ) {
+void process_char( char c, struct ASSM_STATE* global ) {
    char buf_out[BUF_SZ + 1] = { 0 };
    int instr_bytecode = 0,
       instr_args = 0;
 
    switch( c ) {
    case '.':
-      if( STATE_NONE == g_state ) {
-         assm_dprintf( 1, "state section" );
-         set_global_state( STATE_SECTION );
-         reset_token();
-      } else if( STATE_STRING == g_state || STATE_CHAR == g_state ) {
-         append_to_string( c );
+      if( STATE_NONE == global->state ) {
+         set_global_state( STATE_SECTION, global );
+         reset_token( global );
+
+      } else if(
+         STATE_STRING == global->state || STATE_CHAR == global->state
+      ) {
+         append_to_string( c, global );
       }
       break;
 
    case ':':
-      if( STATE_SECTION == g_state ) {
-         assm_dprintf( 1, "section: %s", g_token );
-         if( 0 == strncmp( "cpu", g_token, 3 ) ) {
-            write_bin_instr_or_data( VM_OP_SECT );
-            write_bin_instr_or_data( VM_SECTION_CPU );
-            g_section = VM_SECTION_CPU;
+      if( STATE_SECTION == global->state ) {
+         assm_dprintf( 1, "section: %s", global->token );
+         if( 0 == strncmp( "cpu", global->token, 3 ) ) {
+            write_bin_instr_or_data( VM_OP_SECT, global );
+            write_bin_instr_or_data( VM_SECTION_CPU, global );
+            set_global_section( VM_SECTION_CPU, global );
 
-         } else if( 0 == strncmp( "data", g_token, 4 ) ) {
-            write_bin_instr_or_data( VM_OP_SECT );
-            write_bin_instr_or_data( VM_SECTION_DATA );
-            g_section = VM_SECTION_DATA;
+         } else if( 0 == strncmp( "data", global->token, 4 ) ) {
+            write_bin_instr_or_data( VM_OP_SECT, global );
+            write_bin_instr_or_data( VM_SECTION_DATA, global );
+            set_global_section( VM_SECTION_DATA, global );
 
          } else {
-            assm_eprintf( "invalid section: %s", g_token );
+            assm_eprintf( "invalid section: %s", global->token );
             assert( 1 == 0 );
          }
-         set_global_state( STATE_NONE );
-         reset_token();
+         set_global_state( STATE_NONE, global );
+         reset_token( global );
 
-      } else if( STATE_NONE == g_state ) {
-         add_label( g_token, g_ipc, &g_labels );
+      } else if( STATE_NONE == global->state ) {
+         add_label( global->token, global->ipc, global );
          /* TODO: Set state? */
-         reset_token();
+         reset_token( global );
 
-      } else if( STATE_STRING == g_state || STATE_CHAR == g_state ) {
-         append_to_string( c );
+      } else if(
+         STATE_STRING == global->state || STATE_CHAR == global->state
+      ) {
+         append_to_string( c, global );
       }
       break;
 
    case ';':
       if(
-         STATE_NONE == g_state ||
-         STATE_PARAMS == g_state ||
-         STATE_NUM == g_state
+         STATE_NONE == global->state ||
+         STATE_PARAMS == global->state ||
+         STATE_NUM == global->state
       ) {
-         set_global_state( STATE_COMMENT );
-      } else if( STATE_STRING == g_state || STATE_CHAR == g_state ) {
-         append_to_string( c );
+         set_global_state( STATE_COMMENT, global );
+
+      } else if(
+         STATE_STRING == global->state || STATE_CHAR == global->state
+      ) {
+         append_to_string( c, global );
       }
       break;
 
    case '#':
-      if( STATE_STRING == g_state || STATE_CHAR == g_state ) {
-         append_to_string( c );
-      } else if( STATE_PARAMS == g_state ) {
-         set_global_state( STATE_NUM );
+      if( STATE_STRING == global->state || STATE_CHAR == global->state ) {
+         append_to_string( c, global );
+
+      } else if( STATE_PARAMS == global->state ) {
+         set_global_state( STATE_NUM, global );
       }
       break;
 
    case '$':
-      if( STATE_STRING == g_state || STATE_CHAR == g_state ) {
-         append_to_string( c );
-      } else if( STATE_PARAMS == g_state ) {
-         append_to_token( c );
-         set_global_state( STATE_ALLOC );
+      if( STATE_STRING == global->state || STATE_CHAR == global->state ) {
+         append_to_string( c, global );
+
+      } else if( STATE_PARAMS == global->state ) {
+         append_to_token( c, global );
+         set_global_state( STATE_ALLOC, global );
       }
       break;
 
    case '"':
       /* Start or terminate string. */
       /* TODO: Handled escaped quote. */
-      if( STATE_STRING == g_state ) {
-         write_bin_instr_or_data( 0 ); /* Append NULL byte. */
-         set_global_state( STATE_NONE );
+      if( STATE_STRING == global->state ) {
+         write_bin_instr_or_data( 0, global ); /* Append NULL byte. */
+         set_global_state( STATE_NONE, global );
 
       } else {
-         assert( STATE_NONE == g_state );
-         set_global_state( STATE_STRING );
+         assert( STATE_NONE == global->state );
+         set_global_state( STATE_STRING, global );
       }
       break;
 
    case '\'':
-      if( VM_SECTION_CPU == g_section ) {
-         if( STATE_PARAMS == g_state ) {
-            set_global_state( STATE_CHAR );
+      if( VM_SECTION_CPU == global->section ) {
+         if( STATE_PARAMS == global->state ) {
+            set_global_state( STATE_CHAR, global );
 
-         } else if( STATE_CHAR == g_state ) {
-            set_global_state( STATE_NONE );
-            reset_token();
+         } else if( STATE_CHAR == global->state ) {
+            set_global_state( STATE_NONE, global );
+            reset_token( global );
 
-         } else if( STATE_COMMENT == g_state ) {
+         } else if( STATE_COMMENT == global->state ) {
             /* Do nothing. */
 
          } else {
-            assm_dprintf( 1, "c: %c", c );
-            write_bin_instr_or_data( c );
+            append_to_string( c, global );
 
          }
       }
       break;
 
    case '\\':
-      if( (STATE_CHAR == g_state || STATE_STRING == g_state) && !g_escape ) {
-         g_escape = 1;
+      if(
+         (STATE_CHAR == global->state || STATE_STRING == global->state) &&
+         !(ASSM_FLAG_ESCAPE == global->flags & ASSM_FLAG_ESCAPE)
+      ) {
+         global_set_flags( ASSM_FLAG_ESCAPE, global );
 
       } else if(
-         (STATE_CHAR == g_state || STATE_STRING == g_state) && g_escape
+         (STATE_CHAR == global->state || STATE_STRING == global->state) &&
+         (ASSM_FLAG_ESCAPE == global->flags & ASSM_FLAG_ESCAPE)
       ) {
-         g_escape = 0;
-         append_to_string( c );
+         global_unset_flags( ASSM_FLAG_ESCAPE, global );
+         append_to_string( c, global );
 
       }
       break;
 
    case '+':
-      if( STATE_STRING == g_state || STATE_CHAR == g_state ) {
-         append_to_string( c );
+      if( STATE_STRING == global->state || STATE_CHAR == global->state ) {
+         append_to_string( c, global );
 
-      } else if( STATE_PARAMS == g_state ) {
-         set_global_state( STATE_NUM );
+      } else if( STATE_PARAMS == global->state ) {
+         set_global_state( STATE_NUM, global );
       }
       break;
 
    case '\n':
    case '\r':
    case ' ':
-      if( STATE_STRING == g_state || STATE_CHAR == g_state ) {
-         append_to_string( c );
+      if( STATE_STRING == global->state || STATE_CHAR == global->state ) {
+         append_to_string( c, global );
 
-      } else if( STATE_COMMENT == g_state && '\n' == c || '\r' == c ) {
+      } else if( STATE_COMMENT == global->state && '\n' == c || '\r' == c ) {
          /* Comments end at newline. */
-         set_global_state( STATE_NONE );
+         set_global_state( STATE_NONE, global );
 
       } else {
-         process_token( g_token );
+         process_token( global );
       }
       break;
 
    default:
-      if( STATE_CHAR == g_state || STATE_STRING == g_state ) {
-         if( g_escape && 'r' == c ) {
+      if( STATE_CHAR == global->state || STATE_STRING == global->state ) {
+         if(
+            (ASSM_FLAG_ESCAPE == global->flags & ASSM_FLAG_ESCAPE) &&
+            'r' == c
+         ) {
             c = '\r';
-            g_escape = 0;
-         } else if( g_escape && 'n' == c ) {
-            c = '\n';
-            g_escape = 0;
-         } else if( g_escape && 't' == c ) {
-            c = '\t';
-            g_escape = 0;
-         } else {
-            assert( !g_escape );
-         }
-         printf( "c: %c\n", c );
-         write_bin_instr_or_data( c );
+            global_unset_flags( ASSM_FLAG_ESCAPE, global );
 
-      } else if( STATE_COMMENT == g_state ) {
+         } else if(
+            (ASSM_FLAG_ESCAPE == global->flags & ASSM_FLAG_ESCAPE) &&
+            'n' == c
+         ) {
+            c = '\n';
+            global_unset_flags( ASSM_FLAG_ESCAPE, global );
+
+         } else if(
+            (ASSM_FLAG_ESCAPE == global->flags & ASSM_FLAG_ESCAPE) &&
+            't' == c
+         ) {
+            c = '\t';
+            global_unset_flags( ASSM_FLAG_ESCAPE, global );
+
+         } else {
+            assert( !(ASSM_FLAG_ESCAPE == (global->flags & ASSM_FLAG_ESCAPE)) );
+
+         }
+         append_to_string( c, global );
+
+      } else if( STATE_COMMENT == global->state ) {
          /* Do nothing. */
 
-      } else if( STATE_PARAMS == g_state ) {
-         if( VM_OP_SYSC == g_instr & 0x7f ) {
+      } else if( STATE_PARAMS == global->state ) {
+         if( VM_OP_SYSC == global->instr & ASSM_MASK_OP ) {
             /* Last instruction was syscall, so expect a syscall. */
-            set_global_state( STATE_SYSC );
+            set_global_state( STATE_SYSC, global );
          } else {
             /* Expect a label to jump to/push/etc. */
-            set_global_state( STATE_LABEL );
+            set_global_state( STATE_LABEL, global );
          }
-         append_to_token( c );
+         append_to_token( c, global );
 
       } else {
-         append_to_token( c );
+         append_to_token( c, global );
       }
       break;
    }
-   
-   //printf( "c: %c\n", c );
 }
 
 #ifdef ASSM_MAIN
@@ -479,44 +514,47 @@ int main( int argc, char* argv[] ) {
    int bytes_read = 0,
       i = 0;
    char buf[BUF_SZ + 1] = { 0 };
-   struct label* unresolved_iter = NULL;
+   struct ASSM_LABEL* unresolved_iter = NULL;
    unsigned short resolve_ipc = 0;
+   struct ASSM_STATE global;
+   FILE* src_file = NULL,
+      * bin_file = NULL;
+
+   /* Initialize state struct. */
+   memset( &global, '\0', sizeof( struct ASSM_STATE ) );
+   global.next_alloc_mid = 1;
 
    if( 2 >= argc ) {
       printf( "elix cross-assembler\n\n" );
       printf( "usage: %s <input source file> <binary output>\n\n", argv[0] );
    }
 
-   g_src_file = fopen( argv[1], "r" );
-   if( NULL == g_src_file ) {
+   src_file = fopen( argv[1], "r" );
+   if( NULL == src_file ) {
       goto cleanup;
    }
 
-   g_bin_file = fopen( argv[2], "wb" );
-   if( NULL == g_bin_file ) {
-      goto cleanup;
-   }
-
-   bytes_read = fread( &buf, sizeof( char ), BUF_SZ, g_src_file );
+   bytes_read = fread( &buf, sizeof( char ), BUF_SZ, src_file );
    while( 0 < bytes_read ) {
       assm_dprintf( 0, "read: %s", buf );
       for( i = 0 ; bytes_read > i ; i++ ) {
-         process_char( buf[i] );
+         process_char( buf[i], &global );
       }
-      bytes_read = fread( &buf, sizeof( char ), BUF_SZ, g_src_file );
+      bytes_read = fread( &buf, sizeof( char ), BUF_SZ, src_file );
    }
    memset( buf, '\0', BUF_SZ );
 
-   unresolved_iter = g_unresolved;
+   unresolved_iter = global.unresolved;
    while( NULL != unresolved_iter ) {
       assm_dprintf( 1, "unres: %s", unresolved_iter->name );
 
       resolve_ipc = 
-         get_label_ipc( unresolved_iter->name, unresolved_iter->ipc );
+         get_label_ipc( unresolved_iter->name, unresolved_iter->ipc, &global );
 
-      fseek( g_bin_file, unresolved_iter->ipc, SEEK_SET );
-      g_ipc = unresolved_iter->ipc;
-      write_double_bin_instr_or_data( resolve_ipc );
+      /* fseek( bin_file, unresolved_iter->ipc, SEEK_SET ); */
+      global.out_buffer_pos = unresolved_iter->ipc;
+      global.ipc = unresolved_iter->ipc;
+      write_double_bin_instr_or_data( resolve_ipc, &global );
 
       assm_dprintf( 1, "resolved to %d, placed at %d",
          resolve_ipc, unresolved_iter->ipc );
@@ -524,13 +562,19 @@ int main( int argc, char* argv[] ) {
       unresolved_iter = unresolved_iter->next;
    }
 
+   bin_file = fopen( argv[2], "wb" );
+   if( NULL == bin_file ) {
+      goto cleanup;
+   }
+   fwrite( global.out_buffer, sizeof( char ), global.out_buffer_len, bin_file );
+
 cleanup:
 
-   if( NULL != g_src_file ) {
-      fclose( g_src_file );
+   if( NULL != src_file ) {
+      fclose( src_file );
    }
-   if( NULL != g_bin_file ) {
-      fclose( g_bin_file );
+   if( NULL != bin_file ) {
+      fclose( bin_file );
    }
 
    return 0;

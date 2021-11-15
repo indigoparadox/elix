@@ -22,18 +22,5 @@
    f( MALLOC,     "malloc" ) \
    f( MFREE,      "mfree" )
 
-#ifdef VM_ASSM
-
-/* === If we're being called inside vm.c === */
-
-#define SYSC_STR_LIST( op, token ) token,
-
-const char* gc_sysc_tokens[] = {
-   SYSC_TABLE( SYSC_STR_LIST )
-   "" /* Terminator for easier looping. */
-};
-
-#endif /* !VM_ASSM */
-
 #endif /* !SYSC_H */
 

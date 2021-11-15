@@ -4,6 +4,7 @@
 #define ADHD_C
 #include "adhd.h"
 #include "mem.h"
+#include "vm.h"
 
 void adhd_start() {
    mzero( g_tasks, sizeof( struct adhd_task ) * ADHD_TASKS_MAX );
@@ -21,7 +22,7 @@ TASK_PID adhd_task_launch(
 
    /* Check for next available PID by using IPC (running tasks will always 
       have IPC > 0!) */
-   while( 0 < g_tasks[pid_iter].ipc ) {
+   while( 0 < g_tasks[pid_iter].proc.ipc ) {
       pid_iter++;
    }
    if( ADHD_TASKS_MAX <= pid_iter ) {
@@ -41,18 +42,18 @@ TASK_PID adhd_task_launch(
    do {
       bytes_read = mfat_get_dir_entry_data(
          task->file_offset,
-         task->ipc,
+         task->proc.ipc,
          (unsigned char*)(&byte_iter), 1,
          task->disk_id, task->part_id );
 
       if( 0 == bytes_read ) {
-         task->ipc = 0;
+         task->proc.ipc = 0;
          return RETVAL_TASK_INVALID;
       }
 
-      task->ipc += bytes_read;
+      task->proc.ipc += bytes_read;
 
-      if( VM_INSTR_SECT == byte_iter && !section_instr_found ) {
+      if( VM_OP_SECT == byte_iter && !section_instr_found ) {
          section_instr_found = 1;
       } else if( VM_SECTION_CPU == byte_iter && section_instr_found ) {
          cpu_section_found = 1;
@@ -68,26 +69,26 @@ TASK_PID adhd_task_launch(
 void adhd_task_execute_next( TASK_PID pid ) {
    struct adhd_task* task = &(g_tasks[pid]);
    uint16_t instr = 0;
-   ssize_t new_ipc = 0;
+   VM_SIPC new_ipc = 0;
    uint8_t byte_iter = 0;
 
    assert( 0 <= pid );
-   assert( 0 < task->ipc );
+   assert( 0 < task->proc.ipc );
 
    //dprint( "---\nipc: %ld\n", task->ipc );
 
    mfat_get_dir_entry_data(
       task->file_offset,
-      task->ipc,
+      task->proc.ipc,
       (unsigned char*)(&byte_iter), 1,
       task->disk_id, task->part_id );
    //dprint( "instr upper: %04x\n", instr );
    instr = byte_iter;
    instr <<= 8;
-   task->ipc++;
+   task->proc.ipc++;
    mfat_get_dir_entry_data(
       task->file_offset,
-      task->ipc,
+      task->proc.ipc,
       (unsigned char*)(&byte_iter), 1,
       task->disk_id, task->part_id );
    instr |= byte_iter;
@@ -97,12 +98,12 @@ void adhd_task_execute_next( TASK_PID pid ) {
    if( 0 >= new_ipc || task->sz < new_ipc ) {
       adhd_task_kill( pid );
    } else {
-      task->ipc = new_ipc;     
+      task->proc.ipc = new_ipc;     
    }
 }
 
 void adhd_task_kill( TASK_PID pid ) {
-   if( 0 > pid || pid >= ADHD_TASKS_MAX || 0 == g_tasks[pid].ipc ) {
+   if( 0 > pid || pid >= ADHD_TASKS_MAX || 0 == g_tasks[pid].proc.ipc ) {
       /* Invalid task index. */
       return;
    }
@@ -110,6 +111,6 @@ void adhd_task_kill( TASK_PID pid ) {
    /* TODO: Go through memory and remove any allocated blocks for this PID. */
    mfree_all( pid );
    
-   g_tasks[pid].ipc = 0;
+   g_tasks[pid].proc.ipc = 0;
 }
 

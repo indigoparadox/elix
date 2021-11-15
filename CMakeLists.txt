@@ -115,13 +115,13 @@ else()
    target_link_libraries(elix PUBLIC ${ELIX_LINK_EXTERNAL})
 
    add_executable(assm src/assm.c)
-   target_compile_definitions(assm PUBLIC ASSM_MAIN)
+   target_compile_definitions(assm PUBLIC ASSM_MAIN ASSM_NO_VM)
 
    add_executable(tests ${ELIX_CHECK_SOURCES})
    pkg_check_modules(PCAP REQUIRED IMPORTED_TARGET libpcap)
    pkg_check_modules(CHECK REQUIRED IMPORTED_TARGET check)
    target_compile_definitions(tests PUBLIC
-      CHECK QD_PLATFORM=QD_PLATFORM_COLINUX USE_NET MEM_SAVE)
+      CHECK QD_PLATFORM=QD_PLATFORM_COLINUX USE_NET MEM_SAVE ASSM_NO_VM)
    target_link_libraries(tests PUBLIC PkgConfig::PCAP PkgConfig::CHECK)
 
    add_custom_target(testfat ALL DEPENDS ${TESTIMG_FAT_FILENAME})

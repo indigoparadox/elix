@@ -2,19 +2,34 @@
 #ifndef VM_H
 #define VM_H
 
+/*! \file vm.h
+ *  \brief Interpreter for running user applications.
+ */
+
+/* TODO: Flatten this out. All instructions should be 16 bit. */
+
 #include "etypes.h"
 
+/*! \brief Indicates that an opcode operates on a short rather than a byte. */
 #define VM_FLAG_DBL        0x80
-#define VM_FLAG_OFFSET     0x
+
+/*! \brief ::VM_SIPC indicating stack overflow. */
+#define VM_ERROR_STACK     -2
 
 #ifndef VM_STACK_MAX
+/*! \brief Maximum bytes able to be stored in a process's stack. */
 #define VM_STACK_MAX 12
 #endif /* !VM_STACK_MAX */
 
+typedef uint8_t VM_OPCODE;
+
+/*! \brief The status of a currently executing process. */
 struct VM_PROC {
+   /*! \brief Byte index of current execution from start of executable file. */
    uint16_t ipc;
+   /*! \brief Previous executed opcode. */
    uint8_t prev_instr;
-   uint8_t stack[VM_STACK_MAX];
+   uint16_t stack[VM_STACK_MAX];
    uint8_t stack_len;
 };
 
@@ -41,44 +56,55 @@ struct VM_PROC {
 #define VM_SECTION_DATA 0x01
 #define VM_SECTION_CPU  0x02
 
-/* SIPC_PTR vm_instr_execute( TASK_PID pid, uint16_t instr_full ); */
+/*! \brief Signed IPC value. Negative values indicate an error. */
+typedef int16_t VM_SIPC;
 
-typedef uint16_t (*VM_OP)( struct VM_PROC proc, uint8_t flags );
+/**
+ * \brief Opcode handler callback.
+ * \param proc
+ * \param flags
+ * \param data
+ * \return New IPC value after this instruction is executed.
+ */
+typedef VM_SIPC (*VM_OP)( struct VM_PROC* proc, uint8_t flags, uint16_t data );
 
 #define VM_OP_PROTOTYPES( idx, argc, op, token ) \
-   uint16_t vm_op_ ## op ( struct VM_PROC proc, uint8_t flags );
+   VM_SIPC vm_op_ ## op ( struct VM_PROC* proc, uint8_t flags, uint16_t data );
 
 VM_OP_TABLE( VM_OP_PROTOTYPES )
 
-#ifdef VM_ASSM
+int16_t vm_stack_pop( struct VM_PROC* proc );
+static int16_t vm_stack_dpop( struct VM_PROC* proc );
 
-/* === If we're being called inside vm.c === */
+#define vm_stack_dpush( task, data ) \
+   (vm_stack_push( task, (uint8_t)(((data) >> 8) & 0x00ff) ) + \
+   vm_stack_push( task, (uint8_t)((data) & 0x00ff) ))
 
-#define VM_OP_STR_LIST( idx, argc, op, token ) token,
+#define vm_dprintf( lvl, ... ) \
+   if( lvl >= DEBUG_THRESHOLD ) { \
+      tprintf( "(%d) " __FILE__ ": %d: ", lvl, __LINE__ ); \
+      tprintf( __VA_ARGS__ ); \
+      tprintf( "\n" ); \
+   }
 
-const char* gc_vm_op_tokens[] = {
-   VM_OP_TABLE( VM_OP_STR_LIST )
-   "" /* Terminator for easier looping. */
-};
+#define vm_eprintf( ... ) \
+   tprintf( "(E) " __FILE__ ": %d: ", __LINE__ ); \
+   tprintf( __VA_ARGS__ ); \
+   tprintf( "\n" ); \
+
+#ifdef VM_C
 
 #define VM_OP_IDX_LIST( idx, argc, op, token ) \
    const uint8_t VM_OP_ ## op = idx;
 
 VM_OP_TABLE( VM_OP_IDX_LIST );
 
-#define VM_OP_ARGC_LIST( idx, argc, op, token ) argc,
-
-const uint8_t gc_vm_op_argcs[] = {
-   VM_OP_TABLE( VM_OP_ARGC_LIST )
-};
-
-#endif /* !VM_ASSM */
-
-#ifdef VM_C
-
-#define VM_OP_LIST( idx, argc, op, token ) vm_op_ ## op,
-
 #else
+
+#define VM_OP_IDX_LIST( idx, argc, op, token ) \
+   extern const uint8_t VM_OP_ ## op;
+
+VM_OP_TABLE( VM_OP_IDX_LIST );
 
 #endif /* VM_C */
 

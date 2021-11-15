@@ -8,71 +8,65 @@
 
 //#define USE_VM_MONITOR 1
 
-#define vm_stack_dpush( task, data ) \
-   (vm_stack_push( task, (uint8_t)(((data) >> 8) & 0x00ff) ) + \
-   vm_stack_push( task, (uint8_t)((data) & 0x00ff) ))
-
 #if USE_VM_MONITOR
 #include "vm_debug.h"
 #endif /* USE_VM_MONITOR */
 
 #ifdef USE_ERROR_CODES
-static const char gc_stack_error[] = "EVM01\n";
 static const char gc_mem_error[] = "EVM02\n";
-static const char gc_stream_error[] = "EVM03\n";
 #else
-static const char gc_stack_error[] = "aborting; stack error\n";
 static const char gc_mem_error[] = "aborting; mem error\n";
-static const char gc_stream_error[] = "aborting; stream error\n";
 #endif /* USE_ERROR_CODES */
 
-static int16_t vm_stack_pop( struct adhd_task* task ) {
-   if( 0 >= task->stack_len ) {
-      tprintf( "%s", gc_stack_error );
-      return -1;
+int16_t vm_stack_pop( struct VM_PROC* proc ) {
+   if( 0 >= proc->stack_len ) {
+      return VM_ERROR_STACK;
    }
    task->stack_len--;
    return task->stack[task->stack_len];
 }
 
-static int32_t vm_stack_dpop( struct adhd_task* task ) {
+int16_t vm_stack_dpop( struct VM_PROC* proc ) {
    uint16_t dout = 0;
-   if( 1 >= task->stack_len ) {
-      tprintf( "%s", gc_stack_error );
-      return -1;
+   if( 1 >= proc->stack_len ) {
+      return VM_ERROR_STACK;
    }
-   task->stack_len--;
+   proc->stack_len--;
    dout |= (task->stack[task->stack_len]) & 0x00ff;
-   task->stack_len--;
+   proc->stack_len--;
    dout |= (task->stack[task->stack_len] << 8) & 0xff00;
    return dout;
 }
 
-static int8_t vm_stack_push( struct adhd_task* task, uint8_t data ) {
-   if( VM_STACK_MAX <= task->stack_len + 1 ) {
-      tprintf( "%s", gc_stack_error );
-      return -1;
+int8_t vm_stack_push( struct VM_PROC* proc, uint16_t data ) {
+   if( VM_STACK_MAX <= proc->stack_len + 1 ) {
+      return VM_ERROR_STACK;
    }
-   task->stack[task->stack_len] = data;
-   task->stack_len++;
+   proc->stack[task->stack_len] = data;
+   proc->stack_len++;
    return 0;
 }
 
-#if 0
-static int8_t vm_stack_dpush( struct adhd_task* task, uint16_t data ) {
-   if( VM_STACK_MAX <= task->stack_len + 2 ) {
-      tprintf( "%s", gc_stack_error );
-      return -1;
-   }
-   task->stack[task->stack_len] = (uint8_t)((data >> 8) & 0x00ff);
-   task->stack_len++;
-   task->stack[task->stack_len] = (uint8_t)(data & 0x00ff);
-   task->stack_len++;
-   return 0;
-}
-#endif
+VM_SIPC vm_op_JSEQ( struct VM_PROC* proc, uint8_t flags, uint16_t data ) {
+   int16_t comp1 = 0,
+      comp2 = 0;
 
-static SIPC_PTR vm_instr_branch( TASK_PID pid, uint8_t instr, IPC_PTR addr ) {
+   comp2 = vm_stack_pop( task );
+   if( VM_ERROR_STACK == comp2 ) { return comp2; }
+   comp1 = vm_stack_pop( task );
+   if( VM_ERROR_STACK == comp1 ) { return comp1; }
+   vm_dprintf( 0, "%d vs %d", comp1, comp2 );
+   if( comp1 == comp2 ) {
+      return addr;
+   }
+   if( VM_ERROR_STACK == vm_stack_push( proc, comp1 ) ) {
+      return VM_ERROR_STACK;
+   }
+
+   return proc->ipc + 1;
+}
+
+static VM_SIPC vm_instr_branch( TASK_PID pid, uint8_t instr, IPC_PTR addr ) {
    struct adhd_task* task = &(g_tasks[pid]);
    int32_t comp1 = 0,
       comp2 = 0;
@@ -83,29 +77,13 @@ static SIPC_PTR vm_instr_branch( TASK_PID pid, uint8_t instr, IPC_PTR addr ) {
       return addr;
 
    case VM_INSTR_JSEQ:
-      comp2 = vm_stack_pop( task );
-      if( 0 > comp2 ) { return -1; }
-      comp1 = vm_stack_pop( task );
-      if( 0 > comp1 ) { return -1; }
-#if USE_VM_MONITOR
-      printf( "%d vs %d\n", comp1, comp2 );
-#endif /* USE_VM_MONITOR */
-      if( comp1 == comp2 ) {
-         retval = addr;
-      }
-      if( 0 > vm_stack_push( task, comp1 ) ) {
-         return -1;
-      }
-      break;
 
    case VM_INSTR_JSED:
       comp2 = vm_stack_dpop( task );
       if( 0 > comp2 ) { return -1; }
       comp1 = vm_stack_dpop( task );
       if( 0 > comp1 ) { return -1; }
-#if USE_VM_MONITOR
-      printf( "%d vs %d\n", comp1, comp2 );
-#endif /* USE_VM_MONITOR */
+      vm_dprintf( 0, "%d vs %d", comp1, comp2 );
       if( comp1 == comp2 ) {
          retval = addr;
       }
@@ -119,14 +97,10 @@ static SIPC_PTR vm_instr_branch( TASK_PID pid, uint8_t instr, IPC_PTR addr ) {
       if( 0 > comp2 ) { return -1; }
       comp1 = vm_stack_dpop( task );
       if( 0 > comp1 ) { return -1; }
-#if USE_VM_MONITOR
-      printf( "%d != %d?\n", comp1, comp2 );
-#endif /* USE_VM_MONITOR */
+      vm_dprintf( 0, "%d != %d?", comp1, comp2 );
       if( comp1 != comp2 ) {
          retval = addr;
-#if USE_VM_MONITOR
-         printf( "jumping!\n" );
-#endif /* USE_VM_MONITOR */
+         vm_dprintf( 0, "jumping!" );
       }
       if( 0 > vm_stack_push( task, comp1 ) ) {
          return -1;
@@ -138,14 +112,10 @@ static SIPC_PTR vm_instr_branch( TASK_PID pid, uint8_t instr, IPC_PTR addr ) {
       if( 0 > comp2 ) { return -1; }
       comp1 = vm_stack_pop( task );
       if( 0 > comp1 ) { return -1; }
-#if USE_VM_MONITOR
-      printf( "%d (%c) != %d (%c)?\n", comp1, comp1, comp2, comp2 );
-#endif /* USE_VM_MONITOR */
+      vm_dprintf( 0, "%d (%c) != %d (%c)?", comp1, comp1, comp2, comp2 );
       if( comp1 != comp2 ) {
          retval = addr;
-#if USE_VM_MONITOR
-         printf( "jumping!\n" );
-#endif /* USE_VM_MONITOR */
+         vm_dprintf( 0, "jumping!" );
       }
       if( 0 > vm_stack_push( task, comp1 ) ) {
          return -1;
@@ -168,6 +138,8 @@ static SIPC_PTR vm_instr_branch( TASK_PID pid, uint8_t instr, IPC_PTR addr ) {
 
    return retval;
 }
+
+#if 0
 
 static ssize_t vm_instr_mem( TASK_PID pid, uint8_t instr, MEMLEN_T mid ) {
    struct adhd_task* task = &(g_tasks[pid]);
@@ -279,64 +251,85 @@ static ssize_t vm_instr_mem( TASK_PID pid, uint8_t instr, MEMLEN_T mid ) {
 
    return task->ipc + 1;
 }
+#endif
 
-static SIPC_PTR vm_instr_stack( TASK_PID pid, uint8_t instr ) {
-   struct adhd_task* task = &(g_tasks[pid]);
-   int32_t data1 = 0,
-      data2 = 0;
-   SIPC_PTR retval = task->ipc + 1;
+VM_SIPC vm_op_SJUMP( struct VM_PROC* proc, uint8_t flags, uint16_t data ) {
+   VM_SIPC ipc_out = 0,
+      i = 0;
 
-   switch( instr ) {
-   case VM_INSTR_SJUMP:
-      data1 = vm_stack_dpop( task );
-      /* Slip the current address into the bottom of the stack. */
-      if( VM_STACK_MAX <= task->stack_len + 2 ) {
-         tprintf( "%s\n", gc_stack_error );
-         return -1;
-      }
-      task->stack_len += 2;
-      for( data2 = task->stack_len - 1 ; data2 > 1 ; data2-- ) {
-         task->stack[data2] = task->stack[data2 - 2];
-      }
-      task->ipc += 1; /* We want to return to the NEXT instruction. */
-      task->stack[0] = (task->ipc << 8) & 0x00ff;
-      task->stack[1] = task->ipc & 0x00ff;
-      return data1;
+   assert( VM_FLAG_DBL != flags & VM_FLAG_DBL );
 
-   case VM_INSTR_SRET:
-      /* Grab jump address from the bottom of the stack. */
-      if( 2 > task->stack_len ) {
-         tprintf( "%s\n", gc_stack_error );
-         return -1;
-      }
-      data1 |= (task->stack[0] & 0x00ff) << 8;
-      data1 |= task->stack[1] & 0x00ff;
-      for( data2 = 0 ; data2 < task->stack_len - 2 ; data2++ ) {
-         task->stack[data2] = task->stack[data2 + 1];
-      }
-      return data1;
+   ipc_out = vm_stack_dpop( task );
 
-   case VM_INSTR_SPOP:
-      if( 0 > vm_stack_pop( task ) ) {
-         return -1;
-      }
-      break;
-
-   case VM_INSTR_SADDD:
-      data1 = vm_stack_dpop( task );
-      if( 0 > data1 ) { return -1; }
-      data2 = vm_stack_dpop( task );
-      if( 0 > data2 ) { return -1; }
-      if( 0 > vm_stack_dpush( task, data1 + data2 ) ) {
-         return -1;
-      }
-      break;
+   /* Slip the current address into the bottom of the stack. */
+   if( VM_STACK_MAX <= proc->stack_len + 2 ) {
+      return VM_ERROR_STACK;
+   }
+   proc->stack_len += 2;
+   for( i = proc->stack_len - 1 ; i > 1 ; i-- ) {
+      proc->stack[i] = proc->stack[i - 2];
    }
 
-   return retval;
+   /* We want to return to the NEXT instruction. */
+   proc->ipc += 1;
+   proc->stack[0] = (proc->ipc << 8) & 0x00ff;
+   proc->stack[1] = proc->ipc & 0x00ff;
+
+   return ipc_out;
 }
 
-SIPC_PTR vm_instr_execute( TASK_PID pid, uint16_t instr_full ) {
+VM_SIPC vm_op_SRET( struct VM_PROC* proc, uint8_t flags, uint16_t data ) {
+   VM_SIPC ipc_out = 0,
+      i = 0;
+      
+   /* Grab jump address from the bottom of the stack. */
+   if( 2 > proc->stack_len ) {
+      return VM_ERROR_STACK;
+   }
+
+   ipc_out |= (task->stack[0] & 0x00ff) << 8;
+   ipc_out |= task->stack[1] & 0x00ff;
+   for( i = 0 ; i < proc->stack_len - 2 ; i++ ) {
+      proc->stack[i] = proc->stack[i + 1];
+   }
+
+   return ipc_out;
+}
+
+VM_SIPC vm_op_SPOP( struct VM_PROC* proc, uint8_t flags, uint16_t data ) {
+   if( 0 > vm_stack_pop( proc ) ) {
+      return VM_ERROR_STACK;
+   }
+
+   return proc->ipc + 1;
+}
+
+VM_SIPC vm_op_SADD( struct VM_PROC* proc, uint8_t flags, uint16_t data ) {
+   uint16_t val1 = 0,
+      val2 = 0;
+
+   if( VM_FLAG_DBL == (flags & VM_FLAG_DBL) ) {
+      /* Add shorts. */
+      val1 = vm_stack_dpop( proc );
+      if( 0 > val1 ) { return val1; }
+      val2 = vm_stack_dpop( proc );
+      if( 0 > val2 ) { return val2; }
+      if( 0 > vm_stack_dpush( proc, data1 + data2 ) ) {
+         return VM_ERROR_STACK;
+      }
+   } else {
+      /* Add bytes. */
+      val1 = vm_stack_pop( proc );
+      if( 0 > val1 ) { return val1; }
+      val2 = vm_stack_pop( proc );
+      if( 0 > val2 ) { return val2; }
+      if( 0 > vm_stack_push( proc, data1 + data2 ) ) {
+         return VM_ERROR_STACK;
+      }
+   }
+}
+
+VM_SIPC vm_instr_execute( TASK_PID pid, uint16_t instr_full ) {
    struct adhd_task* task = &(g_tasks[pid]);
    uint8_t instr = instr_full >> 8;
    uint8_t data = instr_full & 0xff;
@@ -345,6 +338,7 @@ SIPC_PTR vm_instr_execute( TASK_PID pid, uint16_t instr_full ) {
    assert( 0 <= pid );
    assert( 0 <= task->ipc );
 
+#if 0
 #if USE_VM_MONITOR
    if( task->prev_instr ) {
       printf( "pid: %d, ipc: %d, double data: %d (0x%x), stack: %d\n",
@@ -391,6 +385,7 @@ SIPC_PTR vm_instr_execute( TASK_PID pid, uint16_t instr_full ) {
 
    assert( task->prev_instr || 0 != instr );
 #endif /* USE_VM_MONITOR */
+#endif
 
    /* Process instructions with double parameters if this is 2nd cycle. */
    if( VM_INSTR_PUSHD == task->prev_instr ) {
