@@ -66,35 +66,50 @@ TASK_PID adhd_task_launch(
    return pid_iter;
 }
 
-void adhd_task_execute_next( TASK_PID pid ) {
-   struct adhd_task* task = &(g_tasks[pid]);
-   uint16_t instr = 0;
-   VM_SIPC new_ipc = 0;
+int16_t adhd_task_read_short( struct adhd_task* task ) {
+   int16_t short_out = 0;
    uint8_t byte_iter = 0;
-
-   assert( 0 <= pid );
-   assert( 0 < task->proc.ipc );
-
-   //dprint( "---\nipc: %ld\n", task->ipc );
 
    mfat_get_dir_entry_data(
       task->file_offset,
       task->proc.ipc,
       (unsigned char*)(&byte_iter), 1,
       task->disk_id, task->part_id );
-   //dprint( "instr upper: %04x\n", instr );
-   instr = byte_iter;
-   instr <<= 8;
+   short_out = byte_iter;
+   short_out <<= 8;
    task->proc.ipc++;
    mfat_get_dir_entry_data(
       task->file_offset,
       task->proc.ipc,
       (unsigned char*)(&byte_iter), 1,
       task->disk_id, task->part_id );
-   instr |= byte_iter;
-   //dprint( "instr: %04x\n", instr );
+   short_out |= byte_iter;
+   
+   return short_out;
+}
 
-   new_ipc = vm_instr_execute( pid, instr );
+void adhd_task_execute_next( TASK_PID pid ) {
+   struct adhd_task* task = &(g_tasks[pid]);
+   int16_t instr = 0,
+      arg = 0,
+      flags = 0;
+   VM_SIPC new_ipc = 0;
+
+   assert( 0 <= pid );
+   assert( 0 < task->proc.ipc );
+
+   //dprint( "---\nipc: %ld\n", task->ipc );
+
+   instr = adhd_task_read_short( task );
+   arg = adhd_task_read_short( task );
+
+   /* Separate out the flags so we get the instruction index. */
+   flags |= instr & VM_MASK_FLAGS;
+   instr &= ~VM_MASK_FLAGS;
+
+   assert( instr > 0 );
+   assert( instr < VM_OP_MAX );
+   new_ipc = gc_vm_op_cbs[instr]( &(task->proc), (uint8_t)(flags & 0xff), arg );
    if( 0 >= new_ipc || task->sz < new_ipc ) {
       adhd_task_kill( pid );
    } else {

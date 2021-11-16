@@ -27,9 +27,11 @@ set(ELIX_TESTIMG_CONTENTS
 set(ELIX_CHECK_SOURCES
    src/assm.c
    src/mem.c
+   src/vm.c
    tests/check.c
    tests/check_mem.c
-   tests/check_assm.c)
+   tests/check_assm.c
+   tests/check_vm.c)
 
 if(UNIX)
    set(ELIX_DRIVER_PATH src/colinux)
@@ -114,7 +116,7 @@ else()
    target_compile_definitions(elix PUBLIC ${ELIX_DEFINES})
    target_link_libraries(elix PUBLIC ${ELIX_LINK_EXTERNAL})
 
-   add_executable(assm src/assm.c)
+   add_executable(assm src/assm.c src/vm.c)
    target_compile_definitions(assm PUBLIC ASSM_MAIN ASSM_NO_VM)
 
    add_executable(tests ${ELIX_CHECK_SOURCES})

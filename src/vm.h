@@ -10,8 +10,14 @@
 
 #include "etypes.h"
 
+#ifndef VM_DEBUG_THRESHOLD
+#define VM_DEBUG_THRESHOLD 1
+#endif /* !VM_DEBUG_THRESHOLD */
+
 /*! \brief Indicates that an opcode operates on a short rather than a byte. */
 #define VM_FLAG_DBL        0x80
+
+#define VM_MASK_FLAGS      0xff80
 
 /*! \brief ::VM_SIPC indicating stack overflow. */
 #define VM_ERROR_STACK     -2
@@ -39,19 +45,23 @@ struct VM_PROC {
    f(   2,  1, SYSC,    "sysc" ) \
    f(   3,  1, PUSH,    "push" ) \
    f(   4,  0, SPOP,    "spop" ) \
-   f(   5,  0, SADD,    "saddd" ) \
+   f(   5,  0, SADD,    "sadd" ) \
    f(   6,  0, SJUMP,   "sjump" ) \
    f(   7,  0, SRET,    "sret" ) \
    f(   8,  1, JUMP,    "jump" ) \
    f(   9,  1, JSEQ,    "jseq" ) \
    f(  10,  1, JSNE,    "jsne" ) \
    f(  11,  1, JSGE,    "jsge" ) \
+   f(  18,  0, MAX,     "max" )
+
+/*
    f(  12,  1, MPOPO,   "mpopo" ) \
    f(  13,  1, MPOP,    "mpop" ) \
    f(  14,  1, MPUSHCO, "mpushco" ) \
    f(  15,  1, MPUSHC,  "mpushc" ) \
    f(  16,  1, MALLOC,  "malloc" ) \
-   f(  17,  1, MFREE,   "mfree" )
+   f(  17,  1, MFREE,   "mfree" ) \
+*/
 
 #define VM_SECTION_DATA 0x01
 #define VM_SECTION_CPU  0x02
@@ -66,10 +76,10 @@ typedef int16_t VM_SIPC;
  * \param data
  * \return New IPC value after this instruction is executed.
  */
-typedef VM_SIPC (*VM_OP)( struct VM_PROC* proc, uint8_t flags, uint16_t data );
+typedef VM_SIPC (*VM_OP)( struct VM_PROC* proc, uint8_t flags, int16_t data );
 
 #define VM_OP_PROTOTYPES( idx, argc, op, token ) \
-   VM_SIPC vm_op_ ## op ( struct VM_PROC* proc, uint8_t flags, uint16_t data );
+   VM_SIPC vm_op_ ## op ( struct VM_PROC* proc, uint8_t flags, int16_t data );
 
 VM_OP_TABLE( VM_OP_PROTOTYPES )
 
@@ -81,7 +91,7 @@ static int16_t vm_stack_dpop( struct VM_PROC* proc );
    vm_stack_push( task, (uint8_t)((data) & 0x00ff) ))
 
 #define vm_dprintf( lvl, ... ) \
-   if( lvl >= DEBUG_THRESHOLD ) { \
+   if( lvl >= VM_DEBUG_THRESHOLD ) { \
       tprintf( "(%d) " __FILE__ ": %d: ", lvl, __LINE__ ); \
       tprintf( __VA_ARGS__ ); \
       tprintf( "\n" ); \
@@ -99,7 +109,21 @@ static int16_t vm_stack_dpop( struct VM_PROC* proc );
 
 VM_OP_TABLE( VM_OP_IDX_LIST );
 
+#ifndef ASSM_NO_VM
+
+#define VM_OP_CB_LIST( idx, argc, op, token ) vm_op_ ## op,
+
+const VM_OP gc_vm_op_cbs[] = {
+   VM_OP_TABLE( VM_OP_CB_LIST )
+};
+
+#endif /* !ASSM_NO_VM */
+
 #else
+
+#ifndef ASSM_NO_VM
+extern const VM_OP gc_vm_op_cbs[];
+#endif /* !ASSM_NO_VM */
 
 #define VM_OP_IDX_LIST( idx, argc, op, token ) \
    extern const uint8_t VM_OP_ ## op;

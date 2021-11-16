@@ -1,7 +1,6 @@
 
 #define ASSM_C
 #ifdef ASSM_NO_VM
-#define VM_C
 #endif /* ASSM_NO_VM */
 #include "assm.h"
 
@@ -205,11 +204,13 @@ void process_token( struct ASSM_STATE* global ) {
       if( 0 >= instr_bytecode && 0 > strlen( global->token ) ) {
          assm_eprintf( "unknown instruction: %s", global->token );
          assert( 1 == 0 );
+      } else if( 0 == strlen( global->token ) ) {
+         /* No token, just whitespace. */
+         break;
       }
 
       assm_dprintf( 2, "token: %s (%d)",
-         gc_vm_op_tokens[instr_bytecode & ASSM_MASK_OP],
-         instr_bytecode );
+         gc_vm_op_tokens[instr_bytecode & ASSM_MASK_OP], instr_bytecode );
       if( 0 < gc_vm_op_argcs[instr_bytecode & ASSM_MASK_OP] ) {
          /* Tokens that take arguments mean arguments are next. */
          set_global_state( STATE_PARAMS, global );
@@ -218,34 +219,15 @@ void process_token( struct ASSM_STATE* global ) {
          set_global_state( STATE_NONE, global );
       }
 
-      write_bin_instr_or_data( (unsigned char)instr_bytecode, global );
-      if(
-         0 == gc_vm_op_argcs[instr_bytecode & ASSM_MASK_OP] ||
-         ASSM_MASK_DOUBLE == instr_bytecode & ASSM_MASK_DOUBLE
-      ) {
-         /* Stack instruction has no data or 16-bit-wide data,
-            so put a null padding in instruction data field. */
-         assm_dprintf( 1, "padding:" );
-         write_bin_instr_or_data( 0, global );
-      }
+      write_double_bin_instr_or_data( (unsigned char)instr_bytecode, global );
 
       reset_token( global );
       break;
 
    case STATE_NUM:
       /* Decode token as number. */
-      if(
-         ASSM_MASK_DOUBLE == global->instr & ASSM_MASK_DOUBLE &&
-         0 < gc_vm_op_argcs[global->instr & ASSM_MASK_OP]
-      ) {
-         assm_dprintf( 1, "double num: %d", atoi( global->token ) );
-         write_double_bin_instr_or_data( atoi( global->token ), global );
-
-      } else {
-         assm_dprintf( 1, "num: %d", atoi( global->token ) );
-         write_bin_instr_or_data( atoi( global->token ), global );
-
-      }
+      assm_dprintf( 1, "double num: %d", atoi( global->token ) );
+      write_double_bin_instr_or_data( atoi( global->token ), global );
       set_global_state( STATE_NONE, global );
       reset_token( global );
       break;
@@ -285,9 +267,9 @@ void process_token( struct ASSM_STATE* global ) {
       assm_dprintf( 1, "param: %s%s", global->token,
          0 < instr_bytecode ? " (%d)" : "(invalid token)" );
 
-      if( 0 < instr_bytecode ) {
-         write_bin_instr_or_data( (unsigned char)instr_bytecode, global );
-      }
+      assert( 0 < instr_bytecode );
+
+      write_double_bin_instr_or_data( (unsigned char)instr_bytecode, global );
 
       set_global_state( STATE_NONE, global );
       set_global_instr( 0, global );
