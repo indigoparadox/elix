@@ -83,13 +83,6 @@ typedef VM_SIPC (*VM_OP)( struct VM_PROC* proc, uint8_t flags, int16_t data );
 
 VM_OP_TABLE( VM_OP_PROTOTYPES )
 
-int16_t vm_stack_pop( struct VM_PROC* proc );
-static int16_t vm_stack_dpop( struct VM_PROC* proc );
-
-#define vm_stack_dpush( task, data ) \
-   (vm_stack_push( task, (uint8_t)(((data) >> 8) & 0x00ff) ) + \
-   vm_stack_push( task, (uint8_t)((data) & 0x00ff) ))
-
 #define vm_dprintf( lvl, ... ) \
    if( lvl >= VM_DEBUG_THRESHOLD ) { \
       tprintf( "(%d) " __FILE__ ": %d: ", lvl, __LINE__ ); \

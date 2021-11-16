@@ -5,6 +5,7 @@
 #include "adhd.h"
 #include "mem.h"
 #include "vm.h"
+#include "sysc.h"
 
 void adhd_start() {
    mzero( g_tasks, sizeof( struct adhd_task ) * ADHD_TASKS_MAX );
@@ -101,15 +102,26 @@ void adhd_task_execute_next( TASK_PID pid ) {
    //dprint( "---\nipc: %ld\n", task->ipc );
 
    instr = adhd_task_read_short( task );
-   arg = adhd_task_read_short( task );
 
    /* Separate out the flags so we get the instruction index. */
    flags |= instr & VM_MASK_FLAGS;
    instr &= ~VM_MASK_FLAGS;
 
+   /* Sanity checks. */
    assert( instr > 0 );
    assert( instr < VM_OP_MAX );
-   new_ipc = gc_vm_op_cbs[instr]( &(task->proc), (uint8_t)(flags & 0xff), arg );
+
+   arg = adhd_task_read_short( task );
+
+   if( VM_OP_SYSC == instr ) {
+      /* SYSC is a special case; call it directly. */
+      new_ipc = gc_sysc_cbs[arg]( pid, (uint8_t)(flags & 0xff) );
+   } else {
+      /* Call VM opcode and let VM handle it. */
+      new_ipc = 
+         gc_vm_op_cbs[instr]( &(task->proc), (uint8_t)(flags & 0xff), arg );
+   }
+
    if( 0 >= new_ipc || task->sz < new_ipc ) {
       adhd_task_kill( pid );
    } else {

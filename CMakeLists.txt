@@ -83,6 +83,7 @@ set(ELIX_SOURCES
    src/console.c
    src/adhd.c
    src/vm.c
+   src/sysc.c
    src/mem.c
    src/kernel.c)
 

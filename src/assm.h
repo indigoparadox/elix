@@ -23,17 +23,35 @@ struct ASSM_LABEL {
 struct ASSM_STATE {
    char token[ASSM_TOKEN_MAX];
    struct ASSM_LABEL* labels;
+   /*! \brief Unresolved labels that should be resolved by a last pass with
+    *         assm_resolve_labels()
+    */
    struct ASSM_LABEL* unresolved;
    /*! \brief Current byte index from the start of the output file. */
    unsigned short ipc;
+   /*! \brief Modifiers to the current state (e.g. ::ASSM_FLAG_ESCAPE for
+    *         ::STATE_STRING or ::STATE_CHAR.
+    */
    unsigned char flags;
+   /*! \brief Byte array output bytecode is written to. */
    unsigned char* out_buffer;
+   /*! \brief Where the next output byte should be (over)written in
+    *         ASSM_STATE::out_buffer.
+    */
    int out_buffer_pos;
+   /*! \brief Number of output bytes allocated to ASSM_STATE::out_buffer. */
    int out_buffer_sz;
+   /*! \brief The number of bytes in use out of ASSM_STATE::out_buffer_sz in
+    *         ASSM_STATE::out_buffer.
+    */
    int out_buffer_len;
+   /*! \brief The current section being assembled. */
    int section;
+   /*! \brief The current instruction if the state is ::STATE_PARAMS. */
    int instr;
+   /*! \brief The current state of the parser. */
    int state;
+   /*! \brief The next index to use for a ::STATE_ALLOC. */
    unsigned char next_alloc_mid;
 };
 
@@ -45,11 +63,15 @@ struct ASSM_STATE {
    assm_dprintf( 1, "unset global flag: %d", flag ); \
    global->flags &= ~flag;
 
-#define ASSM_FLAG_ESCAPE 1
+/*! \brief ASSM_STATE::flags indicating the next character is special. */
+#define ASSM_FLAG_ESCAPE   0x01
 
 #define ASSM_MASK_DOUBLE   0x80
 #define ASSM_MASK_OP       0x7f
 
+/*! \brief No particular state. Build a token and get ready for a sigil
+ *         indicating its use.
+ */
 #define STATE_NONE      0
 #define STATE_SECTION   1
 /*! \brief Looking for parameters to previous op. */
@@ -72,9 +94,19 @@ struct ASSM_STATE {
 #define STATE_COMMENT   6
 /**
  * \brief Inside of an alloc (memory block index).
+ *
+ * Allocs are just variables used by the assembler during assembly for values
+ * that can be hard-coded into the executable so long as they're consistant
+ * (e.g. memory block indexes).
+ *
+ * They're handled using the label mechanism but ignored by the last-pass
+ * resolver as they're always resolved on first reference in the first pass
+ * anyway.
  */
 #define STATE_ALLOC     7
+/*! \brief Inside of a label token. */
 #define STATE_LABEL     8
+/*! \brief SYSC is a special case OP with a parameter token that resolves. */
 #define STATE_SYSC      9
 
 #ifdef ASSM_C
@@ -116,9 +148,12 @@ const char* gc_sysc_tokens[] = {
 
 #else
 
+/*! \brief Mapping of op tokens to match with their opcodes by index. */
 extern const char* gc_vm_op_tokens[];
 extern const uint8_t gc_vm_op_argcs[];
+/*! \brief Mapping of state codes to printable strings for debugging. */
 extern const char* gc_assm_states[];
+/*! \brief Mapping of sysc to match with their sysc by index. */
 extern const char* gc_sysc_tokens[];
 
 #endif /* ASSM_C */
@@ -141,6 +176,10 @@ extern const char* gc_sysc_tokens[];
    fprintf( stderr, "\n" ); \
    fflush( stderr ); \
 
+/**
+ * \brief Clear the current global token appended to by the processor.
+ * \param global The current assembler state.
+ */
 void reset_token( struct ASSM_STATE* global );
 unsigned short get_label_ipc(
    char* label, unsigned short ipc_of_call, struct ASSM_STATE* global );
@@ -154,6 +193,12 @@ void append_to_string( char c, struct ASSM_STATE* global );
 unsigned char token_to_sysc( char* token );
 void process_char( char c, struct ASSM_STATE* global );
 void process_token( struct ASSM_STATE* global );
+/**
+ * \brief Make a last pass to resolve unresolved labels to their offsets.
+ * \param global The current assembler state.
+ * \return Number of labels resolved or -1 on failure.
+ */
+int assm_resolve_labels( struct ASSM_STATE* global );
 
 #endif /* ASSM_H */
 

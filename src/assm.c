@@ -490,14 +490,42 @@ void process_char( char c, struct ASSM_STATE* global ) {
    }
 }
 
+int assm_resolve_labels( struct ASSM_STATE* global ) {
+   struct ASSM_LABEL* unresolved_iter = NULL;
+   unsigned short resolve_ipc = 0;
+   int resolved_count = 0;
+
+   unresolved_iter = global->unresolved;
+   while( NULL != unresolved_iter ) {
+      assm_dprintf( 1, "unres: %s", unresolved_iter->name );
+
+      resolve_ipc = 
+         get_label_ipc( unresolved_iter->name, unresolved_iter->ipc, global );
+
+      /* TODO: Fail if resolve failed. */
+
+      /* fseek( bin_file, unresolved_iter->ipc, SEEK_SET ); */
+      global->out_buffer_pos = unresolved_iter->ipc;
+      global->ipc = unresolved_iter->ipc;
+      write_double_bin_instr_or_data( resolve_ipc, global );
+
+      resolved_count++;
+
+      assm_dprintf( 1, "resolved to %d, placed at %d",
+         resolve_ipc, unresolved_iter->ipc );
+
+      unresolved_iter = unresolved_iter->next;
+   }
+
+   return resolved_count;
+}
+
 #ifdef ASSM_MAIN
 
 int main( int argc, char* argv[] ) {
    int bytes_read = 0,
       i = 0;
    char buf[BUF_SZ + 1] = { 0 };
-   struct ASSM_LABEL* unresolved_iter = NULL;
-   unsigned short resolve_ipc = 0;
    struct ASSM_STATE global;
    FILE* src_file = NULL,
       * bin_file = NULL;
@@ -526,24 +554,8 @@ int main( int argc, char* argv[] ) {
    }
    memset( buf, '\0', BUF_SZ );
 
-   unresolved_iter = global.unresolved;
-   while( NULL != unresolved_iter ) {
-      assm_dprintf( 1, "unres: %s", unresolved_iter->name );
-
-      resolve_ipc = 
-         get_label_ipc( unresolved_iter->name, unresolved_iter->ipc, &global );
-
-      /* fseek( bin_file, unresolved_iter->ipc, SEEK_SET ); */
-      global.out_buffer_pos = unresolved_iter->ipc;
-      global.ipc = unresolved_iter->ipc;
-      write_double_bin_instr_or_data( resolve_ipc, &global );
-
-      assm_dprintf( 1, "resolved to %d, placed at %d",
-         resolve_ipc, unresolved_iter->ipc );
-
-      unresolved_iter = unresolved_iter->next;
-   }
-
+   assert( 0 <= assm_resolve_labels( &global ) );
+   
    bin_file = fopen( argv[2], "wb" );
    if( NULL == bin_file ) {
       goto cleanup;
