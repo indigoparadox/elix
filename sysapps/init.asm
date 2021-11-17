@@ -22,20 +22,23 @@
    ;push     #1          ; Enable foreground I/O.
    ;syscall  flagon      ; Enable foreground I/O.
 
-   pushd    #21         ; 20 chars + 1 NULL.
-   malloc   $line
+   push     #21         ; 20 chars + 1 NULL.
+   push     $line
+   sysc     malloc
 
-   pushd    #1
-   malloc   $line_offst
+   push     #2
+   push     $line_offst
+   sysc     malloc
 
-   pushd    #2
-   malloc   $diskpart_id
+   push     #2
+   push     $diskpart_id
+   sysc     malloc
 
-   pushd    sub_logo
+   push    sub_logo
    sjump
 
 start:
-   pushd    prompt
+   push     prompt
    syscall  puts
 
 poll:
@@ -43,205 +46,256 @@ poll:
    push     #0
    jsne     proc_char   ; If input char != 0, process it.
    spop                 ; Else clear the stack.
-   pushd    poll
+   push     poll
    sjump                ; Poll again.
 
 proc_char:
    push     '\n'        ; Push \n char to compare to input char in jseq.
    jseq     proc_line   ; JSEQ pops \n.
-   mpushcd  $line_offst ; Push offset onto stack.
-   pushd    #20         ; Push max line len to compare to offset.
-   jsged    too_long    ; Jump if line too long (pops max line len).
-   mpopo    $line       ; Pop input char to line+offset.
-   mpushcd  $line_offst ; Push offset onto stack.
-   mpushco  $line       ; Push input char back from line+offset (pops offset).
-   syscall  putc        ; Print input char and remove it from stack.
-   mpushcd  $line_offst
-   pushd    #1
-   saddd                ; Add 1 to offset (pops #1).
-   mpopd    $line_offst ; Pops of offset to memory.
+   push     #0          ; No MPUSH offset.
+   push     $line_offst
+   sysc     mpush       ; Push offset onto stack.
+   push     #20         ; Push max line len to compare to offset.
+   jsge     too_long    ; Jump if line too long (pops max line len).
+   push     $line
+   sysc     mpop        ; Pop input char to line+offset.
+   push     #0          ; No MPUSH offset.
+   push     $line_offst
+   sysc     mpush       ; Push offset onto stack.
+   push     $line
+   sysc     mpush       ; Push input char back from line+offset (pops offset).
+   sysc     putc        ; Print input char and remove it from stack.
+   push     #0          ; No MPUSH offset.
+   push     $line_offst
+   sysc     mpush 
+   push     #1
+   sadd                 ; Add 1 to offset (pops #1).
+   push     #0          ; No MPOP offset.
+   push     $line_offst
+   sysc     mpop        ; Pops of offset to memory.
    push     #0          ; Push NULL to stack.
-   mpushcd  $line_offst ; Push copy of offset to stack.
-   mpopo    $line       ; Pop NULL to line+new offset (pops offset AND NULL).
-   pushd    poll
+   push     #0          ; No MPUSH offset.
+   push     $line_offst
+   sysc     mpush       ; Push copy of offset to stack.
+   push     $line
+   sysc     mpop        ; Pop NULL to line+new offset (pops offset AND NULL).
+   push     poll
    sjump
 
 too_long:
    spop                 ; Remove input char from stack.
    spop                 ; Remove line offset from stack.
    spop                 ; Remove line offset from stack.
-   pushd    tltext
-   syscall  puts      ; Print warning (pops warning).
-   pushd    #0
-   mpopd    $line_offst ; Pop 0 offset to memory.
-   pushd    start
+   push     tltext
+   sysc     puts        ; Print warning (pops warning).
+   push     #0
+   push     #0          ; No MPOP offset.
+   push     $line_offst
+   sysc     mpop        ; Pop 0 offset to memory.
+   push     start
    sjump
 
 not_found:
    spop
    spop                 ; Pop FS offset.
-   pushd    nftext
+   push     nftext
    syscall  puts
-   pushd    start
+   push     start
    sjump
 
 fs_match:
-   spop                 ; Clear icmp result.
+   spop                    ; Clear icmp result.
    
-   pushd    starting
+   push     starting
    syscall  puts
-   pushd    $filename
+   push     $filename
    syscall  mputs
-   pushd    elipses
+   push     elipses
    syscall  puts
 
-   mpushcd  $fs_offset
-   mpushcd  $diskpart_id   ; Push as double, read popped as 2 uint8_ts.
+   push     #0          ; No MPUSH offset.
+   push     $fs_offset
+   sysc     mpush 
+   push     #0          ; No MPUSH offset.
+   push     $diskpart_id   ; Push as double, read popped as 2 uint8_ts.
+   sysc     mpush 
    syscall  launch
-   spop                 ; Pop fs_offset from launch.
-   spop                 ; Pop fs_offset from launch.
-   ;push     #1          ; Disable foreground I/O.
-   ;syscall  flagoff     ; Disable foreground I/O.
+   spop                    ; Pop fs_offset from launch.
+   spop                    ; Pop fs_offset from launch.
+   ;push     #1            ; Disable foreground I/O.
+   ;syscall  flagoff       ; Disable foreground I/O.
 
-   ;mfree    $filename   ; Free filename buffer.
+   ;mfree    $filename     ; Free filename buffer.
    ;mfree    $fs_offset
-   pushd    #0          ; Push 0 line offset.
-   mpopd    $line_offst ; Pop 0 line offset to memory.
-   push     #0          ; Push NULL to stack.
-   mpop     $line       ; Pop NULL to line char 0.
-   pushd    start
+   push     #0             ; Push 0 line offset.
+   push     #0          ; No MPOP offset.
+   push     $line_offst
+   sysc     mpop           ; Pop 0 line offset to memory.
+   push     #0             ; Push NULL to stack.
+   push     #0          ; No MPOP offset.
+   push     $line
+   sysc     mpop           ; Pop NULL to line char 0.
+   push     start
    sjump
 
 proc_line:
    spop                 ; Remove input char from stack.
-   pushd    #13         ; 13-char filenames.
-   malloc   $filename   ; Allocate filename buffer.
+   push     #13         ; 13-char filenames.
+   push     $filename
+   sysc     malloc      ; Allocate filename buffer.
    push     #0          ; Push disk ID 0
    push     #0          ; Push part ID 0
-   syscall  droot       ; Get the root directory offset.
+   sysc     droot       ; Get the root directory offset.
    push     #0          ; Push disk ID 0
    push     #0          ; Push part ID 0
-   syscall  dfirst      ; Get the first entry offset.
-   pushd    #0
-   jseqd    not_found
-   pushd    #2          ; fs_offset is a double.
-   malloc   $fs_offset  ; Allocate fs_offset.
-   mpopd    $fs_offset  ; Store FS offset in memory.
+   sysc     dfirst      ; Get the first entry offset.
+   push     #0
+   jseq     not_found
+   push     #2          ; fs_offset is a double.
+   push     $fs_offset
+   sysc     malloc      ; Allocate fs_offset.
+   push     #0          ; No MPOP offset.
+   push     $fs_offset
+   sysc     mpop        ; Store FS offset in memory.
 
 fs_iter:
-   mpushcd  $fs_offset  ; Place FS offset on the stack.
-   pushd    $filename   ; Push address of filename buffer.
+   push     #0          ; No MPUSH offset.
+   push     $fs_offset  ; Place FS offset on the stack.
+   sysc     mpush 
+   push     $filename   ; Push address of filename buffer.
    push     #0          ; Push disk ID 0
    push     #0          ; Push part ID 0
-   syscall  dname       ; Store entry name in $filename (pops offset and fname).
+   sysc     dname       ; Store entry name in $filename (pops offset and fname).
    spop                 ; Pop fs_offset from dname.
    spop                 ; Pop fs_offset from dname.
 
    ; DEBUG Show files as iterated.
    ;push     '\n'
-   ;syscall  putc
-   ;pushd    $filename
-   ;syscall  mputs
+   ;sysc     putc
+   ;push     $filename
+   ;sysc     mputs
 
-   ;pushd    $filename
-   ;pushd    $line
-   pushd    icmp  ; Compare line and filename.
+   ;push     $filename
+   ;push     $line
+   push     icmp  ; Compare line and filename.
    sjump
 
 icmp_finish:
    push     #0
    jseq     fs_match
-   spop                 ; Clear icmp result.
-   mpushcd  $fs_offset  ; Place FS offset on the stack.
-   push     #0          ; Push disk ID 0
-   push     #0          ; Push part ID 0
-   syscall  dnext
-   pushd    #0
-   jseqd    fs_iter_cleanup   ; No more files in this directory.
-   mpopd    $fs_offset  ; Store FS offset in memory.
-   pushd    fs_iter ; Loop until found or no more.
+   spop                       ; Clear icmp result.
+   push     #0          ; No MPUSH offset.
+   push     $fs_offset
+   sysc     mpush             ; Place FS offset on the stack.
+   push     #0                ; Push disk ID 0
+   push     #0                ; Push part ID 0
+   sysc     dnext
+   push     #0
+   jseq     fs_iter_cleanup   ; No more files in this directory.
+   push     #0          ; No MPOP offset.
+   push     $fs_offset
+   sysc     mpop              ; Store FS offset in memory.
+   push     fs_iter           ; Loop until found or no more.
    sjump
 
 fs_iter_cleanup:
    spop                 ; Pop fs_offset.
    spop                 ; Pop fs_offset.
-   pushd    #0          ; Push 0 line offset.
-   mpopd    $line_offst ; Pop 0 line offset to memory.
-   mfree    $filename   ; Free filename buffer.
-   mfree    $fs_offset
+   push     #0          ; Push 0 line offset.
+   push     #0          ; No MPOP offset.
+   push     $line_offst
+   sysc     mpop        ; Pop 0 line offset to memory.
+   push     $filename
+   sysc     mfree       ; Free filename buffer.
+   push     $fs_offset
+   sysc     mfree
    push     #0          ; Push NULL to stack.
-   mpop     $line       ; Pop NULL to line char 0.
-   pushd    start
+   push     #0          ; No MPOP offset.
+   push     $line
+   sysc     mpop        ; Pop NULL to line char 0.
+   push     start
    sjump
 
 ; Should be called after pushing:
 ; - line compare length
 ; Pushes 0 before jumping back if match; otherwise 1.
 icmp:
-   pushd    #2
-   malloc   $icmp_idx   ; Start at index/offset 0.
+   push     #2
+   push     $icmp_idx
+   sysc     malloc         ; Start at index/offset 0.
 
 icmp_loop:
 
    ; TODO: Insensitive comparison.
 
-   mpushcd  $icmp_idx      ;
-   pushd    #13            ; Compare 13 chars.
-   jseqd    icmp_match     ; Reached max chars (pops #13).
+   push     #0          ; No MPUSH offset.
+   push     $icmp_idx
+   sysc     mpush 
+   push     #13            ; Compare 13 chars.
+   jseq     icmp_match     ; Reached max chars (pops #13).
    
-   mpushco  $line          ; Push line address (idx still on stack from before).
-   mpushcd  $icmp_idx      ; Push compare offset.
-   mpushco  $filename      ; Push filename address.
+   push     $line          ; Push line address (idx still on stack from before).
+   sysc     mpush  
+   push     #0          ; No MPUSH offset.
+   push     $icmp_idx      ; Push compare offset.
+   sysc     mpush 
+   push     $filename      ; Push filename address.
+   sysc     mpush  
    jsne     icmp_no_match  ; Chars didn't match.
 
    ;mpushcd  $icmp_idx
    push     #0
    jseq     icmp_match     ; Reaching NULL is a match.
    spop                    ; Pop filename comparison char.
-   mpushcd  $icmp_idx
-   pushd    #1
-   saddd                   ; Add 1 to offset (pops #1).
-   mpopd    $icmp_idx
+   push     #0          ; No MPUSH offset.
+   push     $icmp_idx
+   sysc     mpush 
+   push     #1
+   sadd                    ; Add 1 to offset (pops #1).
+   push     #0          ; No MPOP offset.
+   push     $icmp_idx
+   sysc     mpop
 
-   pushd    icmp_loop
+   push     icmp_loop
    sjump
 
 icmp_no_match:
    spop                    ; Pop filename comparison char.
    push     #1             ; 1 for no match.
-   pushd    icmp_cleanup
+   push     icmp_cleanup
    sjump
 
 icmp_match:
    spop                    ; Pop filename comparison char.
    push     #0             ; 0 for match.
-   pushd    icmp_cleanup
+   push     icmp_cleanup
    sjump
 
 icmp_cleanup:
 
-   mfree    $icmp_idx
+   push     $icmp_idx
+   sysc     mfree
 
-   pushd    icmp_finish
+   push     icmp_finish
    sjump
 
 sub_logo:
 
-   pushd    logo1
+   push     logo1
    syscall  puts
-   pushd    logo2
+   push     logo2
    syscall  puts
-   pushd    logo3
+   push     logo3
    syscall  puts
-   pushd    logo4
+   push     logo4
    syscall  puts
-   pushd    logo5
+   push     logo5
    syscall  puts
-   pushd    logo6
+   push     logo6
    syscall  puts
-   pushd    logo7
+   push     logo7
    syscall  puts
-   pushd    logo8
+   push     logo8
    syscall  puts
 
    sret

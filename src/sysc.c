@@ -2,6 +2,8 @@
 #include "adhd.h"
 #define SYSC_C
 #include "sysc.h"
+#include "mem.h"
+#include "console.h"
 
 VM_SIPC sysc_NOOP( TASK_PID pid, uint8_t flags ) {
 }
@@ -14,9 +16,9 @@ VM_SIPC sysc_PUTS( TASK_PID pid, uint8_t flags ) {
 
    /* TODO: Use actual printf w/ format strings. */
    ipc_offset = vm_op_POP( &(task->proc), flags, 0 );
-   if( 0 > ipc_offset ) { return -1; }
+   if( VM_ERROR_STACK == ipc_offset ) { return VM_ERROR_STACK; }
    if( !(task->flags & ADHD_TASK_FLAG_FOREGROUND) ) {
-      return task->proc.ipc + 1;
+      return task->proc.ipc + 4;
    }
    bytes_read = mfat_get_dir_entry_data(
       task->file_offset,
@@ -39,7 +41,7 @@ VM_SIPC sysc_PUTS( TASK_PID pid, uint8_t flags ) {
       }
    }
 
-   return task->proc.ipc + 1;
+   return task->proc.ipc + 4;
 }
 
 VM_SIPC sysc_DROOT( TASK_PID pid, uint8_t flags ) {
@@ -61,7 +63,7 @@ VM_SIPC sysc_DROOT( TASK_PID pid, uint8_t flags ) {
       return VM_ERROR_STACK;
    }
 
-   return task->proc.ipc + 1;
+   return task->proc.ipc + 4;
 }
 
 VM_SIPC sysc_DFIRST( TASK_PID pid, uint8_t flags ) {
@@ -85,7 +87,7 @@ VM_SIPC sysc_DFIRST( TASK_PID pid, uint8_t flags ) {
       return VM_ERROR_STACK;
    }
 
-   return task->proc.ipc + 1;
+   return task->proc.ipc + 4;
 }
 
 VM_SIPC sysc_DNEXT( TASK_PID pid, uint8_t flags ) {
@@ -109,7 +111,7 @@ VM_SIPC sysc_DNEXT( TASK_PID pid, uint8_t flags ) {
       return VM_ERROR_STACK;
    }
 
-   return task->proc.ipc + 1;
+   return task->proc.ipc + 4;
 }
 
 VM_SIPC sysc_DNAME( TASK_PID pid, uint8_t flags ) {
@@ -127,16 +129,21 @@ VM_SIPC sysc_DNAME( TASK_PID pid, uint8_t flags ) {
    offset = vm_op_POP( &(task->proc), flags, 0 );
    if( VM_ERROR_STACK == offset ) { return VM_ERROR_STACK; }
 
-   mid = vm_stack_dpop( task );
+   mid = vm_op_POP( &(task->proc), flags, 0 );
    if( VM_ERROR_STACK == mid ) { return VM_ERROR_STACK; }
    filename = mget( pid, mid, 0 );
    if( NULL == filename ) { return SYSC_ERROR_MEM; }
-   offset = vm_stack_dpop( task );
+   offset = vm_op_POP( &(task->proc), flags, 0 );
    if( VM_ERROR_STACK == offset ) { return VM_ERROR_STACK; }
 
    mfat_get_dir_entry_name( filename, offset, disk_id, part_id );
 
-   return task->proc.ipc + 1;
+   return task->proc.ipc + 4;
+}
+
+VM_SIPC sysc_DENTRY( TASK_PID pid, uint8_t flags ) {
+   /* TODO */
+   return SYSC_ERROR_UNIMPLEMENTED;
 }
 
 VM_SIPC sysc_LAUNCH( TASK_PID pid, uint8_t flags ) {
@@ -149,7 +156,7 @@ VM_SIPC sysc_LAUNCH( TASK_PID pid, uint8_t flags ) {
    if( VM_ERROR_STACK == part_id ) { return VM_ERROR_STACK; }
    disk_id = vm_op_POP( &(task->proc), flags, 0 );
    if( VM_ERROR_STACK == disk_id ) { return VM_ERROR_STACK; }
-   offset = vm_stack_dpop( task );
+   offset = vm_op_POP( &(task->proc), flags, 0 );
    if( VM_ERROR_STACK == offset ) { return VM_ERROR_STACK; }
 
    adhd_task_launch( disk_id, part_id, offset );
@@ -158,7 +165,7 @@ VM_SIPC sysc_LAUNCH( TASK_PID pid, uint8_t flags ) {
       return VM_ERROR_STACK;
    }
 
-   return task->proc.ipc + 1;
+   return task->proc.ipc + 4;
 }
 
 VM_SIPC sysc_FLAGON( TASK_PID pid, uint8_t flags ) {
@@ -170,7 +177,7 @@ VM_SIPC sysc_FLAGON( TASK_PID pid, uint8_t flags ) {
 
    task->flags |= flag;
 
-   return task->proc.ipc + 1;
+   return task->proc.ipc + 4;
 }
 
 VM_SIPC sysc_FLAGOFF( TASK_PID pid, uint8_t flags ) {
@@ -182,7 +189,7 @@ VM_SIPC sysc_FLAGOFF( TASK_PID pid, uint8_t flags ) {
 
    task->flags &= ~flag;
 
-   return task->proc.ipc + 1;
+   return task->proc.ipc + 4;
 }
 
 VM_SIPC sysc_PUTC( TASK_PID pid, uint8_t flags ) {
@@ -195,7 +202,58 @@ VM_SIPC sysc_PUTC( TASK_PID pid, uint8_t flags ) {
       tputc( c );
    }
 
-   return task->proc.ipc + 1;
+   return task->proc.ipc + 4;
+}
+
+VM_SIPC sysc_EXIT( TASK_PID pid, uint8_t flags ) {
+   return SYSC_ERROR_EXIT;
+}
+
+VM_SIPC sysc_GETC( TASK_PID pid, uint8_t flags ) {
+   struct adhd_task* task = &(g_tasks[pid]);
+   unsigned char cbuf = 0;
+
+   if( task->flags & ADHD_TASK_FLAG_FOREGROUND ) {
+      cbuf = tgetc();
+      if( VM_ERROR_STACK == vm_op_PUSH( &(task->proc), flags, cbuf ) ) {
+         return VM_ERROR_STACK;
+      }
+   } else {
+      if( VM_ERROR_STACK == vm_op_PUSH( &(task->proc), flags, 0 ) ) {
+         return VM_ERROR_STACK;
+      }
+   }
+
+   return task->proc.ipc + 4;
+}
+
+VM_SIPC sysc_MPUTS( TASK_PID pid, uint8_t flags ) {
+   struct adhd_task* task = &(g_tasks[pid]);
+   int16_t mid = 0;
+   char* str_ptr = NULL;
+
+   mid = vm_op_POP( &(task->proc), flags, 0 );
+   if( VM_ERROR_STACK == mid ) { return VM_ERROR_STACK; }
+
+   if( task->flags & ADHD_TASK_FLAG_FOREGROUND ) {
+      str_ptr = mget( pid, mid, 0 );
+      while( '\0' != *str_ptr ) {
+         tputc( *str_ptr );
+         str_ptr++;
+      }
+   }
+
+   return task->proc.ipc + 4;
+}
+
+VM_SIPC sysc_CMP( TASK_PID pid, uint8_t flags ) {
+   /* TODO */
+   return SYSC_ERROR_UNIMPLEMENTED;
+}
+
+VM_SIPC sysc_ICMP( TASK_PID pid, uint8_t flags ) {
+   /* TODO */
+   return SYSC_ERROR_UNIMPLEMENTED;
 }
 
 #if 0
@@ -217,29 +275,9 @@ static SIPC_PTR vm_instr_sysc( TASK_PID pid, uint8_t call_id ) {
       return vm_sysc_putc( pid );
 
    case VM_SYSC_GETC:
-      if( task->flags & ADHD_TASK_FLAG_FOREGROUND ) {
-         cbuf = tgetc();
-         if( 0 > vm_stack_push( task, cbuf ) ) {
-            return -1;
-         }
-      } else {
-         if( 0 > vm_stack_push( task, 0 ) ) {
-            return -1;
-         }
-      }
       break;
 
    case VM_SYSC_MPUTS:
-      mid = vm_stack_dpop( task );
-      if( 0 > mid ) { return -1; }
-      if( task->flags & ADHD_TASK_FLAG_FOREGROUND ) {
-         str_ptr = mget( pid, mid, 0 );
-         while( '\0' != *str_ptr ) {
-            tputc( *str_ptr );
-            str_ptr++;
-         }
-      }
-      break;
 
    case VM_SYSC_PUTS:
       return vm_sysc_puts( pid );
@@ -267,121 +305,97 @@ static SIPC_PTR vm_instr_sysc( TASK_PID pid, uint8_t call_id ) {
 
    }
 
-   return task->ipc + 1;
+   return task->ipc + 4;
 }
 
 #endif
 
-#if 0
-
-static ssize_t vm_instr_mem( TASK_PID pid, uint8_t instr, MEMLEN_T mid ) {
+VM_SIPC sysc_MALLOC( TASK_PID pid, uint8_t flags ) {
    struct adhd_task* task = &(g_tasks[pid]);
+   int16_t mid = 0,
+      sz = 0;
    uint8_t* addr_tmp = NULL;
-   SMEMLEN_T sz_or_offset = 0;
-   int32_t buf = 0;
 
-   switch( instr ) {
-   case VM_INSTR_MALLOC:
-      sz_or_offset = vm_stack_dpop( task );
-      if( 0 > sz_or_offset ) { return -1; }
-      addr_tmp = mget( pid, mid, sz_or_offset );
-      /* Not NULL or offset of data from NULL.*/
-      if( NULL == addr_tmp || (void*)0x4 == addr_tmp ) {
-         tprintf( "%s", gc_mem_error );
-         return -1;
-      }
-      break;
+   mid = vm_op_POP( &(task->proc), flags, 0 );
+   if( VM_ERROR_STACK == mid ) { return VM_ERROR_STACK; }
+   sz = vm_op_POP( &(task->proc), flags, 0 );
+   if( VM_ERROR_STACK == sz ) { return VM_ERROR_STACK; }
 
-   case VM_INSTR_MPOP:
-      addr_tmp = mget( pid, mid, 0 );
-      /* Not NULL or offset of data from NULL.*/
-      if( NULL == addr_tmp || (void*)0x4 == addr_tmp ) {
-         tprintf( "%s", gc_mem_error );
-         return -1;
-      }
-      buf = vm_stack_pop( task );
-      if( 0 > buf ) { return -1; }
-      *addr_tmp = buf;
-      break;
+   addr_tmp = mget( pid, mid, sz );
 
-   case VM_INSTR_MPOPD:
-      addr_tmp = mget( pid, mid, 0 );
-      /* Not NULL or offset of data from NULL.*/
-      /* TODO: Verify memory sz is >=2 */
-      if( NULL == addr_tmp || (void*)0x4 == addr_tmp ) {
-         tprintf( "%s", gc_mem_error );
-         return -1;
-      }
-      buf = vm_stack_dpop( task );
-      if( 0 > buf ) { return -1; }
-      *((uint16_t*)addr_tmp) = buf;
-#if USE_VM_MONITOR
-      printf( "popped to memory: %d\n", *((uint16_t*)addr_tmp) );
-#endif /* USE_VM_MONITOR */
-      break;
-
-   case VM_INSTR_MPOPO:
-      addr_tmp = mget( pid, mid, 0 );
-      /* Not NULL or offset of data from NULL.*/
-      if( NULL == addr_tmp || (void*)0x4 == addr_tmp ) {
-         tprintf( "%s", gc_mem_error );
-         return -1;
-      }
-      sz_or_offset = vm_stack_dpop( task );
-      if( 0 > sz_or_offset ) { return -1; }
-      buf = vm_stack_pop( task );
-      if( 0 > buf ) { return -1; }
-      *(addr_tmp + sz_or_offset) = buf;
-      break;
-
-   case VM_INSTR_MPUSHC:
-      addr_tmp = mget( pid, mid, 0 );
-      /* Not NULL or offset of data from NULL.*/
-      if( NULL == addr_tmp || (void*)0x4 == addr_tmp ) {
-         tprintf( "%s", gc_mem_error );
-         return -1;
-      }
-      if( 0 > vm_stack_push( task, *addr_tmp ) ) {
-         return -1;
-      }
-      break;
-
-   case VM_INSTR_MPUSHCD:
-      addr_tmp = mget( pid, mid, 0 );
-      /* Not NULL or offset of data from NULL.*/
-      /* TODO: Verify memory sz is >=2 */
-      if( NULL == addr_tmp || (void*)0x4 == addr_tmp ) {
-         tprintf( "%s", gc_mem_error );
-         return -1;
-      }
-      if( 0 > vm_stack_dpush( task, *((uint16_t*)addr_tmp) ) ) {
-         return -1;
-      }
-      break;
-
-   case VM_INSTR_MPUSHCO:
-      addr_tmp = mget( pid, mid, 0 );
-      /* Not NULL or offset of data from NULL.*/
-      if( NULL == addr_tmp || (void*)0x4 == addr_tmp ) {
-         tprintf( "%s", gc_mem_error );
-         return -1;
-      }
-      sz_or_offset = vm_stack_dpop( task );
-      if( 0 > sz_or_offset ) { return -1; }
-      if( 0 > vm_stack_push( task, *(addr_tmp + sz_or_offset) ) ) {
-         return -1;
-      }
-#if USE_VM_MONITOR
-      printf( "pushed: %d (offset %d)\n",
-         *(addr_tmp + sz_or_offset), sz_or_offset );
-#endif /* USE_VM_MONITOR */
-      break;
-
-   case VM_INSTR_MFREE:
-      mfree( pid, mid );
-      break;
+   /* Not NULL or offset of data from NULL.*/
+   if( NULL == addr_tmp || (void*)0x4 == addr_tmp ) {
+      return SYSC_ERROR_MEM;
    }
 
-   return task->ipc + 1;
+   return task->proc.ipc + 4;
 }
-#endif
+
+VM_SIPC sysc_MPOP( TASK_PID pid, uint8_t flags ) {
+   struct adhd_task* task = &(g_tasks[pid]);
+   int16_t mid = 0,
+      buf = 0,
+      offset = 0;
+   int16_t* addr_tmp = NULL;
+
+   mid = vm_op_POP( &(task->proc), flags, 0 );
+   if( VM_ERROR_STACK == mid ) { return VM_ERROR_STACK; }
+   offset = vm_op_POP( &(task->proc), flags, 0 );
+   if( VM_ERROR_STACK == mid ) { return VM_ERROR_STACK; }
+   buf = vm_op_POP( &(task->proc), flags, 0 );
+   if( VM_ERROR_STACK == mid ) { return VM_ERROR_STACK; }
+
+   addr_tmp = mget( pid, mid, 0 );
+
+   /* Not NULL or offset of data from NULL.*/
+   if( NULL == addr_tmp || (void*)0x4 == addr_tmp ) {
+      return SYSC_ERROR_MEM;
+   }
+
+   *(addr_tmp + offset) = buf;
+
+   return task->proc.ipc + 4;
+}
+
+VM_SIPC sysc_MPUSH( TASK_PID pid, uint8_t flags ) {
+   struct adhd_task* task = &(g_tasks[pid]);
+   int16_t mid = 0,
+      buf = 0,
+      offset = 0;
+   int16_t* addr_tmp = NULL;
+
+   mid = vm_op_POP( &(task->proc), flags, 0 );
+   if( VM_ERROR_STACK == mid ) { return VM_ERROR_STACK; }
+   offset = vm_op_POP( &(task->proc), flags, 0 );
+   if( VM_ERROR_STACK == mid ) { return VM_ERROR_STACK; }
+
+   addr_tmp = mget( pid, mid, 0 );
+   /* Not NULL or offset of data from NULL.*/
+   if( NULL == addr_tmp || (void*)0x4 == addr_tmp ) {
+      return SYSC_ERROR_MEM;
+   }
+
+   if( VM_ERROR_STACK == vm_op_PUSH(
+      &(task->proc), flags, *(addr_tmp + offset) )
+   ) {
+      return VM_ERROR_STACK;
+   }
+
+   return task->proc.ipc + 4;
+}
+
+VM_SIPC sysc_MFREE( TASK_PID pid, uint8_t flags ) {
+   struct adhd_task* task = &(g_tasks[pid]);
+   int16_t mid = 0,
+      buf = 0,
+      offset = 0;
+   int16_t* addr_tmp = NULL;
+
+   mid = vm_op_POP( &(task->proc), flags, 0 );
+   if( VM_ERROR_STACK == mid ) { return VM_ERROR_STACK; }
+ 
+   mfree( pid, mid );
+
+   return task->proc.ipc + 4;
+}
+

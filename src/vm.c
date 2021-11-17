@@ -15,49 +15,34 @@ static const char gc_mem_error[] = "aborting; mem error\n";
 
 int16_t vm_op_POP( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
    int16_t dout = 0;
-   if(
-      ((VM_FLAG_DBL == (flags & VM_FLAG_DBL)) && 1 >= proc->stack_len) ||
-      0 >= proc->stack_len
-   ) {
+   if( 0 >= proc->stack_len ) {
       return VM_ERROR_STACK;
    }
    proc->stack_len--;
    dout |= (proc->stack[proc->stack_len]) & 0x00ff;
-   if( VM_FLAG_DBL == (flags & VM_FLAG_DBL) ) {
-      proc->stack_len--;
-      dout |= (proc->stack[proc->stack_len] << 8) & 0xff00;
-   }
    return dout;
 }
 
 VM_SIPC vm_op_PUSH( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
-   if(
-      ((VM_FLAG_DBL == (flags & VM_FLAG_DBL)) &&
-         VM_STACK_MAX <= proc->stack_len + 2) ||
-      VM_STACK_MAX <= proc->stack_len + 1
-   ) {
+   if( VM_STACK_MAX <= proc->stack_len + 1 ) {
       return VM_ERROR_STACK;
    }
-   if( VM_FLAG_DBL == (flags & VM_FLAG_DBL) ) {
-      proc->stack[proc->stack_len] = (uint8_t)(((data) >> 8) & 0x00ff);
-      proc->stack_len++;
-   }
-   proc->stack[proc->stack_len] = (uint8_t)((data) & 0x00ff);
+   proc->stack[proc->stack_len] = data;
    proc->stack_len++;
 
-   return proc->ipc + 1;
+   return proc->ipc + 4;
 }
 
 VM_SIPC vm_op_NOP( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
-   return proc->ipc + 1;
+   return proc->ipc + 4;
 }
 
 VM_SIPC vm_op_MAX( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
-   return proc->ipc + 1;
+   return VM_ERROR_STACK;
 }
 
 VM_SIPC vm_op_SECT( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
-   return proc->ipc + 1;
+   return proc->ipc + 2;
 }
 
 VM_SIPC vm_op_JSEQ( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
@@ -78,7 +63,7 @@ VM_SIPC vm_op_JSEQ( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
       return VM_ERROR_STACK;
    }
 
-   return proc->ipc + 1;
+   return proc->ipc + 4;
 }
 
 VM_SIPC vm_op_JUMP( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
@@ -103,7 +88,7 @@ VM_SIPC vm_op_JSNE( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
       return VM_ERROR_STACK;
    }
 
-   return proc->ipc + 1;
+   return proc->ipc + 4;
 }
 
 VM_SIPC vm_op_JSGE( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
@@ -124,30 +109,27 @@ VM_SIPC vm_op_JSGE( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
       return VM_ERROR_STACK;
    }
 
-   return proc->ipc + 1;
+   return proc->ipc + 4;
 }
 
 VM_SIPC vm_op_SJUMP( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
    VM_SIPC ipc_out = 0,
       i = 0;
 
-   assert( VM_FLAG_DBL != (flags & VM_FLAG_DBL) );
-
    ipc_out = vm_op_POP( proc, flags, 0 );
 
    /* Slip the current address into the bottom of the stack. */
-   if( VM_STACK_MAX <= proc->stack_len + 2 ) {
+   if( VM_STACK_MAX <= proc->stack_len + 1 ) {
       return VM_ERROR_STACK;
    }
-   proc->stack_len += 2;
-   for( i = proc->stack_len - 1 ; i > 1 ; i-- ) {
-      proc->stack[i] = proc->stack[i - 2];
+   for( i = proc->stack_len ; i > 0 ; i-- ) {
+      proc->stack[i] = proc->stack[i - 1];
    }
+   proc->stack_len += 1;
 
    /* We want to return to the NEXT instruction. */
-   proc->ipc += 1;
-   proc->stack[0] = (proc->ipc << 8) & 0x00ff;
-   proc->stack[1] = proc->ipc & 0x00ff;
+   proc->ipc += 4;
+   proc->stack[0] = proc->ipc;
 
    return ipc_out;
 }
@@ -175,7 +157,7 @@ VM_SIPC vm_op_SPOP( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
       return VM_ERROR_STACK;
    }
 
-   return proc->ipc + 1;
+   return proc->ipc + 4;
 }
 
 VM_SIPC vm_op_SADD( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
@@ -188,7 +170,7 @@ VM_SIPC vm_op_SADD( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
    if( VM_ERROR_STACK == val2 ) { return VM_ERROR_STACK; }
    return vm_op_PUSH( proc, flags, val1 + val2 );
 
-   return proc->ipc + 1;
+   return proc->ipc + 4;
 }
 
 VM_SIPC vm_op_SYSC( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
@@ -196,80 +178,4 @@ VM_SIPC vm_op_SYSC( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
    assert( 1 == 0 );
    return -1;
 }
-
-#if 0
-
-VM_SIPC vm_instr_execute( TASK_PID pid, uint16_t instr_full ) {
-   struct adhd_task* task = &(g_tasks[pid]);
-   uint8_t instr = instr_full >> 8;
-   uint8_t data = instr_full & 0xff;
-   uint16_t arg = 0;
-
-   assert( 0 <= pid );
-   assert( 0 <= task->ipc );
-
-   /* Process instructions with double parameters if this is 2nd cycle. */
-   if( VM_INSTR_PUSHD == task->prev_instr ) {
-      task->prev_instr = 0;
-      /* instr_full is double data, here. */
-      if( 0 > vm_stack_dpush( task, instr_full ) ) {
-         return -1;
-      }
-      return task->ipc + 1; /* Done processing. */
-   
-   } else if(
-      VM_INSTR_MMIN <= task->prev_instr && VM_INSTR_MMAX >= task->prev_instr
-   ) {
-      ddata = task->prev_instr;
-      task->prev_instr = 0;
-      /* instr_full is double data, here. */
-      return vm_instr_mem( pid, ddata, instr_full );
-
-   } else if(
-      VM_INSTR_JMIN <= task->prev_instr && VM_INSTR_JMAX >= task->prev_instr
-   ) {
-      ddata = task->prev_instr;
-      task->prev_instr = 0;
-
-      /* instr_full is double data, here. */
-      return vm_instr_branch( pid, ddata, instr_full );
-   }
-
-   /* Process normal instructions and 1st cycles. */
-   if( VM_INSTR_PUSH == instr ) {
-      if( 0 > vm_stack_push( task, data ) ) {
-         return -1;
-      }
-
-   } else if( VM_INSTR_PUSHD == instr ) {
-      /* Push will happen on next execute with full number. */
-      task->prev_instr = VM_INSTR_PUSHD;
-
-   } else if( VM_INSTR_SJUMP == instr || VM_INSTR_SRET == instr ) {
-      return vm_instr_stack( pid, instr );
-
-   } else if( VM_INSTR_SPOP == instr ) {
-      return vm_instr_stack( pid, instr );
-
-   } else if( VM_INSTR_SADDD == instr ) {
-      return vm_instr_stack( pid, instr );
-
-   } else if( VM_INSTR_SYSC == instr ) {
-      return vm_instr_sysc( pid, data );
-   
-   } else if(
-      VM_INSTR_JMIN <= instr && VM_INSTR_JMAX >= instr
-   ) {
-      task->prev_instr = instr;
-   
-   } else if(
-      VM_INSTR_MMIN <= instr && VM_INSTR_MMAX >= instr
-   ) {
-      task->prev_instr = instr;
-   }
-
-   return task->ipc + 1;
-}
-
-#endif
 

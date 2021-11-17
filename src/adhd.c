@@ -64,30 +64,49 @@ TASK_PID adhd_task_launch(
 
    } while( !cpu_section_found );
 
+   printf( "starting at offset 0x%02x\n", task->proc.ipc );
+
    return pid_iter;
 }
 
-int16_t adhd_task_read_short( struct adhd_task* task ) {
+void adhd_task_read_instr(
+   struct adhd_task* task, int16_t* instr, int16_t* arg
+) {
    int16_t short_out = 0;
    uint8_t byte_iter = 0;
 
+   /* Read the 16-bit instruction. */
    mfat_get_dir_entry_data(
       task->file_offset,
       task->proc.ipc,
       (unsigned char*)(&byte_iter), 1,
       task->disk_id, task->part_id );
-   short_out = byte_iter;
-   short_out <<= 8;
-   task->proc.ipc++;
+   *instr = byte_iter;
+   *instr <<= 8;
    mfat_get_dir_entry_data(
       task->file_offset,
-      task->proc.ipc,
+      task->proc.ipc + 1,
       (unsigned char*)(&byte_iter), 1,
       task->disk_id, task->part_id );
-   short_out |= byte_iter;
+   *instr |= byte_iter;
    
-   return short_out;
+   /* Read the 16-bit arg. */
+   mfat_get_dir_entry_data(
+      task->file_offset,
+      task->proc.ipc + 2,
+      (unsigned char*)(&byte_iter), 1,
+      task->disk_id, task->part_id );
+   *arg = byte_iter;
+   *arg <<= 8;
+   mfat_get_dir_entry_data(
+      task->file_offset,
+      task->proc.ipc + 3,
+      (unsigned char*)(&byte_iter), 1,
+      task->disk_id, task->part_id );
+   *arg |= byte_iter;
 }
+
+#include <stdio.h>
 
 void adhd_task_execute_next( TASK_PID pid ) {
    struct adhd_task* task = &(g_tasks[pid]);
@@ -101,17 +120,24 @@ void adhd_task_execute_next( TASK_PID pid ) {
 
    //dprint( "---\nipc: %ld\n", task->ipc );
 
-   instr = adhd_task_read_short( task );
+   adhd_task_read_instr( task, &instr, &arg );
 
    /* Separate out the flags so we get the instruction index. */
-   flags |= instr & VM_MASK_FLAGS;
+   flags = instr & VM_MASK_FLAGS;
    instr &= ~VM_MASK_FLAGS;
 
    /* Sanity checks. */
-   assert( instr > 0 );
-   assert( instr < VM_OP_MAX );
+   if( 0 >= instr ) {
+      printf( "execution error: %d\n", instr );
+      fflush( stdout );
+      assert( instr >= 0 );
+   }
 
-   arg = adhd_task_read_short( task );
+   printf( "ipc: 0x%02x instr: 0x%02x flags: 0x%02x arg: 0x%02x\n",
+      task->proc.ipc, instr, flags, arg );
+
+   assert( instr < VM_OP_MAX );
+   assert( 0 == flags );
 
    if( VM_OP_SYSC == instr ) {
       /* SYSC is a special case; call it directly. */
@@ -123,6 +149,7 @@ void adhd_task_execute_next( TASK_PID pid ) {
    }
 
    if( 0 >= new_ipc || task->sz < new_ipc ) {
+      printf( "bad res: %d\n", new_ipc );
       adhd_task_kill( pid );
    } else {
       task->proc.ipc = new_ipc;     

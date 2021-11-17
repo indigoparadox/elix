@@ -14,13 +14,10 @@
 #define VM_DEBUG_THRESHOLD 1
 #endif /* !VM_DEBUG_THRESHOLD */
 
-/*! \brief Indicates that an opcode operates on a short rather than a byte. */
-#define VM_FLAG_DBL        0x80
-
 #define VM_MASK_FLAGS      0xff80
 
 /*! \brief ::VM_SIPC indicating stack overflow. */
-#define VM_ERROR_STACK     -2
+#define VM_ERROR_STACK     -32768
 
 #ifndef VM_STACK_MAX
 /*! \brief Maximum bytes able to be stored in a process's stack. */
@@ -35,7 +32,7 @@ struct VM_PROC {
    uint16_t ipc;
    /*! \brief Previous executed opcode. */
    uint8_t prev_instr;
-   uint16_t stack[VM_STACK_MAX];
+   int16_t stack[VM_STACK_MAX];
    uint8_t stack_len;
 };
 
@@ -52,16 +49,7 @@ struct VM_PROC {
    f(   9,  1, JSEQ,    "jseq" ) \
    f(  10,  1, JSNE,    "jsne" ) \
    f(  11,  1, JSGE,    "jsge" ) \
-   f(  18,  0, MAX,     "max" )
-
-/*
-   f(  12,  1, MPOPO,   "mpopo" ) \
-   f(  13,  1, MPOP,    "mpop" ) \
-   f(  14,  1, MPUSHCO, "mpushco" ) \
-   f(  15,  1, MPUSHC,  "mpushc" ) \
-   f(  16,  1, MALLOC,  "malloc" ) \
-   f(  17,  1, MFREE,   "mfree" ) \
-*/
+   f(  12,  0, MAX,     "max" )
 
 #define VM_SECTION_DATA 0x01
 #define VM_SECTION_CPU  0x02

@@ -11,7 +11,13 @@
 #define ADHD_MID_ENV_SCHEDULER 2
 #define ADHD_MID_ENV_CURRENT 3
 
+#ifndef ADHD_TASKS_MAX
 #define ADHD_TASKS_MAX 4
+#endif /* !ADHD_TASKS_MAX */
+
+#ifndef ADHD_FILES_MAX
+#define ADHD_FILES_MAX 4
+#endif /* !ADHD_FILES_MAX */
 
 #define TASK_PID_INVALID -1
 
@@ -29,6 +35,10 @@ struct adhd_task {
    uint16_t sz;
    FILEPTR_T file_offset;
    struct VM_PROC proc;
+};
+
+struct adhd_file {
+   uint32_t offset;
 };
 
 void adhd_start();
@@ -50,8 +60,10 @@ void adhd_task_kill( TASK_PID pid );
 
 #ifdef ADHD_C
 struct adhd_task g_tasks[ADHD_TASKS_MAX];
+struct adhd_file g_files[ADHD_FILES_MAX];
 #else
 extern struct adhd_task g_tasks[ADHD_TASKS_MAX];
+extern struct adhd_file g_files[ADHD_FILES_MAX];
 #endif
 
 #endif /* ADHD_H */

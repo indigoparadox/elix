@@ -15,13 +15,13 @@ void reset_token( struct ASSM_STATE* global ) {
    memset( global->token, '\0', ASSM_TOKEN_MAX );
 }
 
-void add_label( char* name, int ipc, struct ASSM_STATE* global ) {
-   struct ASSM_LABEL* label_iter = global->labels;
+void add_label( char* name, int ipc, struct ASSM_LABEL** labels ) {
+   struct ASSM_LABEL* label_iter = *labels;
 
-   if( NULL == global->labels ) {
-      global->labels = calloc( 1, sizeof( struct ASSM_LABEL ) );
-      assert( NULL != global->labels );
-      label_iter = global->labels;
+   if( NULL == *labels ) {
+      *labels = calloc( 1, sizeof( struct ASSM_LABEL ) );
+      assert( NULL != *labels );
+      label_iter = *labels;
 
    } else {
       while( NULL != label_iter->next ) {
@@ -54,7 +54,7 @@ unsigned short get_label_ipc(
       label_iter = label_iter->next;
    }
    if( NULL != label_iter ) {
-      assm_dprintf( 0, "searching for %s, found %s (%d)...",
+      assm_dprintf( 2, "searching for %s, found %s (%d)...",
          label, label_iter->name, label_iter->ipc );
       assert( 0 == strncmp(
          label_iter->name, label, strlen( label_iter->name ) ) );
@@ -63,13 +63,14 @@ unsigned short get_label_ipc(
 
    if( NULL == label_iter ) {
       if( '$' != label[0] ) {
+         /* Not an alloc, so add it to the list to search for in next pass. */
          assm_eprintf( "label not found; added to unresolved list" );
-         add_label( label, ipc_of_call, global );
+         add_label( label, ipc_of_call, &(global->unresolved) );
       }
       return 0;
    }
 
-   assm_dprintf( 1, "label for %s: %d", label, label_iter->ipc );
+   assm_dprintf( 2, "label for %s: %d", label, label_iter->ipc );
 
    return label_iter->ipc;
 }
@@ -95,8 +96,9 @@ void write_bin_instr_or_data( unsigned char c, struct ASSM_STATE* global ) {
       global->out_buffer_len++;
    }
    global->out_buffer_pos++;
-   global->ipc++;
+   global->ipc;
    assm_dprintf( 1, "wrote %d (0x%x), ipc: %d", c, c, global->ipc );
+   global->ipc++;
 }
 
 void write_double_bin_instr_or_data(
@@ -143,14 +145,17 @@ uint8_t token_to_op( char* token ) {
    if( 0 == op_out ) {
       if( 0 < strlen( token ) ) {
          assm_eprintf( "invalid token specified: %s", token );
+         assert( 1 == 0 );
       }
       goto cleanup;
    }
 
-   if( 'd' == token[strlen( gc_vm_op_tokens[op_out] )] ) {
+   #if 0
+   if( 'l' == token[strlen( gc_vm_op_tokens[op_out] )] ) {
       /* Set the high bit to indicate op on a double. */
       op_out |= 0x80;
    }
+   #endif
 
 cleanup:
 
@@ -173,6 +178,7 @@ uint8_t token_to_sysc( char* token ) {
 
    if( 0 == sysc_out ) {
       assm_eprintf( "invalid token specified: %s\n", token );
+      assert( 1 == 0 );
    }
 
    return sysc_out;
@@ -221,6 +227,11 @@ void process_token( struct ASSM_STATE* global ) {
 
       write_double_bin_instr_or_data( (unsigned char)instr_bytecode, global );
 
+      if( STATE_NONE == global->state ) {
+         /* Instr has no args, so insert padding to keep IPC divisible by 4. */
+         write_double_bin_instr_or_data( 0, global );
+      }
+
       reset_token( global );
       break;
 
@@ -234,7 +245,7 @@ void process_token( struct ASSM_STATE* global ) {
 
    case STATE_ALLOC:
       /* Allocs are special labels with memory index instead of file offset. */
-      add_label( global->token, global->next_alloc_mid, global );
+      add_label( global->token, global->next_alloc_mid, &(global->labels) );
       label_ipc = global->next_alloc_mid;
       global->next_alloc_mid++;
 
@@ -285,7 +296,6 @@ void set_global_state( int state, struct ASSM_STATE* global ) {
 }
 
 void process_char( char c, struct ASSM_STATE* global ) {
-   char buf_out[BUF_SZ + 1] = { 0 };
    int instr_bytecode = 0,
       instr_args = 0;
 
@@ -323,7 +333,7 @@ void process_char( char c, struct ASSM_STATE* global ) {
          reset_token( global );
 
       } else if( STATE_NONE == global->state ) {
-         add_label( global->token, global->ipc, global );
+         add_label( global->token, global->ipc, &(global->labels) );
          /* TODO: Set state? */
          reset_token( global );
 
@@ -483,6 +493,14 @@ void process_char( char c, struct ASSM_STATE* global ) {
          }
          append_to_token( c, global );
 
+      } else if(
+         STATE_NONE == global->state &&
+         0 == strlen( global->token ) &&
+         '0' <= c && '9' >= c
+      ) {
+         assm_eprintf( "cannot start token with number" );
+         assert( 1 == 0 );
+
       } else {
          append_to_token( c, global );
       }
@@ -496,6 +514,7 @@ int assm_resolve_labels( struct ASSM_STATE* global ) {
    int resolved_count = 0;
 
    unresolved_iter = global->unresolved;
+   assm_dprintf( 2, "resolving labels..." );
    while( NULL != unresolved_iter ) {
       assm_dprintf( 1, "unres: %s", unresolved_iter->name );
 
@@ -554,7 +573,7 @@ int main( int argc, char* argv[] ) {
    }
    memset( buf, '\0', BUF_SZ );
 
-   assert( 0 <= assm_resolve_labels( &global ) );
+   assm_resolve_labels( &global );
    
    bin_file = fopen( argv[2], "wb" );
    if( NULL == bin_file ) {
