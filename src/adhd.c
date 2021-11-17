@@ -111,6 +111,7 @@ void adhd_task_read_instr(
 void adhd_task_execute_next( TASK_PID pid ) {
    struct adhd_task* task = &(g_tasks[pid]);
    int16_t instr = 0,
+      i = 0,
       arg = 0,
       flags = 0;
    VM_SIPC new_ipc = 0;
@@ -136,6 +137,11 @@ void adhd_task_execute_next( TASK_PID pid ) {
    printf(
       "ipc: 0x%02x stack_len: %d instr: 0x%02x flags: 0x%02x arg: 0x%02x\n",
       task->proc.ipc, task->proc.stack_len, instr, flags, arg );
+   printf( "--stack: " );
+   for( i = 0 ; task->proc.stack_len > i ; i++ ) {
+      printf( "0x%02x, ", task->proc.stack[i] );
+   }
+   printf( "--\n" );
 
    assert( instr < VM_OP_MAX );
    assert( 0 == flags );

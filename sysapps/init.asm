@@ -37,27 +37,6 @@
    push    sub_logo
    sjump
 
-sub_logo:
-
-   push     logo1
-   sysc     puts
-   push     logo2
-   sysc     puts
-   push     logo3
-   sysc     puts
-   push     logo4
-   sysc     puts
-   push     logo5
-   sysc     puts
-   push     logo6
-   sysc     puts
-   push     logo7
-   sysc     puts
-   push     logo8
-   sysc     puts
-
-   sret
-
 start:
    push     prompt
    sysc     puts
@@ -299,4 +278,25 @@ icmp_cleanup:
 
    push     icmp_finish
    sjump
+
+sub_logo:
+
+   push     logo1
+   sysc     puts
+   push     logo2
+   sysc     puts
+   push     logo3
+   sysc     puts
+   push     logo4
+   sysc     puts
+   push     logo5
+   sysc     puts
+   push     logo6
+   sysc     puts
+   push     logo7
+   sysc     puts
+   push     logo8
+   sysc     puts
+
+   sret
 

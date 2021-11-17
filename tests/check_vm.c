@@ -18,7 +18,7 @@ static void teardown_vm() {
 START_TEST( test_vm_op_push ) {
    uint8_t int_test = 0;
 
-   int_test = rand() % 255;
+   int_test = rand() % 30000;
 
    ck_assert_int_ne(
       VM_ERROR_STACK, vm_op_PUSH( &proc, 0, int_test ) );
@@ -45,10 +45,10 @@ END_TEST
 #endif
 
 START_TEST( test_vm_op_pop ) {
-   uint8_t int_test = 0,
+   int16_t int_test = 0,
       pop_test = 0;
 
-   int_test = rand() % 255;
+   int_test = rand() % 30000;
 
    ck_assert_int_ne(
       VM_ERROR_STACK, vm_op_PUSH( &proc, 0, int_test ) );
@@ -111,10 +111,10 @@ START_TEST( test_vm_op_sjump ) {
       int_test_2 = 0;
 
    while( int_test_1 == int_test_2 ) {
-      int_test_1 = rand() % 255;
-      int_test_2 = rand() % 255;
+      int_test_1 = rand() % 30000;
+      int_test_2 = rand() % 30000;
    }
-   proc.ipc = rand() % 255;
+   proc.ipc = rand() % 30000;
    old_ipc = proc.ipc;
 
    ck_assert_int_ne(
@@ -142,10 +142,10 @@ START_TEST( test_vm_op_sret ) {
       int_test_2 = 0;
 
    while( int_test_1 == int_test_2 ) {
-      int_test_1 = rand() % 255;
-      int_test_2 = rand() % 255;
+      int_test_1 = rand() % 30000;
+      int_test_2 = rand() % 30000;
    }
-   proc.ipc = rand() % 255;
+   proc.ipc = rand() % 30000;
    old_ipc = proc.ipc;
 
    ck_assert_int_ne(
@@ -172,10 +172,10 @@ START_TEST( test_vm_op_jseq_eq ) {
       int_test_2 = 0;
 
    while( int_test_1 == int_test_2 ) {
-      int_test_1 = rand() % 255;
-      int_test_2 = rand() % 255;
+      int_test_1 = rand() % 30000;
+      int_test_2 = rand() % 30000;
    }
-   proc.ipc = rand() % 255;
+   proc.ipc = rand() % 30000;
    do {
       old_ipc = proc.ipc;
    } while( proc.ipc == 88 );
@@ -194,8 +194,9 @@ START_TEST( test_vm_op_jseq_eq ) {
 
    new_ipc = vm_op_JSEQ( &proc, 0, 88 );
 
-   ck_assert_int_eq( proc.stack_len, 1 );
+   ck_assert_int_eq( proc.stack_len, 2 );
    ck_assert_int_eq( proc.stack[0], int_test_1 );
+   ck_assert_int_eq( proc.stack[1], int_test_2 );
    ck_assert_int_eq( new_ipc, 88 );
 }
 END_TEST
@@ -207,11 +208,11 @@ START_TEST( test_vm_op_jseq_ne ) {
       int_test_2 = 0;
 
    while( int_test_1 == int_test_2 ) {
-      int_test_1 = rand() % 255;
-      int_test_2 = rand() % 255;
+      int_test_1 = rand() % 30000;
+      int_test_2 = rand() % 30000;
    }
    do {
-      proc.ipc = rand() % 255;
+      proc.ipc = rand() % 30000;
    } while( proc.ipc == 88 );
    old_ipc = proc.ipc;
 

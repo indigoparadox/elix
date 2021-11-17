@@ -19,7 +19,7 @@ int16_t vm_op_POP( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
       return VM_ERROR_STACK;
    }
    proc->stack_len--;
-   dout |= (proc->stack[proc->stack_len]) & 0x00ff;
+   dout |= proc->stack[proc->stack_len];
    return dout;
 }
 
@@ -47,7 +47,8 @@ VM_SIPC vm_op_SECT( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
 
 VM_SIPC vm_op_JSEQ( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
    int16_t comp1 = 0,
-      comp2 = 0;
+      comp2 = 0,
+      ipc_out = proc->ipc + 4;
 
    comp2 = vm_op_POP( proc, flags, 0 );
    if( VM_ERROR_STACK == comp2 ) { return comp2; }
@@ -55,7 +56,7 @@ VM_SIPC vm_op_JSEQ( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
    if( VM_ERROR_STACK == comp1 ) { return comp1; }
    vm_dprintf( 0, "%d vs %d", comp1, comp2 );
    if( comp1 == comp2 ) {
-      return data;
+      ipc_out = data;
    }
 
    /* Only pop the second comparator, so put the first back. */
@@ -63,7 +64,7 @@ VM_SIPC vm_op_JSEQ( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
       return VM_ERROR_STACK;
    }
 
-   return proc->ipc + 4;
+   return ipc_out;
 }
 
 VM_SIPC vm_op_JUMP( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
@@ -72,7 +73,8 @@ VM_SIPC vm_op_JUMP( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
 
 VM_SIPC vm_op_JSNE( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
    int16_t comp1 = 0,
-      comp2 = 0;
+      comp2 = 0,
+      ipc_out = proc->ipc + 4;
 
    comp2 = vm_op_POP( proc, flags, 0 );
    if( VM_ERROR_STACK == comp2 ) { return comp2; }
@@ -80,20 +82,21 @@ VM_SIPC vm_op_JSNE( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
    if( VM_ERROR_STACK == comp1 ) { return comp1; }
    vm_dprintf( 0, "%d vs %d", comp1, comp2 );
    if( comp1 != comp2 ) {
-      return data;
+      ipc_out = data;
    }
 
    /* Only pop the second comparator, so put the first back. */
-   if( VM_ERROR_STACK == vm_op_POP( proc, flags,comp1 ) ) {
+   if( VM_ERROR_STACK == vm_op_PUSH( proc, flags, comp1 ) ) {
       return VM_ERROR_STACK;
    }
 
-   return proc->ipc + 4;
+   return ipc_out;
 }
 
 VM_SIPC vm_op_JSGE( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
    int16_t comp1 = 0,
-      comp2 = 0;
+      comp2 = 0,
+      ipc_out = proc->ipc + 4;
 
    comp2 = vm_op_POP( proc, flags, 0 );
    if( VM_ERROR_STACK == comp2 ) { return comp2; }

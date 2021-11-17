@@ -227,6 +227,10 @@ void process_token( struct ASSM_STATE* global ) {
 
       write_double_bin_instr_or_data( (unsigned char)instr_bytecode, global );
 
+      /* All instructions should be 16-bit followed by 16-bit data. */
+      /* This should lead to a 2-byte alignment. */
+      assert( 0 == ((global->ipc - global->section_offset) % 2) );
+
       if( STATE_NONE == global->state ) {
          /* Instr has no args, so insert padding to keep IPC divisible by 4. */
          write_double_bin_instr_or_data( 0, global );
@@ -329,6 +333,7 @@ void process_char( char c, struct ASSM_STATE* global ) {
             assm_eprintf( "invalid section: %s", global->token );
             assert( 1 == 0 );
          }
+         global->section_offset = global->ipc;
          set_global_state( STATE_NONE, global );
          reset_token( global );
 
@@ -453,6 +458,7 @@ void process_char( char c, struct ASSM_STATE* global ) {
 
    default:
       if( STATE_CHAR == global->state || STATE_STRING == global->state ) {
+         /* Apply escape modifications, if there are any. */
          if(
             (ASSM_FLAG_ESCAPE == global->flags & ASSM_FLAG_ESCAPE) &&
             'r' == c
@@ -478,7 +484,15 @@ void process_char( char c, struct ASSM_STATE* global ) {
             assert( !(ASSM_FLAG_ESCAPE == (global->flags & ASSM_FLAG_ESCAPE)) );
 
          }
-         append_to_string( c, global );
+
+         /* Write directly if a string, or pad to 16-bits if a char. */
+         if( STATE_STRING == global->state ) {
+            append_to_string( c, global );
+         } else if( STATE_CHAR == global->state ) {
+            assm_dprintf( 1, "writing char: %c", c );
+            write_bin_instr_or_data( 0, global );
+            write_bin_instr_or_data( c, global );
+         }
 
       } else if( STATE_COMMENT == global->state ) {
          /* Do nothing. */

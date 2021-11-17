@@ -47,6 +47,7 @@ struct ASSM_STATE {
    int out_buffer_len;
    /*! \brief The current section being assembled. */
    int section;
+   int section_offset;
    /*! \brief The current instruction if the state is ::STATE_PARAMS. */
    int instr;
    /*! \brief The current state of the parser. */
@@ -159,7 +160,7 @@ extern const char* gc_sysc_tokens[];
 #endif /* ASSM_C */
 
 #ifndef DEBUG_THRESHOLD
-#define DEBUG_THRESHOLD 1
+#define DEBUG_THRESHOLD 0
 #endif /* !DEBUG_THRESHOLD */
 
 #define assm_dprintf( lvl, ... ) \
