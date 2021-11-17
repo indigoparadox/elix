@@ -20,7 +20,7 @@
 .cpu:
 
    ;push     #1          ; Enable foreground I/O.
-   ;syscall  flagon      ; Enable foreground I/O.
+   ;sysc     flagon      ; Enable foreground I/O.
 
    push     #21         ; 20 chars + 1 NULL.
    push     $line
@@ -37,12 +37,33 @@
    push    sub_logo
    sjump
 
+sub_logo:
+
+   push     logo1
+   sysc     puts
+   push     logo2
+   sysc     puts
+   push     logo3
+   sysc     puts
+   push     logo4
+   sysc     puts
+   push     logo5
+   sysc     puts
+   push     logo6
+   sysc     puts
+   push     logo7
+   sysc     puts
+   push     logo8
+   sysc     puts
+
+   sret
+
 start:
    push     prompt
-   syscall  puts
+   sysc     puts
 
 poll:
-   syscall  getc        ; Put input char on the stack.
+   sysc     getc        ; Put input char on the stack.
    push     #0
    jsne     proc_char   ; If input char != 0, process it.
    spop                 ; Else clear the stack.
@@ -99,7 +120,7 @@ not_found:
    spop
    spop                 ; Pop FS offset.
    push     nftext
-   syscall  puts
+   sysc     puts
    push     start
    sjump
 
@@ -107,11 +128,11 @@ fs_match:
    spop                    ; Clear icmp result.
    
    push     starting
-   syscall  puts
+   sysc     puts
    push     $filename
-   syscall  mputs
+   sysc     mputs
    push     elipses
-   syscall  puts
+   sysc     puts
 
    push     #0          ; No MPUSH offset.
    push     $fs_offset
@@ -119,11 +140,11 @@ fs_match:
    push     #0          ; No MPUSH offset.
    push     $diskpart_id   ; Push as double, read popped as 2 uint8_ts.
    sysc     mpush 
-   syscall  launch
+   sysc     launch
    spop                    ; Pop fs_offset from launch.
    spop                    ; Pop fs_offset from launch.
    ;push     #1            ; Disable foreground I/O.
-   ;syscall  flagoff       ; Disable foreground I/O.
+   ;sysc     flagoff       ; Disable foreground I/O.
 
    ;mfree    $filename     ; Free filename buffer.
    ;mfree    $fs_offset
@@ -278,25 +299,4 @@ icmp_cleanup:
 
    push     icmp_finish
    sjump
-
-sub_logo:
-
-   push     logo1
-   syscall  puts
-   push     logo2
-   syscall  puts
-   push     logo3
-   syscall  puts
-   push     logo4
-   syscall  puts
-   push     logo5
-   syscall  puts
-   push     logo6
-   syscall  puts
-   push     logo7
-   syscall  puts
-   push     logo8
-   syscall  puts
-
-   sret
 

@@ -38,7 +38,7 @@ VM_SIPC vm_op_NOP( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
 }
 
 VM_SIPC vm_op_MAX( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
-   return VM_ERROR_STACK;
+   return VM_ERROR_UNIMPLIMENTED;
 }
 
 VM_SIPC vm_op_SECT( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
@@ -139,13 +139,13 @@ VM_SIPC vm_op_SRET( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
       i = 0;
       
    /* Grab jump address from the bottom of the stack. */
-   if( 2 > proc->stack_len ) {
+   if( 1 > proc->stack_len ) {
       return VM_ERROR_STACK;
    }
 
-   ipc_out |= (proc->stack[0] & 0x00ff) << 8;
-   ipc_out |= proc->stack[1] & 0x00ff;
-   for( i = 0 ; i < proc->stack_len - 2 ; i++ ) {
+   ipc_out = proc->stack[0];
+   proc->stack_len--;
+   for( i = 0 ; i < proc->stack_len ; i++ ) {
       proc->stack[i] = proc->stack[i + 1];
    }
 
@@ -176,6 +176,6 @@ VM_SIPC vm_op_SADD( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
 VM_SIPC vm_op_SYSC( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
    /* This should be handled by the implementation. */
    assert( 1 == 0 );
-   return -1;
+   return VM_ERROR_UNIMPLIMENTED;
 }
 

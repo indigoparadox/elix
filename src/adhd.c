@@ -133,8 +133,9 @@ void adhd_task_execute_next( TASK_PID pid ) {
       assert( instr >= 0 );
    }
 
-   printf( "ipc: 0x%02x instr: 0x%02x flags: 0x%02x arg: 0x%02x\n",
-      task->proc.ipc, instr, flags, arg );
+   printf(
+      "ipc: 0x%02x stack_len: %d instr: 0x%02x flags: 0x%02x arg: 0x%02x\n",
+      task->proc.ipc, task->proc.stack_len, instr, flags, arg );
 
    assert( instr < VM_OP_MAX );
    assert( 0 == flags );
@@ -149,7 +150,8 @@ void adhd_task_execute_next( TASK_PID pid ) {
    }
 
    if( 0 >= new_ipc || task->sz < new_ipc ) {
-      printf( "bad res: %d\n", new_ipc );
+      printf( "pid: %d stack_len: %d exiting: %d\n",
+         pid, task->proc.stack_len, new_ipc );
       adhd_task_kill( pid );
    } else {
       task->proc.ipc = new_ipc;     

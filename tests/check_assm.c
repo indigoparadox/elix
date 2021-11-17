@@ -7,7 +7,7 @@
 const char* gc_test_in = 
    ".data:\ntest_str_1: \"Hello\"\ntest_str_2: \"World\"\n"
    ".cpu:\npush start\nsjump\nstart:\npush test_str_2\nsysc puts ; print\n"
-   "push #2\npush #4\nsadd\npush #10\njseq ending\npush start\nsjump\n\n\n"
+   "push #2\npush #4\nsadd\npush #10\njseq ending\nsret\n\n\n"
    "ending:\npush test_str_1\nsysc puts\n";
 
 unsigned char gc_test_out[] = {
@@ -35,16 +35,14 @@ unsigned char gc_test_out[] = {
    /* 44 */ 0, 0x03, /* VM_OP_PUSH, */
    /* 46 */ 0, 10,
    /* 48 */ 0, 0x09, /* VM_OP_JSEQ, */
-   /* 50 */ 0, 60,   /* Offset of ending. */
-   /* 52 */ 0, 0x03, /* VM_OP_PUSH, */
-   /* 54 */ 0, 24,   /* Offset of start. */
-   /* 56 */ 0, 0x06, /* VM_OP_SJUMP */
-   /* 58 */ 0, 0,
+   /* 50 */ 0, 56,   /* Offset of ending. */
+   /* 52 */ 0, 0x07, /* VM_OP_SRET */
+   /* 54 */ 0, 0,
    /* ending: */
-   /* 60 */ 0, 0x03, /* VM_OP_PUSH, */
-   /* 62 */ 0, 2,    /* Offset of test_str_1. */
-   /* 64 */ 0, 0x02, /* VM_OP_SYSC */
-   /* 66 */ 0, 0x02, /* VM_SYSC_PUTS */
+   /* 56 */ 0, 0x03, /* VM_OP_PUSH, */
+   /* 58 */ 0, 2,    /* Offset of test_str_1. */
+   /* 60 */ 0, 0x02, /* VM_OP_SYSC */
+   /* 62 */ 0, 0x02, /* VM_SYSC_PUTS */
 };
 
 static struct ASSM_STATE global;
@@ -84,7 +82,7 @@ Suite* assm_suite( void ) {
    tc_assm = tcase_create( "Assemble" );
 
    tcase_add_checked_fixture( tc_assm, setup_assm, teardown_assm );
-   tcase_add_loop_test( tc_assm, test_assm_encode, 0, 67 );
+   tcase_add_loop_test( tc_assm, test_assm_encode, 0, 63 );
 
    suite_add_tcase( s, tc_assm );
 

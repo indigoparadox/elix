@@ -17,7 +17,8 @@
 #define VM_MASK_FLAGS      0xff80
 
 /*! \brief ::VM_SIPC indicating stack overflow. */
-#define VM_ERROR_STACK     -32768
+#define VM_ERROR_STACK           -32768
+#define VM_ERROR_UNIMPLIMENTED   -32767
 
 #ifndef VM_STACK_MAX
 /*! \brief Maximum bytes able to be stored in a process's stack. */
