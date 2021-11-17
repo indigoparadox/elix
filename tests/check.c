@@ -20,9 +20,21 @@ main_add_test_proto( mem )
 /* main_add_test_proto( alpha ) */
 main_add_test_proto( assm )
 main_add_test_proto( vm )
+main_add_test_proto( sysc )
 
 #define SYSTEM_RUNNING 0
 uint8_t g_system_state = SYSTEM_RUNNING;
+
+char last_putc[TESTS_PUTC_MAX];
+char last_getc[TESTS_GETC_MAX];
+
+void display_putc( char c ) {
+   last_putc[0] = c;
+}
+
+char keyboard_getc() {
+   return 0;
+}
 
 int main( void ) {
    int number_failed = 0;
@@ -32,6 +44,7 @@ int main( void ) {
    /*main_add_test( alpha );*/
    main_add_test( assm );
    main_add_test( vm );
+   main_add_test( sysc );
 
    return( number_failed == 0 ) ? 0 : 1;
 }

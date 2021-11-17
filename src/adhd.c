@@ -113,6 +113,7 @@ void adhd_task_execute_next( TASK_PID pid ) {
    int16_t instr = 0,
       i = 0,
       arg = 0,
+      old_ipc = task->proc.ipc,
       flags = 0;
    VM_SIPC new_ipc = 0;
 
@@ -134,15 +135,6 @@ void adhd_task_execute_next( TASK_PID pid ) {
       assert( instr >= 0 );
    }
 
-   printf(
-      "ipc: 0x%02x stack_len: %d instr: 0x%02x flags: 0x%02x arg: 0x%02x\n",
-      task->proc.ipc, task->proc.stack_len, instr, flags, arg );
-   printf( "--stack: " );
-   for( i = 0 ; task->proc.stack_len > i ; i++ ) {
-      printf( "0x%02x, ", task->proc.stack[i] );
-   }
-   printf( "--\n" );
-
    assert( instr < VM_OP_MAX );
    assert( 0 == flags );
 
@@ -154,6 +146,16 @@ void adhd_task_execute_next( TASK_PID pid ) {
       new_ipc = 
          gc_vm_op_cbs[instr]( &(task->proc), (uint8_t)(flags & 0xff), arg );
    }
+
+   printf(
+      "ipc: 0x%02x stack_len: %d instr: 0x%02x flags: 0x%02x arg: 0x%02x "
+      "ret: %d\n",
+      old_ipc, task->proc.stack_len, instr, flags, arg, new_ipc );
+   printf( "--stack: " );
+   for( i = 0 ; task->proc.stack_len > i ; i++ ) {
+      printf( "0x%02x, ", task->proc.stack[i] );
+   }
+   printf( "--\n" );
 
    if( 0 >= new_ipc || task->sz < new_ipc ) {
       printf( "pid: %d stack_len: %d exiting: %d\n",

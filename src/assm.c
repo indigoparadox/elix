@@ -62,7 +62,11 @@ unsigned short get_label_ipc(
    }
 
    if( NULL == label_iter ) {
-      if( '$' != label[0] ) {
+      if( '$' == label[0] ) {
+         /* Alloc, so make up a number and return it and keep it for later. */
+         add_label( label, global->next_alloc_mid, &(global->labels) );
+         return global->next_alloc_mid++;
+      } else {
          /* Not an alloc, so add it to the list to search for in next pass. */
          assm_eprintf( "label not found; added to unresolved list" );
          add_label( label, ipc_of_call, &(global->unresolved) );
@@ -249,9 +253,12 @@ void process_token( struct ASSM_STATE* global ) {
 
    case STATE_ALLOC:
       /* Allocs are special labels with memory index instead of file offset. */
+      /*
       add_label( global->token, global->next_alloc_mid, &(global->labels) );
       label_ipc = global->next_alloc_mid;
       global->next_alloc_mid++;
+      */
+      label_ipc = get_label_ipc( global->token, 0, global );
 
       /* As with label offsets, MIDs are always 16 bits wide. */
       write_double_bin_instr_or_data( label_ipc, global );

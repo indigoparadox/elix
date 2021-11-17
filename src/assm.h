@@ -140,7 +140,7 @@ const char* gc_assm_states[] = {
    "sysc"
 };
 
-#define SYSC_STR_LIST( op, token ) token,
+#define SYSC_STR_LIST( idx, op, token ) token,
 
 const char* gc_sysc_tokens[] = {
    SYSC_TABLE( SYSC_STR_LIST )

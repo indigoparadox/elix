@@ -9,6 +9,12 @@ extern uint8_t* g_img_map;
 extern size_t g_img_sz;
 
 uint8_t disk_get_byte( uint8_t dev_idx, uint8_t part_idx, size_t offset ) {
+   if( offset > g_img_sz ) {
+      printf( "offset %lu out of disk range\n", offset );
+      assert( g_img_sz >= offset );
+      return 0;
+   }
+
    return g_img_map[offset];
 }
 

@@ -20,6 +20,7 @@ VM_SIPC sysc_PUTS( TASK_PID pid, uint8_t flags ) {
    if( !(task->flags & ADHD_TASK_FLAG_FOREGROUND) ) {
       return task->proc.ipc + 4;
    }
+#ifdef USE_DISK
    bytes_read = mfat_get_dir_entry_data(
       task->file_offset,
       ipc_offset,
@@ -40,15 +41,20 @@ VM_SIPC sysc_PUTS( TASK_PID pid, uint8_t flags ) {
          return SYSC_ERROR_DISK;
       }
    }
+#else
+   /* TODO: VM without disk strings? */
+#endif
 
    return task->proc.ipc + 4;
 }
 
+#ifdef USE_DISK
+
 VM_SIPC sysc_DROOT( TASK_PID pid, uint8_t flags ) {
    struct adhd_task* task = &(g_tasks[pid]);
    int16_t disk_id = 0,
-      part_id = 0,
-      offset = 0;
+      part_id = 0;
+   uint16_t offset = 0;
 
    part_id = vm_op_POP( &(task->proc), flags, 0 );
    if( VM_ERROR_STACK == part_id ) { return VM_ERROR_STACK; }
@@ -57,7 +63,9 @@ VM_SIPC sysc_DROOT( TASK_PID pid, uint8_t flags ) {
 
    offset = mfat_get_root_dir_offset( disk_id, part_id );
 
-   vm_dprintf( 0, "droot out: %d", offset );
+   assert( 0 <= offset );
+
+   printf( "droot out: %d\n", offset );
 
    if( VM_ERROR_STACK == vm_op_PUSH( &(task->proc), flags, offset ) ) {
       return VM_ERROR_STACK;
@@ -167,6 +175,8 @@ VM_SIPC sysc_LAUNCH( TASK_PID pid, uint8_t flags ) {
 
    return task->proc.ipc + 4;
 }
+
+#endif /* USE_DISK */
 
 VM_SIPC sysc_FLAGON( TASK_PID pid, uint8_t flags ) {
    struct adhd_task* task = &(g_tasks[pid]);
@@ -394,6 +404,8 @@ VM_SIPC sysc_MFREE( TASK_PID pid, uint8_t flags ) {
    mid = vm_op_POP( &(task->proc), flags, 0 );
    if( VM_ERROR_STACK == mid ) { return VM_ERROR_STACK; }
  
+   printf( "freeing mid: %d\n", mid );
+
    mfree( pid, mid );
 
    return task->proc.ipc + 4;

@@ -7,8 +7,9 @@
 const char* gc_test_in = 
    ".data:\ntest_str_1: \"Hello\"\ntest_str_2: \"World\"\n"
    ".cpu:\npush start\nsjump\nstart:\npush test_str_2\nsysc puts ; print\n"
-   "push 'c'\npush #2\npush #4\nsadd\npush #10\njseq ending\nsret\n\n\n"
-   "ending:\npush test_str_1\nsysc puts\n";
+   "push $stat\npush 'c'\n"
+   "push #2\npush #4\nsadd\npush #10\njseq ending\nsret\n\n\n"
+   "ending:\npush $stat\npush test_str_1\nsysc puts\n";
 
 unsigned char gc_test_out[] = {
    /*  0 */ 1, /* VM_OP_SECT, */
@@ -27,24 +28,28 @@ unsigned char gc_test_out[] = {
    /* 28 */ 0, 0x02, /* VM_OP_SYSC */
    /* 30 */ 0, 0x02, /* VM_SYSC_PUTS */
    /* 32 */ 0, 0x03, /* VM_OP_PUSH, */
-   /* 34 */ 0, 'c',
+   /* 34 */ 0, 1,    /* $stat */
    /* 36 */ 0, 0x03, /* VM_OP_PUSH, */
-   /* 38 */ 0, 2,
+   /* 38 */ 0, 'c',
    /* 40 */ 0, 0x03, /* VM_OP_PUSH, */
-   /* 42 */ 0, 4,
-   /* 44 */ 0, 0x05, /* VM_OP_SADD, */
-   /* 46 */ 0, 0,
-   /* 48 */ 0, 0x03, /* VM_OP_PUSH, */
-   /* 50 */ 0, 10,
-   /* 52 */ 0, 0x09, /* VM_OP_JSEQ, */
-   /* 54 */ 0, 60,   /* Offset of ending. */
-   /* 56 */ 0, 0x07, /* VM_OP_SRET */
-   /* 58 */ 0, 0,
+   /* 42 */ 0, 2,
+   /* 44 */ 0, 0x03, /* VM_OP_PUSH, */
+   /* 46 */ 0, 4,
+   /* 48 */ 0, 0x05, /* VM_OP_SADD, */
+   /* 50 */ 0, 0,
+   /* 52 */ 0, 0x03, /* VM_OP_PUSH, */
+   /* 54 */ 0, 10,
+   /* 56 */ 0, 0x09, /* VM_OP_JSEQ, */
+   /* 58 */ 0, 64,   /* Offset of ending. */
+   /* 60 */ 0, 0x07, /* VM_OP_SRET */
+   /* 62 */ 0, 0,
    /* ending: */
-   /* 60 */ 0, 0x03, /* VM_OP_PUSH, */
-   /* 62 */ 0, 2,    /* Offset of test_str_1. */
-   /* 64 */ 0, 0x02, /* VM_OP_SYSC */
-   /* 66 */ 0, 0x02, /* VM_SYSC_PUTS */
+   /* 64 */ 0, 0x03, /* VM_OP_PUSH, */
+   /* 66 */ 0, 1,    /* $stat */
+   /* 68 */ 0, 0x03, /* VM_OP_PUSH, */
+   /* 70 */ 0, 2,    /* Offset of test_str_1. */
+   /* 72 */ 0, 0x02, /* VM_OP_SYSC */
+   /* 74 */ 0, 0x02, /* VM_SYSC_PUTS */
 };
 
 static struct ASSM_STATE global;
@@ -84,7 +89,7 @@ Suite* assm_suite( void ) {
    tc_assm = tcase_create( "Assemble" );
 
    tcase_add_checked_fixture( tc_assm, setup_assm, teardown_assm );
-   tcase_add_loop_test( tc_assm, test_assm_encode, 0, 67 );
+   tcase_add_loop_test( tc_assm, test_assm_encode, 0, 75 );
 
    suite_add_tcase( s, tc_assm );
 
