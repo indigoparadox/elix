@@ -10,14 +10,11 @@
 
 #include "etypes.h"
 
-#ifndef VM_DEBUG_THRESHOLD
-#define VM_DEBUG_THRESHOLD 1
-#endif /* !VM_DEBUG_THRESHOLD */
-
 #define VM_MASK_FLAGS      0xff80
 
 /*! \brief ::VM_SIPC indicating stack overflow. */
 #define VM_ERROR_STACK           -32768
+/*! \brief ::VM_SIPC indicating call has not yet been implemented. */
 #define VM_ERROR_UNIMPLIMENTED   -32767
 
 #ifndef VM_STACK_MAX

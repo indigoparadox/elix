@@ -8,12 +8,6 @@
 #include "adhd.h"
 #include "mem.h"
 
-#ifdef USE_ERROR_CODES
-static const char gc_mem_error[] = "EVM02\n";
-#else
-static const char gc_mem_error[] = "aborting; mem error\n";
-#endif /* USE_ERROR_CODES */
-
 int16_t vm_op_POP( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
    int16_t dout = 0;
    if( 0 >= proc->stack_len ) {

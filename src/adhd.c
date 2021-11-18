@@ -9,17 +9,21 @@
 #include "sysc.h"
 
 void adhd_start() {
-   mzero( g_tasks, sizeof( struct adhd_task ) * ADHD_TASKS_MAX );
-   mzero( g_files, sizeof( struct adhd_file ) * ADHD_FILES_MAX );
+   mzero( g_tasks, sizeof( struct ADHD_TASK ) * ADHD_TASKS_MAX );
+   mzero( g_files, sizeof( struct ADHD_FILE ) * ADHD_FILES_MAX );
 }
 
-int8_t adhd_open_file( uint32_t offset, uint8_t flags ) {
+int8_t adhd_open_file(
+   uint8_t disk_id, uint8_t part_id, uint32_t offset, uint8_t flags
+) {
    int8_t i = 0;
 
    for( i = 0 ; ADHD_FILES_MAX > i ; i++ ) {
       if(
          ADHD_FILE_FLAG_OPEN == (g_files[i].flags & ADHD_FILE_FLAG_OPEN) &&
-         g_files[i].offset == offset
+         g_files[i].offset == offset &&
+         g_files[i].disk_id == disk_id &&
+         g_files[i].part_id == part_id
       ) {
          /* File is already open. */
          return i;
@@ -34,6 +38,8 @@ int8_t adhd_open_file( uint32_t offset, uint8_t flags ) {
          /* Create new file entry. */
          elix_dprintf( 1, "opening new file: %d @ %d", i, offset );
          g_files[i].offset = offset;
+         g_files[i].disk_id = disk_id;
+         g_files[i].part_id = part_id;
          g_files[i].flags = ADHD_FILE_FLAG_OPEN | flags;
          return i;
       }
@@ -51,7 +57,7 @@ void adhd_close_file( uint8_t file_id ) {
    elix_dprintf(
       1, "closing file: %d @ %d", file_id, g_files[file_id].offset );
 
-   mzero( &(g_files[file_id]), sizeof( struct adhd_file ) );
+   mzero( &(g_files[file_id]), sizeof( struct ADHD_FILE ) );
 }
 
 TASK_PID adhd_task_launch(
@@ -62,7 +68,7 @@ TASK_PID adhd_task_launch(
    uint8_t bytes_read = 0,
       cpu_section_found = 0,
       section_instr_found = 0;
-   struct adhd_task* task = NULL;
+   struct ADHD_TASK* task = NULL;
 
    /* Check for next available PID by using IPC (running tasks will always 
       have IPC > 0!) */
@@ -75,7 +81,7 @@ TASK_PID adhd_task_launch(
    }
 
    /* Zero the whole task, including its stack. */
-   mzero( &(g_tasks[pid_iter]), sizeof( struct adhd_task ) );
+   mzero( &(g_tasks[pid_iter]), sizeof( struct ADHD_TASK ) );
    task = &(g_tasks[pid_iter]);
    task->disk_id = disk_id;
    task->part_id = part_id;
@@ -113,7 +119,7 @@ TASK_PID adhd_task_launch(
 }
 
 void adhd_task_read_instr(
-   struct adhd_task* task, int16_t* instr, int16_t* arg
+   struct ADHD_TASK* task, int16_t* instr, int16_t* arg
 ) {
    int16_t short_out = 0;
    uint8_t byte_iter = 0;
@@ -152,7 +158,7 @@ void adhd_task_read_instr(
 #include <stdio.h>
 
 void adhd_task_execute_next( TASK_PID pid ) {
-   struct adhd_task* task = &(g_tasks[pid]);
+   struct ADHD_TASK* task = &(g_tasks[pid]);
    int16_t instr = 0,
       i = 0,
       arg = 0,

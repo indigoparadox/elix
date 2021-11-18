@@ -2,6 +2,10 @@
 #ifndef UPRINTF_H
 #define UPRINTF_H
 
+#ifndef DEBUG_THRESHOLD
+#define DEBUG_THRESHOLD 1
+#endif /* !DEBUG_THRESHOLD */
+
 #ifdef MSP430
 
 #define elix_dprintf( lvl, ... )
@@ -10,7 +14,7 @@
 #elif defined( DEBUG_ELIX_CONSOLE )
 
 #define elix_dprintf( lvl, ... ) \
-   if( lvl >= VM_DEBUG_THRESHOLD ) { \
+   if( lvl >= DEBUG_THRESHOLD ) { \
       tprintf( "(%d) " __FILE__ ": %d: ", lvl, __LINE__ ); \
       tprintf( __VA_ARGS__ ); \
       tprintf( "\n" ); \
@@ -26,7 +30,7 @@
 #include <stdio.h>
 
 #define elix_dprintf( lvl, ... ) \
-   if( lvl >= VM_DEBUG_THRESHOLD ) { \
+   if( lvl >= DEBUG_THRESHOLD ) { \
       printf( "(%d) " __FILE__ ": %d: ", lvl, __LINE__ ); \
       printf( __VA_ARGS__ ); \
       printf( "\n" ); \

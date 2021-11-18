@@ -139,8 +139,6 @@ proc_line:
    push     #0          ; Push disk ID 0
    push     #0          ; Push part ID 0
    sysc     droot       ; Get the root directory offset.
-   push     #0          ; Push disk ID 0
-   push     #0          ; Push part ID 0
    sysc     dfirst      ; Get the first entry offset.
    push     #0
    jseq     not_found
@@ -156,8 +154,6 @@ fs_iter:
    push     $file_id  ; Place FS offset on the stack.
    sysc     mpush 
    push     $filename   ; Push address of filename buffer.
-   push     #0          ; Push disk ID 0
-   push     #0          ; Push part ID 0
    sysc     dname       ; Store entry name in $filename (pops offset and fname).
    spop                 ; Pop file_id from dname.
 
@@ -178,8 +174,6 @@ icmp_finish:
    push     #0          ; No MPUSH offset.
    push     $file_id
    sysc     mpush             ; Place FS offset on the stack.
-   push     #0                ; Push disk ID 0
-   push     #0                ; Push part ID 0
    sysc     dnext
    push     #0
    jseq     fs_iter_cleanup   ; No more files in this directory.

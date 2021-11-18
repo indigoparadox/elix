@@ -10,7 +10,7 @@ VM_SIPC sysc_NOOP( TASK_PID pid, uint8_t flags ) {
 }
 
 VM_SIPC sysc_PUTS( TASK_PID pid, uint8_t flags ) {
-   struct adhd_task* task = &(g_tasks[pid]);
+   struct ADHD_TASK* task = &(g_tasks[pid]);
    SFILEPTR_T ipc_offset = 0,
       bytes_read = 0;
    unsigned char cbuf = 0;
@@ -52,7 +52,7 @@ VM_SIPC sysc_PUTS( TASK_PID pid, uint8_t flags ) {
 #ifdef USE_DISK
 
 VM_SIPC sysc_DROOT( TASK_PID pid, uint8_t flags ) {
-   struct adhd_task* task = &(g_tasks[pid]);
+   struct ADHD_TASK* task = &(g_tasks[pid]);
    int16_t disk_id = 0,
       part_id = 0;
    uint32_t offset = 0;
@@ -65,7 +65,7 @@ VM_SIPC sysc_DROOT( TASK_PID pid, uint8_t flags ) {
 
    offset = mfat_get_root_dir_offset( disk_id, part_id );
    assert( 0 <= offset );
-   file_id = adhd_open_file( offset, ADHD_FILE_FLAG_DIR );
+   file_id = adhd_open_file( disk_id, part_id, offset, ADHD_FILE_FLAG_DIR );
    assert( 0 <= file_id );
 
    elix_dprintf( 1, "root directory %d opened offset: %d\n", file_id, offset );
@@ -78,29 +78,27 @@ VM_SIPC sysc_DROOT( TASK_PID pid, uint8_t flags ) {
 }
 
 VM_SIPC sysc_DFIRST( TASK_PID pid, uint8_t flags ) {
-   struct adhd_task* task = &(g_tasks[pid]);
+   struct ADHD_TASK* task = &(g_tasks[pid]);
    int16_t disk_id = 0,
       part_id = 0,
       file_id = 0;
    uint32_t dir_offset = 0,
       entry_offset = 0;
 
-   part_id = vm_op_POP( &(task->proc), flags, 0 );
-   if( VM_ERROR_STACK == part_id ) { return VM_ERROR_STACK; }
-   disk_id = vm_op_POP( &(task->proc), flags, 0 );
-   if( VM_ERROR_STACK == disk_id ) { return VM_ERROR_STACK; }
    file_id = vm_op_POP( &(task->proc), flags, 0 );
    if( VM_ERROR_STACK == file_id ) { return VM_ERROR_STACK; }
 
    /* Get the offset of the first entry to iterate from. */
    dir_offset = g_files[file_id].offset;
    assert( 0 <= dir_offset );
+   disk_id = g_files[file_id].disk_id;
+   part_id = g_files[file_id].part_id;
    adhd_close_file( file_id );
 
    entry_offset = mfat_get_dir_entry_first_offset(
       dir_offset, disk_id, part_id );
    assert( 0 <= entry_offset );
-   file_id = adhd_open_file( entry_offset, 0 );
+   file_id = adhd_open_file( disk_id, part_id, entry_offset, 0 );
    assert( 0 <= file_id );
 
    elix_dprintf(
@@ -114,27 +112,25 @@ VM_SIPC sysc_DFIRST( TASK_PID pid, uint8_t flags ) {
 }
 
 VM_SIPC sysc_DNEXT( TASK_PID pid, uint8_t flags ) {
-   struct adhd_task* task = &(g_tasks[pid]);
+   struct ADHD_TASK* task = &(g_tasks[pid]);
    int16_t disk_id = 0,
       part_id = 0,
       file_id = 0;
    uint32_t offset = 0;
 
-   part_id = vm_op_POP( &(task->proc), flags, 0 );
-   if( VM_ERROR_STACK == part_id ) { return VM_ERROR_STACK; }
-   disk_id = vm_op_POP( &(task->proc), flags, 0 );
-   if( VM_ERROR_STACK == disk_id ) { return VM_ERROR_STACK; }
    offset = vm_op_POP( &(task->proc), flags, 0 );
    if( VM_ERROR_STACK == offset ) { return VM_ERROR_STACK; }
 
    /* Get the offset of the last entry to iterate from. */
    offset = g_files[file_id].offset;
    assert( 0 <= offset );
+   disk_id = g_files[file_id].disk_id;
+   part_id = g_files[file_id].part_id;
    adhd_close_file( file_id );
 
    offset = mfat_get_dir_entry_next_offset( offset, disk_id, part_id );
    assert( 0 <= offset );
-   file_id = adhd_open_file( offset );
+   file_id = adhd_open_file( disk_id, part_id, offset, 0 );
    assert( 0 <= file_id );
 
    elix_dprintf( 1, "next entry %d opened offset: %d\n", file_id, offset );
@@ -147,7 +143,7 @@ VM_SIPC sysc_DNEXT( TASK_PID pid, uint8_t flags ) {
 }
 
 VM_SIPC sysc_DNAME( TASK_PID pid, uint8_t flags ) {
-   struct adhd_task* task = &(g_tasks[pid]);
+   struct ADHD_TASK* task = &(g_tasks[pid]);
    char* filename = NULL;
    int16_t disk_id = 0,
       part_id = 0,
@@ -155,10 +151,6 @@ VM_SIPC sysc_DNAME( TASK_PID pid, uint8_t flags ) {
       file_id = 0;
    uint32_t offset = 0;
 
-   part_id = vm_op_POP( &(task->proc), flags, 0 );
-   if( VM_ERROR_STACK == part_id ) { return VM_ERROR_STACK; }
-   disk_id = vm_op_POP( &(task->proc), flags, 0 );
-   if( VM_ERROR_STACK == disk_id ) { return VM_ERROR_STACK; }
    mid = vm_op_POP( &(task->proc), flags, 0 );
    if( VM_ERROR_STACK == mid ) { return VM_ERROR_STACK; }
    offset = vm_op_POP( &(task->proc), flags, 0 );
@@ -168,6 +160,9 @@ VM_SIPC sysc_DNAME( TASK_PID pid, uint8_t flags ) {
    if( NULL == filename ) { return SYSC_ERROR_MEM; }
 
    offset = g_files[file_id].offset;
+   assert( 0 <= offset );
+   disk_id = g_files[file_id].disk_id;
+   part_id = g_files[file_id].part_id;
    mfat_get_dir_entry_name( filename, offset, disk_id, part_id );
    adhd_close_file( file_id );
 
@@ -180,7 +175,7 @@ VM_SIPC sysc_DENTRY( TASK_PID pid, uint8_t flags ) {
 }
 
 VM_SIPC sysc_LAUNCH( TASK_PID pid, uint8_t flags ) {
-   struct adhd_task* task = &(g_tasks[pid]);
+   struct ADHD_TASK* task = &(g_tasks[pid]);
    int16_t disk_id = 0,
       part_id = 0,
       offset = 0;
@@ -224,7 +219,7 @@ VM_SIPC sysc_LAUNCH( TASK_PID pid, uint8_t flags ) {
 #endif /* USE_DISK */
 
 VM_SIPC sysc_FLAGON( TASK_PID pid, uint8_t flags ) {
-   struct adhd_task* task = &(g_tasks[pid]);
+   struct ADHD_TASK* task = &(g_tasks[pid]);
    int16_t flag = 0;
 
    flag = vm_op_POP( &(task->proc), flags, 0 );
@@ -236,7 +231,7 @@ VM_SIPC sysc_FLAGON( TASK_PID pid, uint8_t flags ) {
 }
 
 VM_SIPC sysc_FLAGOFF( TASK_PID pid, uint8_t flags ) {
-   struct adhd_task* task = &(g_tasks[pid]);
+   struct ADHD_TASK* task = &(g_tasks[pid]);
    int16_t flag = 0;
 
    flag = vm_op_POP( &(task->proc), flags, 0 );
@@ -248,7 +243,7 @@ VM_SIPC sysc_FLAGOFF( TASK_PID pid, uint8_t flags ) {
 }
 
 VM_SIPC sysc_PUTC( TASK_PID pid, uint8_t flags ) {
-   struct adhd_task* task = &(g_tasks[pid]);
+   struct ADHD_TASK* task = &(g_tasks[pid]);
    int16_t c = 0;
 
    c = vm_op_POP( &(task->proc), flags, 0 );
@@ -265,7 +260,7 @@ VM_SIPC sysc_EXIT( TASK_PID pid, uint8_t flags ) {
 }
 
 VM_SIPC sysc_GETC( TASK_PID pid, uint8_t flags ) {
-   struct adhd_task* task = &(g_tasks[pid]);
+   struct ADHD_TASK* task = &(g_tasks[pid]);
    unsigned char cbuf = 0;
 
    if( task->flags & ADHD_TASK_FLAG_FOREGROUND ) {
@@ -283,7 +278,7 @@ VM_SIPC sysc_GETC( TASK_PID pid, uint8_t flags ) {
 }
 
 VM_SIPC sysc_MPUTS( TASK_PID pid, uint8_t flags ) {
-   struct adhd_task* task = &(g_tasks[pid]);
+   struct ADHD_TASK* task = &(g_tasks[pid]);
    int16_t mid = 0;
    char* str_ptr = NULL;
 
@@ -314,7 +309,7 @@ VM_SIPC sysc_ICMP( TASK_PID pid, uint8_t flags ) {
 #if 0
 
 static SIPC_PTR vm_instr_sysc( TASK_PID pid, uint8_t call_id ) {
-   struct adhd_task* task = &(g_tasks[pid]);
+   struct ADHD_TASK* task = &(g_tasks[pid]);
    unsigned char cbuf = 0;
    char* str_ptr = NULL;
    int16_t mid = 0;
@@ -366,7 +361,7 @@ static SIPC_PTR vm_instr_sysc( TASK_PID pid, uint8_t call_id ) {
 #endif
 
 VM_SIPC sysc_MALLOC( TASK_PID pid, uint8_t flags ) {
-   struct adhd_task* task = &(g_tasks[pid]);
+   struct ADHD_TASK* task = &(g_tasks[pid]);
    int16_t mid = 0,
       sz = 0;
    uint8_t* addr_tmp = NULL;
@@ -387,7 +382,7 @@ VM_SIPC sysc_MALLOC( TASK_PID pid, uint8_t flags ) {
 }
 
 VM_SIPC sysc_MPOP( TASK_PID pid, uint8_t flags ) {
-   struct adhd_task* task = &(g_tasks[pid]);
+   struct ADHD_TASK* task = &(g_tasks[pid]);
    int16_t mid = 0,
       buf = 0,
       offset = 0;
@@ -413,7 +408,7 @@ VM_SIPC sysc_MPOP( TASK_PID pid, uint8_t flags ) {
 }
 
 VM_SIPC sysc_MPUSH( TASK_PID pid, uint8_t flags ) {
-   struct adhd_task* task = &(g_tasks[pid]);
+   struct ADHD_TASK* task = &(g_tasks[pid]);
    int16_t mid = 0,
       buf = 0,
       offset = 0;
@@ -440,7 +435,7 @@ VM_SIPC sysc_MPUSH( TASK_PID pid, uint8_t flags ) {
 }
 
 VM_SIPC sysc_MFREE( TASK_PID pid, uint8_t flags ) {
-   struct adhd_task* task = &(g_tasks[pid]);
+   struct ADHD_TASK* task = &(g_tasks[pid]);
    int16_t mid = 0,
       buf = 0,
       offset = 0;

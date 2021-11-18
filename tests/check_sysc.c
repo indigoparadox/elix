@@ -13,10 +13,10 @@
 #define TEST_MID 1
 #define TEST_MEM_SZ 10
 
-struct adhd_task* task = &(g_tasks[TEST_PID]);
+struct ADHD_TASK* task = &(g_tasks[TEST_PID]);
 
 static void setup_vm_mem() {
-   memset( g_tasks, '\0', sizeof( struct adhd_task ) * 10 );
+   memset( g_tasks, '\0', sizeof( struct ADHD_TASK ) * 10 );
    minit();
 }
 
