@@ -18,7 +18,7 @@ int16_t vm_op_POP( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
    return dout;
 }
 
-VM_SIPC vm_op_PUSH( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
+VM_SIPC vm_op_SPUSH( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
    if( VM_STACK_MAX <= proc->stack_len + 1 ) {
       return VM_ERROR_STACK;
    }
@@ -55,7 +55,7 @@ VM_SIPC vm_op_JSEQ( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
    }
 
    /* Only pop the second comparator, so put the first back. */
-   if( VM_ERROR_STACK == vm_op_PUSH( proc, flags, comp1 ) ) {
+   if( VM_ERROR_STACK == vm_op_SPUSH( proc, flags, comp1 ) ) {
       return VM_ERROR_STACK;
    }
 
@@ -81,7 +81,7 @@ VM_SIPC vm_op_JSNE( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
    }
 
    /* Only pop the second comparator, so put the first back. */
-   if( VM_ERROR_STACK == vm_op_PUSH( proc, flags, comp1 ) ) {
+   if( VM_ERROR_STACK == vm_op_SPUSH( proc, flags, comp1 ) ) {
       return VM_ERROR_STACK;
    }
 
@@ -103,7 +103,7 @@ VM_SIPC vm_op_JSGE( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
    }
 
    /* Only pop the second comparator, so put the first back. */
-   if( VM_ERROR_STACK == vm_op_PUSH( proc, flags, comp1 ) ) {
+   if( VM_ERROR_STACK == vm_op_SPUSH( proc, flags, comp1 ) ) {
       return VM_ERROR_STACK;
    }
 
@@ -166,7 +166,7 @@ VM_SIPC vm_op_SADD( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
    if( VM_ERROR_STACK == val1 ) { return VM_ERROR_STACK; }
    val2 = vm_op_POP( proc, flags, 0 );
    if( VM_ERROR_STACK == val2 ) { return VM_ERROR_STACK; }
-   return vm_op_PUSH( proc, flags, val1 + val2 );
+   return vm_op_SPUSH( proc, flags, val1 + val2 );
 
    return proc->ipc + 4;
 }

@@ -21,7 +21,7 @@ START_TEST( test_vm_op_push ) {
    int_test = rand() % 30000;
 
    ck_assert_int_ne(
-      VM_ERROR_STACK, vm_op_PUSH( &proc, 0, int_test ) );
+      VM_ERROR_STACK, vm_op_SPUSH( &proc, 0, int_test ) );
 
    ck_assert_int_eq( proc.stack_len, 1 );
    ck_assert_int_eq( int_test, proc.stack[0] );
@@ -35,7 +35,7 @@ START_TEST( test_vm_op_pop ) {
    int_test = rand() % 30000;
 
    ck_assert_int_ne(
-      VM_ERROR_STACK, vm_op_PUSH( &proc, 0, int_test ) );
+      VM_ERROR_STACK, vm_op_SPUSH( &proc, 0, int_test ) );
 
    pop_test = vm_op_POP( &proc, 0, 0 );
 
@@ -58,9 +58,9 @@ START_TEST( test_vm_op_sjump ) {
    old_ipc = proc.ipc;
 
    ck_assert_int_ne(
-      VM_ERROR_STACK, vm_op_PUSH( &proc, 0, int_test_1 ) );
+      VM_ERROR_STACK, vm_op_SPUSH( &proc, 0, int_test_1 ) );
    ck_assert_int_ne(
-      VM_ERROR_STACK, vm_op_PUSH( &proc, 0, int_test_2 ) );
+      VM_ERROR_STACK, vm_op_SPUSH( &proc, 0, int_test_2 ) );
 
    ck_assert_int_eq( proc.stack_len, 2 );
    ck_assert_int_eq( int_test_1, proc.stack[0] );
@@ -89,9 +89,9 @@ START_TEST( test_vm_op_sret ) {
    old_ipc = proc.ipc;
 
    ck_assert_int_ne(
-      VM_ERROR_STACK, vm_op_PUSH( &proc, 0, int_test_1 ) );
+      VM_ERROR_STACK, vm_op_SPUSH( &proc, 0, int_test_1 ) );
    ck_assert_int_ne(
-      VM_ERROR_STACK, vm_op_PUSH( &proc, 0, int_test_2 ) );
+      VM_ERROR_STACK, vm_op_SPUSH( &proc, 0, int_test_2 ) );
 
    vm_op_SJUMP( &proc, 0, 0 );
 
@@ -121,11 +121,11 @@ START_TEST( test_vm_op_jseq_eq ) {
    } while( proc.ipc == 88 );
 
    ck_assert_int_ne(
-      VM_ERROR_STACK, vm_op_PUSH( &proc, 0, int_test_1 ) );
+      VM_ERROR_STACK, vm_op_SPUSH( &proc, 0, int_test_1 ) );
    ck_assert_int_ne(
-      VM_ERROR_STACK, vm_op_PUSH( &proc, 0, int_test_2 ) );
+      VM_ERROR_STACK, vm_op_SPUSH( &proc, 0, int_test_2 ) );
    ck_assert_int_ne(
-      VM_ERROR_STACK, vm_op_PUSH( &proc, 0, int_test_2 ) );
+      VM_ERROR_STACK, vm_op_SPUSH( &proc, 0, int_test_2 ) );
 
    ck_assert_int_eq( proc.stack_len, 3 );
    ck_assert_int_eq( proc.stack[0], int_test_1 );
@@ -157,9 +157,9 @@ START_TEST( test_vm_op_jseq_ne ) {
    old_ipc = proc.ipc;
 
    ck_assert_int_ne(
-      VM_ERROR_STACK, vm_op_PUSH( &proc, 0, int_test_1 ) );
+      VM_ERROR_STACK, vm_op_SPUSH( &proc, 0, int_test_1 ) );
    ck_assert_int_ne(
-      VM_ERROR_STACK, vm_op_PUSH( &proc, 0, int_test_2 ) );
+      VM_ERROR_STACK, vm_op_SPUSH( &proc, 0, int_test_2 ) );
 
    ck_assert_int_eq( proc.stack_len, 2 );
    ck_assert_int_eq( proc.stack[0], int_test_1 );

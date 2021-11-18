@@ -11,19 +11,34 @@
  * \{
  */
 
-/**
- * | Syscall | Description                      | Args on Stack
- * |---------|----------------------------------|---------------
- * | NOOP    | Internal use only.               | None.
- * | PUTC    | Put a char on-screen.            | Char to put on-screen.
- * | PUTS    | Put a string on-screen.          |
- * | GETC    | Get char from input onto stack.  |
- * | CMP     |
- * | ICMP    |
- * | DENTRY  |
- * | DROOT   |
- * |
+/*!
+ * \addtogroup sysc_ref_sect Virtual Machine Syscalls
+ * \brief
+ *
+ * \{
+ * \page sysc_ref Virtual Machine SysCall Reference
+ * \tableofcontents
+ * 
+ * This language has not quite been finalized, so adjustments are anticipated.
+ *
+ * \section sysc_putc PUTC  
+ * \section sysc_puts PUTS
+ * \section sysc_getc GETC
+ * \section sysc_cmp CMP
+ * \section sysc_icmp ICMP
+ * \section sysc_dentry DENTRY
+ * \section sysc_droot DROOT
+ * \section sysc_dfirst DFIRST
+ * \section sysc_dnext DNEXT
+ * \section sysc_dname DNAME
+ * \section sysc_mputs MPUTS
+ * \section sysc_flagon FLAGON
+ * \section sysc_flagoff FLAGOFF
+ * \section sysc_launch LAUNCH
+ *
+ * \}
  */
+
 #define SYSC_TABLE( f ) \
    f(  0, NOOP,      "noop" ) \
    f(  1, PUTC,      "putc" ) \
@@ -75,10 +90,14 @@
  */
 typedef VM_SIPC (*SYSC)( TASK_PID pid, uint8_t flags );
 
+#ifndef SKIP_DOC
+
 #define SYSC_PROTOTYPES( idx, sysc, token ) \
    VM_SIPC sysc_ ## sysc ( TASK_PID pid, uint8_t flags );
 
 SYSC_TABLE( SYSC_PROTOTYPES )
+
+#endif /* !SKIP_DOC */
 
 #ifdef SYSC_C
 
@@ -95,6 +114,7 @@ const SYSC gc_sysc_cbs[] = {
 #else
 
 #ifndef ASSM_NO_VM
+/*! \brief \ref sysc_ref_sect implementation callback lookup table. */
 extern const SYSC gc_sysc_cbs[];
 #endif /* !ASSM_NO_VM */
 

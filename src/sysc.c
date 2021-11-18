@@ -70,7 +70,7 @@ VM_SIPC sysc_DROOT( TASK_PID pid, uint8_t flags ) {
 
    elix_dprintf( 1, "root directory %d opened offset: %d\n", file_id, offset );
 
-   if( VM_ERROR_STACK == vm_op_PUSH( &(task->proc), flags, file_id ) ) {
+   if( VM_ERROR_STACK == vm_op_SPUSH( &(task->proc), flags, file_id ) ) {
       return VM_ERROR_STACK;
    }
 
@@ -104,7 +104,7 @@ VM_SIPC sysc_DFIRST( TASK_PID pid, uint8_t flags ) {
    elix_dprintf(
       1, "first entry %d opened offset: %d\n", file_id, entry_offset );
 
-   if( VM_ERROR_STACK == vm_op_PUSH( &(task->proc), flags, file_id ) ) {
+   if( VM_ERROR_STACK == vm_op_SPUSH( &(task->proc), flags, file_id ) ) {
       return VM_ERROR_STACK;
    }
 
@@ -135,7 +135,7 @@ VM_SIPC sysc_DNEXT( TASK_PID pid, uint8_t flags ) {
 
    elix_dprintf( 1, "next entry %d opened offset: %d\n", file_id, offset );
 
-   if( VM_ERROR_STACK == vm_op_PUSH( &(task->proc), flags, file_id ) ) {
+   if( VM_ERROR_STACK == vm_op_SPUSH( &(task->proc), flags, file_id ) ) {
       return VM_ERROR_STACK;
    }
 
@@ -189,7 +189,7 @@ VM_SIPC sysc_LAUNCH( TASK_PID pid, uint8_t flags ) {
 
    adhd_task_launch( disk_id, part_id, offset );
 
-   if( VM_ERROR_STACK == vm_op_PUSH( &(task->proc), flags, offset ) ) {
+   if( VM_ERROR_STACK == vm_op_SPUSH( &(task->proc), flags, offset ) ) {
       return VM_ERROR_STACK;
    }
 
@@ -265,11 +265,11 @@ VM_SIPC sysc_GETC( TASK_PID pid, uint8_t flags ) {
 
    if( task->flags & ADHD_TASK_FLAG_FOREGROUND ) {
       cbuf = tgetc();
-      if( VM_ERROR_STACK == vm_op_PUSH( &(task->proc), flags, cbuf ) ) {
+      if( VM_ERROR_STACK == vm_op_SPUSH( &(task->proc), flags, cbuf ) ) {
          return VM_ERROR_STACK;
       }
    } else {
-      if( VM_ERROR_STACK == vm_op_PUSH( &(task->proc), flags, 0 ) ) {
+      if( VM_ERROR_STACK == vm_op_SPUSH( &(task->proc), flags, 0 ) ) {
          return VM_ERROR_STACK;
       }
    }
@@ -425,7 +425,7 @@ VM_SIPC sysc_MPUSH( TASK_PID pid, uint8_t flags ) {
       return SYSC_ERROR_MEM;
    }
 
-   if( VM_ERROR_STACK == vm_op_PUSH(
+   if( VM_ERROR_STACK == vm_op_SPUSH(
       &(task->proc), flags, *(addr_tmp + offset) )
    ) {
       return VM_ERROR_STACK;

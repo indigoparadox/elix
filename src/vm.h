@@ -13,12 +13,12 @@
  * \brief Allows user applications to execute safely in an abstract environment
  *        that's consistent in differing hardware environments.
  *
- * At its base level, the VM has a few simple ::VM_OP_TABLE codes that
- * provide program flow control and basic functionality. It also provides a
+ * At its base level, the VM has a simple \ref vm_op_ref_sect that
+ * provides program flow control and basic functionality. It also provides a
  * VM_PROC::stack on which to store data that is being worked with.
  *
  * More advanced operating system functionality (e.g. file and screen access)
- * is handled by ::SYSC_TABLE and the SYSC ::VM_OP.
+ * is handled by \ref sysc_ref_sect and the \ref vm_op_sysc operation.
  *
  * \{
  */
@@ -57,17 +57,86 @@ struct VM_PROC {
    uint8_t stack_len;
 };
 
-/**
- * | Syscall | Description                      | Args on Stack
- * |---------|----------------------------------|---------------
- * | NOOP    | Internal use only.               | None.
- * | SECT    | Not technically an opcode. Designates binary section. | None.
+/*!
+ * \addtogroup vm_op_ref_sect Virtual Machine Language
+ * \brief Overview of the language used by the Virtual Machine.
+ *
+ * \{
+ * \page vm_op_ref Virtual Machine Language Reference
+ * \tableofcontents
+ * 
+ * A brief introduction to the assembly language used to program user
+ * applications for the virtual machine.
+ *
+ * This language has not quite been finalized, so adjustments are anticipated.
+ *
+ * \section vm_op_sysc SYSC
+ * Calls a syscall. See \ref sysc_ref for more information on available
+ * syscalls.
+ * \subsection vm_op_sysc_arg Immediate Argument
+ * The syscall to call.
+ * 
+ * \section vm_op_spush SPUSH
+ * Pushes its immediate argument onto the top of the stack.
+ * \subsection vm_op_spush_arg Immediate Argument
+ * The value to push onto the stack.
+ *
+ * \section vm_op_spop SPOP
+ * Pops the topmost value from the stack and discards it.
+ *
+ * \section vm_op_sadd SADD
+ * Adds the top two numbers on the stack (removing them) and then pushes the
+ * result onto the top of the stack.
+ *
+ * \section vm_op_sjump SJUMP
+ * Pops the topmost value from the stack and jumps to it as a byte offset of
+ * the user program. Places the current IPC at the bottom of the stack before
+ * doing so.
+ * \subsection vm_op_sjump_stack Stack
+ *
+ * \section vm_op_sret SRET
+ * Removes the bottom-most value from the stack and jumps to it as a byte
+ * offset of the user application. Designed to work with \ref vm_op_sjump.
+ * \subsection vm_op_sret_stack
+ *
+ * \section vm_op_jump JUMP
+ * Jump to the immediate argument as a byte offset of the user application.
+ * \subsection vm_op_jump_arg Immediate Argument
+ *
+ * \section vm_op_jseq JSEQ
+ * Compares the top two values on the stack, discarding the topmost, and
+ * jumps to the value provided as the immediate argument as a byte offset of
+ * the user application if they are equal.
+ * \subsection vm_op_jseq_arg Immediate Argument
+ * \subsection vm_op_jseq_stack Stack
+ *
+ * \section vm_op_jsne JSNE
+ * Compares the top two values on the stack, discarding the topmost, and
+ * jumps to the value provided as the immediate argument as a byte offset of
+ * the user application if they are NOT equal.
+ * \subsection vm_op_jsne_arg Immediate Argument
+ * \subsection vm_op_jsne_stack Stack
+ *
+ * \section vm_op_jsge JSGE
+ * Compares the top two values on the stack, discarding the topmost, and
+ * jumps to the value provided as the immediate argument as a byte offset of
+ * the user application if the second top-most is greater than the discarded
+ * topmost value.
+ * \subsection vm_op_jsge_arg Immediate Argument
+ * \subsection vm_op_jsge_stack Stack
+ *
+ * \}
+ */
+
+/*! \brief Virtual machine opcode lookup table.
+ *
+ * Index, Immediate Argument Count, Operation, Assembly Token
  */
 #define VM_OP_TABLE( f ) \
    f(   0,  0, NOP,     "nop" ) \
    f(   1,  0, SECT,    "sect" ) \
    f(   2,  1, SYSC,    "sysc" ) \
-   f(   3,  1, PUSH,    "push" ) \
+   f(   3,  1, SPUSH,   "spush" ) \
    f(   4,  0, SPOP,    "spop" ) \
    f(   5,  0, SADD,    "sadd" ) \
    f(   6,  0, SJUMP,   "sjump" ) \
@@ -105,10 +174,14 @@ typedef int16_t VM_SIPC;
  */
 typedef VM_SIPC (*VM_OP)( struct VM_PROC* proc, uint8_t flags, int16_t data );
 
+#ifndef SKIP_DOC
+
 #define VM_OP_PROTOTYPES( idx, argc, op, token ) \
    VM_SIPC vm_op_ ## op ( struct VM_PROC* proc, uint8_t flags, int16_t data );
 
 VM_OP_TABLE( VM_OP_PROTOTYPES )
+
+#endif /* !SKIP_DOC */
 
 #ifdef VM_C
 
@@ -131,13 +204,18 @@ const VM_OP gc_vm_op_cbs[] = {
 #else
 
 #ifndef ASSM_NO_VM
+/*! \brief \ref vm_op_ref_sect implementation callback lookup table. */
 extern const VM_OP gc_vm_op_cbs[];
 #endif /* !ASSM_NO_VM */
+
+#ifndef SKIP_DOC
 
 #define VM_OP_IDX_LIST( idx, argc, op, token ) \
    extern const uint8_t VM_OP_ ## op;
 
 VM_OP_TABLE( VM_OP_IDX_LIST );
+
+#endif /* !SKIP_DOC */
 
 #endif /* VM_C */
 

@@ -27,9 +27,9 @@ START_TEST( test_sysc_malloc ) {
    void* ptr = NULL;
 
    ck_assert_int_ne(
-      VM_ERROR_STACK, vm_op_PUSH( &(task->proc), 0, TEST_MEM_SZ ) );
+      VM_ERROR_STACK, vm_op_SPUSH( &(task->proc), 0, TEST_MEM_SZ ) );
    ck_assert_int_ne(
-      VM_ERROR_STACK, vm_op_PUSH( &(task->proc), 0, TEST_MID ) );
+      VM_ERROR_STACK, vm_op_SPUSH( &(task->proc), 0, TEST_MID ) );
 
    ck_assert_int_eq( task->proc.ipc + 4, sysc_MALLOC( TEST_PID, 0 ) );
 
@@ -44,9 +44,9 @@ START_TEST( test_sysc_mpush ) {
 
    /* Allocate memory. */
    ck_assert_int_ne(
-      VM_ERROR_STACK, vm_op_PUSH( &(task->proc), 0, TEST_MEM_SZ ) );
+      VM_ERROR_STACK, vm_op_SPUSH( &(task->proc), 0, TEST_MEM_SZ ) );
    ck_assert_int_ne(
-      VM_ERROR_STACK, vm_op_PUSH( &(task->proc), 0, TEST_MID ) );
+      VM_ERROR_STACK, vm_op_SPUSH( &(task->proc), 0, TEST_MID ) );
 
    ck_assert_int_eq( task->proc.ipc + 4, sysc_MALLOC( TEST_PID, 0 ) );
 
@@ -60,9 +60,9 @@ START_TEST( test_sysc_mpush ) {
 
    /* Try to push test values from memory to stack. */
    ck_assert_int_ne(
-      VM_ERROR_STACK, vm_op_PUSH( &(task->proc), 0, 0 ) ); /* Offset */
+      VM_ERROR_STACK, vm_op_SPUSH( &(task->proc), 0, 0 ) ); /* Offset */
    ck_assert_int_ne(
-      VM_ERROR_STACK, vm_op_PUSH( &(task->proc), 0, TEST_MID ) );
+      VM_ERROR_STACK, vm_op_SPUSH( &(task->proc), 0, TEST_MID ) );
 
    ck_assert_int_eq( task->proc.ipc + 4, sysc_MPUSH( TEST_PID, 0 ) );
 
