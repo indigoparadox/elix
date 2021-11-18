@@ -23,10 +23,10 @@ VM_SIPC sysc_PUTS( TASK_PID pid, uint8_t flags ) {
    }
 #ifdef USE_DISK
    bytes_read = mfat_get_dir_entry_data(
-      task->file_offset,
+      g_files[task->file_id].offset,
       ipc_offset,
       &cbuf, 1,
-      task->disk_id, task->part_id );
+      g_files[task->file_id].disk_id, g_files[task->file_id].part_id );
    if( 0 == bytes_read ) {
       return SYSC_ERROR_DISK;
    }
@@ -34,10 +34,10 @@ VM_SIPC sysc_PUTS( TASK_PID pid, uint8_t flags ) {
       tputc( cbuf );
       ipc_offset += 1;
       bytes_read = mfat_get_dir_entry_data(
-         task->file_offset,
+         g_files[task->file_id].offset,
          ipc_offset,
          &cbuf, 1,
-         task->disk_id, task->part_id );
+         g_files[task->file_id].disk_id, g_files[task->file_id].part_id );
       if( 0 == bytes_read ) {
          return SYSC_ERROR_DISK;
       }
@@ -65,7 +65,7 @@ VM_SIPC sysc_DROOT( TASK_PID pid, uint8_t flags ) {
 
    offset = mfat_get_root_dir_offset( disk_id, part_id );
    assert( 0 <= offset );
-   file_id = adhd_open_file( disk_id, part_id, offset, ADHD_FILE_FLAG_DIR );
+   file_id = adhd_file_open( disk_id, part_id, offset, ADHD_FILE_FLAG_DIR );
    assert( 0 <= file_id );
 
    elix_dprintf( 1, "root directory %d opened offset: %d\n", file_id, offset );
@@ -93,12 +93,12 @@ VM_SIPC sysc_DFIRST( TASK_PID pid, uint8_t flags ) {
    assert( 0 <= dir_offset );
    disk_id = g_files[file_id].disk_id;
    part_id = g_files[file_id].part_id;
-   adhd_close_file( file_id );
+   adhd_file_close( file_id );
 
    entry_offset = mfat_get_dir_entry_first_offset(
       dir_offset, disk_id, part_id );
    assert( 0 <= entry_offset );
-   file_id = adhd_open_file( disk_id, part_id, entry_offset, 0 );
+   file_id = adhd_file_open( disk_id, part_id, entry_offset, 0 );
    assert( 0 <= file_id );
 
    elix_dprintf(
@@ -126,11 +126,11 @@ VM_SIPC sysc_DNEXT( TASK_PID pid, uint8_t flags ) {
    assert( 0 <= offset );
    disk_id = g_files[file_id].disk_id;
    part_id = g_files[file_id].part_id;
-   adhd_close_file( file_id );
+   adhd_file_close( file_id );
 
    offset = mfat_get_dir_entry_next_offset( offset, disk_id, part_id );
    assert( 0 <= offset );
-   file_id = adhd_open_file( disk_id, part_id, offset, 0 );
+   file_id = adhd_file_open( disk_id, part_id, offset, 0 );
    assert( 0 <= file_id );
 
    elix_dprintf( 1, "next entry %d opened offset: %d\n", file_id, offset );
@@ -164,7 +164,7 @@ VM_SIPC sysc_DNAME( TASK_PID pid, uint8_t flags ) {
    disk_id = g_files[file_id].disk_id;
    part_id = g_files[file_id].part_id;
    mfat_get_dir_entry_name( filename, offset, disk_id, part_id );
-   adhd_close_file( file_id );
+   adhd_file_close( file_id );
 
    return task->proc.ipc + 4;
 }

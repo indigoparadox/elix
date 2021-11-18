@@ -87,7 +87,7 @@ int kmain() {
    #define string_me( str ) quote_me( str )
    #define INIT_TASK_GID_STR string_me( INIT_TASK_GID )
 
-   adhd_start();
+   adhd_init();
 
    init_offset = mfat_get_root_dir_offset( 0, 0 );
    init_offset = mfat_get_dir_entry_offset(
@@ -97,7 +97,7 @@ int kmain() {
       goto cleanup;
    }
    init_pid = adhd_task_launch( 0, 0, init_offset );
-   if( RETVAL_TASK_INVALID == init_pid ) {
+   if( ADHD_ERROR_TASK_NOT_FOUND == init_pid ) {
       tprintf( "%s\n", gc_invalid_init );
       goto cleanup;
    }

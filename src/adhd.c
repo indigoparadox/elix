@@ -8,12 +8,12 @@
 #include "vm.h"
 #include "sysc.h"
 
-void adhd_start() {
+void adhd_init() {
    mzero( g_tasks, sizeof( struct ADHD_TASK ) * ADHD_TASKS_MAX );
    mzero( g_files, sizeof( struct ADHD_FILE ) * ADHD_FILES_MAX );
 }
 
-int8_t adhd_open_file(
+int8_t adhd_file_open(
    uint8_t disk_id, uint8_t part_id, uint32_t offset, uint8_t flags
 ) {
    int8_t i = 0;
@@ -41,14 +41,15 @@ int8_t adhd_open_file(
          g_files[i].disk_id = disk_id;
          g_files[i].part_id = part_id;
          g_files[i].flags = ADHD_FILE_FLAG_OPEN | flags;
+         g_files[i].sz = mfat_get_dir_entry_size( offset, disk_id, part_id );
          return i;
       }
    }
 
-   return ADHD_ERROR_NO_FILES;
+   return ADHD_ERROR_NO_FILES_AVAIL;
 }
 
-void adhd_close_file( uint8_t file_id ) {
+void adhd_file_close( uint8_t file_id ) {
    int8_t i = 0;
 
    assert(
@@ -68,6 +69,7 @@ TASK_PID adhd_task_launch(
    uint8_t bytes_read = 0,
       cpu_section_found = 0,
       section_instr_found = 0;
+   int8_t file_id = 0;
    struct ADHD_TASK* task = NULL;
 
    /* Check for next available PID by using IPC (running tasks will always 
@@ -77,28 +79,30 @@ TASK_PID adhd_task_launch(
    }
    if( ADHD_TASKS_MAX <= pid_iter ) {
       /* Too many tasks already! */
-      return RETVAL_TOO_MANY_TASKS;
+      return ADHD_ERROR_NO_TASKS_AVAIL;
+   }
+
+   file_id = adhd_file_open( disk_id, part_id, offset, ADHD_FILE_FLAG_EXEC );
+   if( 0 > file_id ) {
+      return ADHD_ERROR_FILE_NOT_FOUND;
    }
 
    /* Zero the whole task, including its stack. */
    mzero( &(g_tasks[pid_iter]), sizeof( struct ADHD_TASK ) );
    task = &(g_tasks[pid_iter]);
-   task->disk_id = disk_id;
-   task->part_id = part_id;
-   task->file_offset = offset;
-   task->sz = mfat_get_dir_entry_size( offset, disk_id, part_id );
+   task->file_id = file_id;
 
    /* Move the task IPC past the task data section to the first instruction. */
    do {
       bytes_read = mfat_get_dir_entry_data(
-         task->file_offset,
+         g_files[task->file_id].offset,
          task->proc.ipc,
          (unsigned char*)(&byte_iter), 1,
-         task->disk_id, task->part_id );
+         g_files[task->file_id].disk_id, g_files[task->file_id].part_id );
 
       if( 0 == bytes_read ) {
          task->proc.ipc = 0;
-         return RETVAL_TASK_INVALID;
+         return ADHD_ERROR_TASK_NOT_FOUND;
       }
 
       task->proc.ipc += bytes_read;
@@ -118,7 +122,7 @@ TASK_PID adhd_task_launch(
    return pid_iter;
 }
 
-void adhd_task_read_instr(
+static void adhd_task_read_instr(
    struct ADHD_TASK* task, int16_t* instr, int16_t* arg
 ) {
    int16_t short_out = 0;
@@ -126,32 +130,32 @@ void adhd_task_read_instr(
 
    /* Read the 16-bit instruction. */
    mfat_get_dir_entry_data(
-      task->file_offset,
+      g_files[task->file_id].offset,
       task->proc.ipc,
       (unsigned char*)(&byte_iter), 1,
-      task->disk_id, task->part_id );
+      g_files[task->file_id].disk_id, g_files[task->file_id].part_id );
    *instr = byte_iter;
    *instr <<= 8;
    mfat_get_dir_entry_data(
-      task->file_offset,
+      g_files[task->file_id].offset,
       task->proc.ipc + 1,
       (unsigned char*)(&byte_iter), 1,
-      task->disk_id, task->part_id );
+      g_files[task->file_id].disk_id, g_files[task->file_id].part_id );
    *instr |= byte_iter;
    
    /* Read the 16-bit arg. */
    mfat_get_dir_entry_data(
-      task->file_offset,
+      g_files[task->file_id].offset,
       task->proc.ipc + 2,
       (unsigned char*)(&byte_iter), 1,
-      task->disk_id, task->part_id );
+      g_files[task->file_id].disk_id, g_files[task->file_id].part_id );
    *arg = byte_iter;
    *arg <<= 8;
    mfat_get_dir_entry_data(
-      task->file_offset,
+      g_files[task->file_id].offset,
       task->proc.ipc + 3,
       (unsigned char*)(&byte_iter), 1,
-      task->disk_id, task->part_id );
+      g_files[task->file_id].disk_id, g_files[task->file_id].part_id );
    *arg |= byte_iter;
 }
 
@@ -204,7 +208,7 @@ void adhd_task_execute_next( TASK_PID pid ) {
       elix_dprintf( 0, "   0x%02x,", task->proc.stack[i] );
    }
 
-   if( 0 >= new_ipc || task->sz < new_ipc ) {
+   if( 0 >= new_ipc || g_files[task->file_id].sz < new_ipc ) {
       elix_dprintf( 0, "pid: %d stack_len: %d exiting: %d",
          pid, task->proc.stack_len, new_ipc );
       adhd_task_kill( pid );
@@ -219,8 +223,10 @@ void adhd_task_kill( TASK_PID pid ) {
       return;
    }
 
-   /* TODO: Go through memory and remove any allocated blocks for this PID. */
+   /* Go through memory and remove any allocated blocks for this PID. */
    mfree_all( pid );
+
+   adhd_file_close( g_tasks[pid].file_id );
    
    g_tasks[pid].proc.ipc = 0;
 }

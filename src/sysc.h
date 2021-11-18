@@ -5,6 +5,13 @@
 #include "etypes.h"
 
 /**
+ * \addtogroup vm Virtual Machine
+ * \brief
+ *
+ * \{
+ */
+
+/**
  * | Syscall | Description                      | Args on Stack
  * |---------|----------------------------------|---------------
  * | NOOP    | Internal use only.               | None.
@@ -41,6 +48,13 @@
    f( 20, MALLOC,    "malloc" ) \
    f( 21, MFREE,     "mfree" )
 
+/**
+ * \addtogroup sysc_errors SysCall Errors
+ * \brief Error codes that may be returned from a SYSC.
+ *
+ * \{
+ */
+
 /*! \brief ::VM_SIPC indicating error allocating or accessing memory. */
 #define SYSC_ERROR_MEM              -32758
 /*! \brief ::VM_SIPC indicating error accessing disk. */
@@ -49,6 +63,8 @@
 #define SYSC_ERROR_UNIMPLEMENTED    -32755
 /*! \brief Not technically an error. :VM_SIPC indicating normal program exit. */
 #define SYSC_ERROR_EXIT             -32754
+
+/*! \} */
 
 /**
  * \brief Callback implementing a syscall from SYSC_TABLE.
@@ -83,6 +99,8 @@ extern const SYSC gc_sysc_cbs[];
 #endif /* !ASSM_NO_VM */
 
 #endif /* SYSC_C */
+
+/*! \} */
 
 #endif /* !SYSC_H */
 
