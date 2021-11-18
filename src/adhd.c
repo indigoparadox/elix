@@ -174,7 +174,6 @@ void adhd_task_execute_next( TASK_PID pid ) {
    /* Sanity checks. */
    if( 0 >= instr ) {
       elix_eprintf( "execution error: %d", instr );
-      fflush( stdout );
       assert( instr >= 0 );
    }
 

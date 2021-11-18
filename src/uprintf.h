@@ -2,7 +2,12 @@
 #ifndef UPRINTF_H
 #define UPRINTF_H
 
-#ifdef DEBUG_ELIX_CONSOLE
+#ifdef MSP430
+
+#define elix_dprintf( lvl, ... )
+#define elix_eprintf( ... )
+
+#elif defined( DEBUG_ELIX_CONSOLE )
 
 #define elix_dprintf( lvl, ... ) \
    if( lvl >= VM_DEBUG_THRESHOLD ) { \
