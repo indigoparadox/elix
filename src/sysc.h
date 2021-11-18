@@ -4,7 +4,6 @@
 
 #include "etypes.h"
 
-#ifdef USE_DISK
 /**
  * | Syscall | Description                      | Args on Stack
  * |---------|----------------------------------|---------------
@@ -42,33 +41,22 @@
    f( 20, MALLOC,    "malloc" ) \
    f( 21, MFREE,     "mfree" )
 
-#else
-
-#define SYSC_TABLE( f ) \
-   f(  0, NOOP,      "noop" ) \
-   f(  1, PUTC,      "putc" ) \
-   f(  2, PUTS,      "puts" ) \
-   f(  3, GETC,      "getc" ) \
-   f(  4, CMP,       "cmp" ) \
-   f(  5, ICMP,      "icmp" ) \
-   f(  6, MPUTS,     "mputs" ) \
-   f(  7, FLAGON,    "flagon" ) \
-   f(  8, FLAGOFF,   "flagoff" ) \
-   f(  9, EXIT,      "exit" ) \
-   f( 10, MALLOC,    "malloc" ) \
-   f( 11, MFREE,     "mfree" ) \
-   f( 12, MPOP,      "mpop" ) \
-   f( 13, MPUSH,     "mpush" ) \
-   f( 14, MALLOC,    "malloc" ) \
-   f( 15, MFREE,     "mfree" )
-
-#endif
-
+/*! \brief ::VM_SIPC indicating error allocating or accessing memory. */
 #define SYSC_ERROR_MEM              -32758
+/*! \brief ::VM_SIPC indicating error accessing disk. */
 #define SYSC_ERROR_DISK             -32756
+/*! \brief ::VM_SIPC indicating call has not yet been implemented. */
 #define SYSC_ERROR_UNIMPLEMENTED    -32755
+/*! \brief Not technically an error. :VM_SIPC indicating normal program exit. */
 #define SYSC_ERROR_EXIT             -32754
 
+/**
+ * \brief Callback implementing a syscall from SYSC_TABLE.
+ * \param pid Process ID of current user program.
+ * \param flags (Unused) Flags modifying syscall.
+ * \return New IPC user program should jump to
+ *         (+4 moves forward one instruction).
+ */
 typedef VM_SIPC (*SYSC)( TASK_PID pid, uint8_t flags );
 
 #define SYSC_PROTOTYPES( idx, sysc, token ) \

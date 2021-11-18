@@ -59,30 +59,20 @@ struct VM_PROC {
 typedef int16_t VM_SIPC;
 
 /**
- * \brief Opcode handler callback.
+ * \brief Callback implementing a opcode from VM_OP_TABLE.
  * \param proc
- * \param flags
+ * \param flags (Unused) Flags modifying syscall.
  * \param data
- * \return New IPC value after this instruction is executed.
+ * \return New IPC user program should jump to
+ *         (+4 moves forward one instruction).
  */
+typedef VM_SIPC (*SYSC)( TASK_PID pid, uint8_t flags );
 typedef VM_SIPC (*VM_OP)( struct VM_PROC* proc, uint8_t flags, int16_t data );
 
 #define VM_OP_PROTOTYPES( idx, argc, op, token ) \
    VM_SIPC vm_op_ ## op ( struct VM_PROC* proc, uint8_t flags, int16_t data );
 
 VM_OP_TABLE( VM_OP_PROTOTYPES )
-
-#define vm_dprintf( lvl, ... ) \
-   if( lvl >= VM_DEBUG_THRESHOLD ) { \
-      tprintf( "(%d) " __FILE__ ": %d: ", lvl, __LINE__ ); \
-      tprintf( __VA_ARGS__ ); \
-      tprintf( "\n" ); \
-   }
-
-#define vm_eprintf( ... ) \
-   tprintf( "(E) " __FILE__ ": %d: ", __LINE__ ); \
-   tprintf( __VA_ARGS__ ); \
-   tprintf( "\n" ); \
 
 #ifdef VM_C
 
@@ -95,6 +85,7 @@ VM_OP_TABLE( VM_OP_IDX_LIST );
 
 #define VM_OP_CB_LIST( idx, argc, op, token ) vm_op_ ## op,
 
+/*! \brief VM opcode callback table for VM_OP_TABLE. */
 const VM_OP gc_vm_op_cbs[] = {
    VM_OP_TABLE( VM_OP_CB_LIST )
 };

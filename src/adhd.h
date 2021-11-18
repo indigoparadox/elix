@@ -11,6 +11,8 @@
 #define ADHD_MID_ENV_SCHEDULER 2
 #define ADHD_MID_ENV_CURRENT 3
 
+#define ADHD_ERROR_NO_FILES -1
+
 #ifndef ADHD_TASKS_MAX
 #define ADHD_TASKS_MAX 4
 #endif /* !ADHD_TASKS_MAX */
@@ -18,6 +20,9 @@
 #ifndef ADHD_FILES_MAX
 #define ADHD_FILES_MAX 4
 #endif /* !ADHD_FILES_MAX */
+
+#define ADHD_FILE_FLAG_OPEN   0x01
+#define ADHD_FILE_FLAG_DIR    0x02
 
 #define TASK_PID_INVALID -1
 
@@ -38,6 +43,7 @@ struct adhd_task {
 };
 
 struct adhd_file {
+   uint8_t flags;
    uint32_t offset;
 };
 

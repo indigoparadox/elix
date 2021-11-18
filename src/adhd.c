@@ -1,6 +1,7 @@
 
 #include "code16.h"
 
+#include "uprintf.h"
 #define ADHD_C
 #include "adhd.h"
 #include "mem.h"
@@ -9,6 +10,48 @@
 
 void adhd_start() {
    mzero( g_tasks, sizeof( struct adhd_task ) * ADHD_TASKS_MAX );
+   mzero( g_files, sizeof( struct adhd_file ) * ADHD_FILES_MAX );
+}
+
+int8_t adhd_open_file( uint32_t offset, uint8_t flags ) {
+   int8_t i = 0;
+
+   for( i = 0 ; ADHD_FILES_MAX > i ; i++ ) {
+      if(
+         ADHD_FILE_FLAG_OPEN == (g_files[i].flags & ADHD_FILE_FLAG_OPEN) &&
+         g_files[i].offset == offset
+      ) {
+         /* File is already open. */
+         return i;
+      }
+   }
+      
+   /* File was not open, so try to open it. */
+   for( i = 0 ; ADHD_FILES_MAX > i ; i++ ) {
+      if(
+         ADHD_FILE_FLAG_OPEN != (g_files[i].flags & ADHD_FILE_FLAG_OPEN)
+      ) {
+         /* Create new file entry. */
+         elix_dprintf( 1, "opening new file: %d @ %d", i, offset );
+         g_files[i].offset = offset;
+         g_files[i].flags = ADHD_FILE_FLAG_OPEN | flags;
+         return i;
+      }
+   }
+
+   return ADHD_ERROR_NO_FILES;
+}
+
+void adhd_close_file( uint8_t file_id ) {
+   int8_t i = 0;
+
+   assert(
+      ADHD_FILE_FLAG_OPEN == (g_files[file_id].flags & ADHD_FILE_FLAG_OPEN) );
+
+   elix_dprintf(
+      1, "closing file: %d @ %d", file_id, g_files[file_id].offset );
+
+   mzero( &(g_files[file_id]), sizeof( struct adhd_file ) );
 }
 
 TASK_PID adhd_task_launch(
@@ -64,7 +107,7 @@ TASK_PID adhd_task_launch(
 
    } while( !cpu_section_found );
 
-   printf( "starting at offset 0x%02x\n", task->proc.ipc );
+   elix_dprintf( 1, "starting at offset 0x%02x", task->proc.ipc );
 
    return pid_iter;
 }
@@ -130,7 +173,7 @@ void adhd_task_execute_next( TASK_PID pid ) {
 
    /* Sanity checks. */
    if( 0 >= instr ) {
-      printf( "execution error: %d\n", instr );
+      elix_eprintf( "execution error: %d", instr );
       fflush( stdout );
       assert( instr >= 0 );
    }
@@ -147,18 +190,17 @@ void adhd_task_execute_next( TASK_PID pid ) {
          gc_vm_op_cbs[instr]( &(task->proc), (uint8_t)(flags & 0xff), arg );
    }
 
-   printf(
+   elix_dprintf( 0,
       "ipc: 0x%02x stack_len: %d instr: 0x%02x flags: 0x%02x arg: 0x%02x "
-      "ret: %d\n",
+      "ret: %d",
       old_ipc, task->proc.stack_len, instr, flags, arg, new_ipc );
-   printf( "--stack: " );
+   elix_dprintf( 0, "--stack:" );
    for( i = 0 ; task->proc.stack_len > i ; i++ ) {
-      printf( "0x%02x, ", task->proc.stack[i] );
+      elix_dprintf( 0, "   0x%02x,", task->proc.stack[i] );
    }
-   printf( "--\n" );
 
    if( 0 >= new_ipc || task->sz < new_ipc ) {
-      printf( "pid: %d stack_len: %d exiting: %d\n",
+      elix_dprintf( 0, "pid: %d stack_len: %d exiting: %d",
          pid, task->proc.stack_len, new_ipc );
       adhd_task_kill( pid );
    } else {

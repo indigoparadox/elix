@@ -1,6 +1,7 @@
 
 #include "code16.h"
 
+#include "uprintf.h"
 #define VM_C
 #include "vm.h"
 #include "console.h"
@@ -54,7 +55,7 @@ VM_SIPC vm_op_JSEQ( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
    if( VM_ERROR_STACK == comp2 ) { return comp2; }
    comp1 = vm_op_POP( proc, flags, 0 );
    if( VM_ERROR_STACK == comp1 ) { return comp1; }
-   vm_dprintf( 0, "%d vs %d", comp1, comp2 );
+   elix_dprintf( 0, "%d vs %d", comp1, comp2 );
    if( comp1 == comp2 ) {
       ipc_out = data;
    }
@@ -80,7 +81,7 @@ VM_SIPC vm_op_JSNE( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
    if( VM_ERROR_STACK == comp2 ) { return comp2; }
    comp1 = vm_op_POP( proc, flags, 0 );
    if( VM_ERROR_STACK == comp1 ) { return comp1; }
-   vm_dprintf( 0, "%d vs %d", comp1, comp2 );
+   elix_dprintf( 0, "%d vs %d", comp1, comp2 );
    if( comp1 != comp2 ) {
       ipc_out = data;
    }
@@ -102,7 +103,7 @@ VM_SIPC vm_op_JSGE( struct VM_PROC* proc, uint8_t flags, int16_t data ) {
    if( VM_ERROR_STACK == comp2 ) { return comp2; }
    comp1 = vm_op_POP( proc, flags, 0 );
    if( VM_ERROR_STACK == comp1 ) { return comp1; }
-   vm_dprintf( 0, "%d vs %d", comp1, comp2 );
+   elix_dprintf( 0, "%d vs %d", comp1, comp2 );
    if( comp1 >= comp2 ) {
       return data;
    }
