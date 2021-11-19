@@ -111,9 +111,6 @@ fs_match:
    spush    #0          ; No MPUSH offset.
    spush    $file_id
    sysc     mpush 
-   spush    #0          ; No MPUSH offset.
-   spush    $diskpart_id   ; Push as double, read popped as 2 uint8_ts.
-   sysc     mpush 
    sysc     launch
    spop                    ; Pop file_id from launch.
    ;push     #1            ; Disable foreground I/O.
@@ -141,7 +138,7 @@ proc_line:
    sysc     droot       ; Get the root directory offset.
    sysc     dfirst      ; Get the first entry offset.
    spush    #0
-   jseq     not_found
+   jslt     not_found
    spush    #2          ; file_id is 16 bits.
    spush    $file_id
    sysc     malloc      ; Allocate file_id.
@@ -155,7 +152,7 @@ fs_iter:
    sysc     mpush 
    spush    $filename   ; Push address of filename buffer.
    sysc     dname       ; Store entry name in $filename (pops offset and fname).
-   spop                 ; Pop file_id from dname.
+   ;spop                 ; Pop file_id from dname.
 
    ; DEBUG Show files as iterated.
    ;push     '\n'
@@ -176,7 +173,7 @@ icmp_finish:
    sysc     mpush             ; Place FS offset on the stack.
    sysc     dnext
    spush    #0
-   jseq     fs_iter_cleanup   ; No more files in this directory.
+   jslt     fs_iter_cleanup   ; No more files in this directory.
    spush    #0          ; No MPOP offset.
    spush    $file_id
    sysc     mpop              ; Store FS offset in memory.
@@ -212,7 +209,7 @@ icmp_loop:
 
    spush    #0          ; No MPUSH offset.
    spush    $icmp_idx
-   sysc     mpush 
+   sysc     mpush          ;
    spush    #13            ; Compare 13 chars.
    jseq     icmp_match     ; Reached max chars (pops #13).
    

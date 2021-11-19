@@ -1,6 +1,7 @@
 
 #define ASSM_C
 #ifdef ASSM_NO_VM
+#define SYSC_C
 #endif /* ASSM_NO_VM */
 #include "assm.h"
 

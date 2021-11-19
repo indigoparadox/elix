@@ -101,22 +101,40 @@ SYSC_TABLE( SYSC_PROTOTYPES )
 
 #ifdef SYSC_C
 
-#ifndef ASSM_NO_VM
+#  ifndef ASSM_NO_VM
 
-#define SYSC_CB_LIST( idx, op, token ) sysc_ ## op,
+#     define SYSC_CB_LIST( idx, op, token ) sysc_ ## op,
 
 const SYSC gc_sysc_cbs[] = {
    SYSC_TABLE( SYSC_CB_LIST )
 };
 
-#endif /* !ASSM_NO_VM */
+#  endif /* !ASSM_NO_VM */
+
+#  if DEBUG_THRESHOLD == 0 || ASSM_NO_VM
+
+#     define SYSC_STR_LIST( idx, op, token ) token,
+
+const char* gc_sysc_tokens[] = {
+   SYSC_TABLE( SYSC_STR_LIST )
+   "" /* Terminator for easier looping. */
+};
+
+#  endif /* DEBUG_THRESHOLD == 0 || ASSM_NO_VM */
 
 #else
 
-#ifndef ASSM_NO_VM
+#  if DEBUG_THRESHOLD == 0 || ASSM_NO_VM
+
+/*! \brief Mapping of sysc to match with their sysc by index. */
+extern const char* gc_sysc_tokens[];
+
+#  endif /* DEBUG_THRESHOLD == 0 || ASSM_NO_VM */
+
+#  ifndef ASSM_NO_VM
 /*! \brief \ref sysc_ref_sect implementation callback lookup table. */
 extern const SYSC gc_sysc_cbs[];
-#endif /* !ASSM_NO_VM */
+#  endif /* !ASSM_NO_VM */
 
 #endif /* SYSC_C */
 

@@ -61,16 +61,34 @@ void adhd_file_close( uint8_t file_id ) {
    mzero( &(g_files[file_id]), sizeof( struct ADHD_FILE ) );
 }
 
-TASK_PID adhd_task_launch(
-   uint8_t disk_id, uint8_t part_id, FILEPTR_T offset
+int8_t adhd_file_open_path(
+   uint8_t disk_id, uint8_t part_id, const char* path, uint8_t flags
 ) {
+   uint32_t root_offset = 0,
+      file_offset = 0;
+
+   root_offset = mfat_get_root_dir_offset( 0, 0 );
+   file_offset = mfat_get_dir_entry_offset(
+      path, MFAT_FILENAME_LEN, root_offset, 0, 0 );
+ 
+   if( 0 == file_offset ) {
+      return ADHD_ERROR_FILE_NOT_FOUND;
+   }
+
+   return adhd_file_open( disk_id, part_id, file_offset, flags );
+}
+
+TASK_PID adhd_task_launch( int8_t file_id ) {
    uint8_t byte_iter = 0;
    TASK_PID pid_iter = 0;
    uint8_t bytes_read = 0,
       cpu_section_found = 0,
       section_instr_found = 0;
-   int8_t file_id = 0;
    struct ADHD_TASK* task = NULL;
+
+   assert( 0 <= file_id );
+   assert(
+      ADHD_FILE_FLAG_EXEC == (g_files[file_id].flags & ADHD_FILE_FLAG_EXEC) );
 
    /* Check for next available PID by using IPC (running tasks will always 
       have IPC > 0!) */
@@ -80,11 +98,6 @@ TASK_PID adhd_task_launch(
    if( ADHD_TASKS_MAX <= pid_iter ) {
       /* Too many tasks already! */
       return ADHD_ERROR_NO_TASKS_AVAIL;
-   }
-
-   file_id = adhd_file_open( disk_id, part_id, offset, ADHD_FILE_FLAG_EXEC );
-   if( 0 > file_id ) {
-      return ADHD_ERROR_FILE_NOT_FOUND;
    }
 
    /* Zero the whole task, including its stack. */
@@ -187,7 +200,12 @@ void adhd_task_execute_next( TASK_PID pid ) {
       assert( instr >= 0 );
    }
 
-   assert( instr < VM_OP_MAX );
+   if( VM_OP_MAX <= instr ) {
+      elix_eprintf( "invalid instruction: 0x%02x offset: 0x%02x",
+         instr, task->proc.ipc );
+      adhd_task_kill( pid );
+      return;
+   }
    assert( 0 == flags );
 
    if( VM_OP_SYSC == instr ) {
@@ -199,10 +217,13 @@ void adhd_task_execute_next( TASK_PID pid ) {
          gc_vm_op_cbs[instr]( &(task->proc), (uint8_t)(flags & 0xff), arg );
    }
 
-   elix_dprintf( 0,
-      "ipc: 0x%02x stack_len: %d instr: 0x%02x flags: 0x%02x arg: 0x%02x "
-      "ret: %d",
-      old_ipc, task->proc.stack_len, instr, flags, arg, new_ipc );
+   elix_dprintf( 0, "ipc: 0x%02x stack_len: %d instr: %s flags: 0x%02x",
+      old_ipc, task->proc.stack_len, gc_vm_op_tokens[instr], flags );
+   if( VM_OP_SYSC == instr ) {
+      elix_dprintf( 0, "arg: %s ret: %d", gc_sysc_tokens[arg], new_ipc );
+   } else {
+      elix_dprintf( 0, "arg: 0x%02x ret: %d", arg, new_ipc );
+   }
    elix_dprintf( 0, "--stack:" );
    for( i = 0 ; task->proc.stack_len > i ; i++ ) {
       elix_dprintf( 0, "   0x%02x,", task->proc.stack[i] );
@@ -212,6 +233,7 @@ void adhd_task_execute_next( TASK_PID pid ) {
       elix_dprintf( 0, "pid: %d stack_len: %d exiting: %d",
          pid, task->proc.stack_len, new_ipc );
       adhd_task_kill( pid );
+      return;
    } else {
       task->proc.ipc = new_ipc;     
    }

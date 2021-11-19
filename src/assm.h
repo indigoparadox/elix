@@ -114,13 +114,6 @@ struct ASSM_STATE {
 
 /* === If we're being called inside assm.c === */
 
-#define VM_OP_STR_LIST( idx, argc, op, token ) token,
-
-const char* gc_vm_op_tokens[] = {
-   VM_OP_TABLE( VM_OP_STR_LIST )
-   "" /* Terminator for easier looping. */
-};
-
 #define VM_OP_ARGC_LIST( idx, argc, op, token ) argc,
 
 const uint8_t gc_vm_op_argcs[] = {
@@ -140,22 +133,11 @@ const char* gc_assm_states[] = {
    "sysc"
 };
 
-#define SYSC_STR_LIST( idx, op, token ) token,
-
-const char* gc_sysc_tokens[] = {
-   SYSC_TABLE( SYSC_STR_LIST )
-   "" /* Terminator for easier looping. */
-};
-
 #else
 
-/*! \brief Mapping of op tokens to match with their opcodes by index. */
-extern const char* gc_vm_op_tokens[];
 extern const uint8_t gc_vm_op_argcs[];
 /*! \brief Mapping of state codes to printable strings for debugging. */
 extern const char* gc_assm_states[];
-/*! \brief Mapping of sysc to match with their sysc by index. */
-extern const char* gc_sysc_tokens[];
 
 #endif /* ASSM_C */
 

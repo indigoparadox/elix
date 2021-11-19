@@ -120,11 +120,27 @@ struct VM_PROC {
  * \section vm_op_jsge JSGE
  * Compares the top two values on the stack, discarding the topmost, and
  * jumps to the value provided as the immediate argument as a byte offset of
- * the user application if the second top-most is greater than the discarded
- * topmost value.
+ * the user application if the second top-most is greater than or equal to
+ * the discarded topmost value.
  * \subsection vm_op_jsge_arg Immediate Argument
  * \subsection vm_op_jsge_stack Stack
  *
+ * \section vm_op_jsge JSGT
+ * Compares the top two values on the stack, discarding the topmost, and
+ * jumps to the value provided as the immediate argument as a byte offset of
+ * the user application if the second top-most is greater than
+ * the discarded topmost value.
+ * \subsection vm_op_jsge_arg Immediate Argument
+ * \subsection vm_op_jsge_stack Stack
+ *
+ * \section vm_op_jsge JSLT
+ * Compares the top two values on the stack, discarding the topmost, and
+ * jumps to the value provided as the immediate argument as a byte offset of
+ * the user application if the second top-most is less than
+ * the discarded topmost value.
+ *
+ * \subsection vm_op_jsge_arg Immediate Argument
+ * \subsection vm_op_jsge_stack Stack
  * \}
  */
 
@@ -145,7 +161,9 @@ struct VM_PROC {
    f(   9,  1, JSEQ,    "jseq" ) \
    f(  10,  1, JSNE,    "jsne" ) \
    f(  11,  1, JSGE,    "jsge" ) \
-   f(  12,  0, MAX,     "max" )
+   f(  12,  1, JSGT,    "jsgt" ) \
+   f(  13,  1, JSLT,    "jslt" ) \
+   f(  14,  0, MAX,     "max" )
 
 /**
  * \addtogroup vm_sections Virtual Machine Executable Sections
@@ -185,37 +203,53 @@ VM_OP_TABLE( VM_OP_PROTOTYPES )
 
 #ifdef VM_C
 
-#define VM_OP_IDX_LIST( idx, argc, op, token ) \
+#  define VM_OP_IDX_LIST( idx, argc, op, token ) \
    const uint8_t VM_OP_ ## op = idx;
 
 VM_OP_TABLE( VM_OP_IDX_LIST );
 
-#ifndef ASSM_NO_VM
+#  ifndef ASSM_NO_VM
 
-#define VM_OP_CB_LIST( idx, argc, op, token ) vm_op_ ## op,
+#     define VM_OP_CB_LIST( idx, argc, op, token ) vm_op_ ## op,
 
 /*! \brief VM opcode callback table for VM_OP_TABLE. */
 const VM_OP gc_vm_op_cbs[] = {
    VM_OP_TABLE( VM_OP_CB_LIST )
 };
 
-#endif /* !ASSM_NO_VM */
+#  endif /* !ASSM_NO_VM */
+
+#  if DEBUG_THRESHOLD == 0 || ASSM_NO_VM
+
+#     define VM_OP_STR_LIST( idx, argc, op, token ) token,
+
+const char* gc_vm_op_tokens[] = {
+   VM_OP_TABLE( VM_OP_STR_LIST )
+   "" /* Terminator for easier looping. */
+};
+
+#  endif /* DEBUG_THRESHOLD == 0 || ASSM_NO_VM */
 
 #else
 
-#ifndef ASSM_NO_VM
+#  if DEBUG_THRESHOLD == 0 || ASSM_NO_VM
+/*! \brief Mapping of op tokens to match with their opcodes by index. */
+extern const char* gc_vm_op_tokens[];
+#  endif /* DEBUG_THRESHOLD == 0 || ASSM_NO_VM */
+
+#  ifndef ASSM_NO_VM
 /*! \brief \ref vm_op_ref_sect implementation callback lookup table. */
 extern const VM_OP gc_vm_op_cbs[];
-#endif /* !ASSM_NO_VM */
+#  endif /* !ASSM_NO_VM */
 
-#ifndef SKIP_DOC
+#  ifndef SKIP_DOC
 
-#define VM_OP_IDX_LIST( idx, argc, op, token ) \
+#     define VM_OP_IDX_LIST( idx, argc, op, token ) \
    extern const uint8_t VM_OP_ ## op;
 
 VM_OP_TABLE( VM_OP_IDX_LIST );
 
-#endif /* !SKIP_DOC */
+#  endif /* !SKIP_DOC */
 
 #endif /* VM_C */
 

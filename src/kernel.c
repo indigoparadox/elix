@@ -37,8 +37,8 @@ int kmain() {
    bool do_init = true;
    bool cmd_found = false;
 #endif /* USE_EXT_CLI */
-   FILEPTR_T init_offset = 0;
    TASK_PID init_pid = 0;
+   int8_t init_fid = 0;
 
    minit();
 
@@ -89,14 +89,12 @@ int kmain() {
 
    adhd_init();
 
-   init_offset = mfat_get_root_dir_offset( 0, 0 );
-   init_offset = mfat_get_dir_entry_offset(
-      "INIT.ELX", MFAT_FILENAME_LEN, init_offset, 0, 0 );
-   if( 0 == init_offset ) {
+   init_fid = adhd_file_open_path( 0, 0, "INIT.ELX", ADHD_FILE_FLAG_EXEC );
+   if( 0 > init_fid ) {
       tprintf( "%s\n", gc_invalid_init );
       goto cleanup;
    }
-   init_pid = adhd_task_launch( 0, 0, init_offset );
+   init_pid = adhd_task_launch( init_fid );
    if( ADHD_ERROR_TASK_NOT_FOUND == init_pid ) {
       tprintf( "%s\n", gc_invalid_init );
       goto cleanup;

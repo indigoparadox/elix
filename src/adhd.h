@@ -147,17 +147,14 @@ struct ADHD_TASK {
  */
 void adhd_init();
 
-/* TODO: Replace this with file_id. */
 /**
  * \brief Launch a new task.
- * \param disk_id The disk ID of the task executable.
- * \param part_id The disk partition ID of the task executable.
- * \param offset  The byte offset of the task executable.
- * \return
+ * \param file_id Index of the file to launch in g_files. Must have the
+ *        ::ADHD_FILE_FLAG_EXEC flag in its ADHD_FILE::flags.
+ * \return Index of the newly launched task in g_tasks if successful or error
+ *         code otherwise.
  */
-TASK_PID adhd_task_launch(
-   uint8_t disk_id, uint8_t part_id, FILEPTR_T offset
-);
+TASK_PID adhd_task_launch( int8_t file_id );
 
 /**
  * \brief Execute the next instruction in a running task.

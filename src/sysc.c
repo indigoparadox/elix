@@ -118,7 +118,7 @@ VM_SIPC sysc_DNEXT( TASK_PID pid, uint8_t flags ) {
       file_id = 0;
    uint32_t offset = 0;
 
-   offset = vm_op_POP( &(task->proc), flags, 0 );
+   file_id = vm_op_POP( &(task->proc), flags, 0 );
    if( VM_ERROR_STACK == offset ) { return VM_ERROR_STACK; }
 
    /* Get the offset of the last entry to iterate from. */
@@ -153,7 +153,7 @@ VM_SIPC sysc_DNAME( TASK_PID pid, uint8_t flags ) {
 
    mid = vm_op_POP( &(task->proc), flags, 0 );
    if( VM_ERROR_STACK == mid ) { return VM_ERROR_STACK; }
-   offset = vm_op_POP( &(task->proc), flags, 0 );
+   file_id = vm_op_POP( &(task->proc), flags, 0 );
    if( VM_ERROR_STACK == offset ) { return VM_ERROR_STACK; }
 
    filename = mget( pid, mid, 0 );
@@ -164,7 +164,7 @@ VM_SIPC sysc_DNAME( TASK_PID pid, uint8_t flags ) {
    disk_id = g_files[file_id].disk_id;
    part_id = g_files[file_id].part_id;
    mfat_get_dir_entry_name( filename, offset, disk_id, part_id );
-   adhd_file_close( file_id );
+   /* adhd_file_close( file_id ); */
 
    return task->proc.ipc + 4;
 }
@@ -176,20 +176,15 @@ VM_SIPC sysc_DENTRY( TASK_PID pid, uint8_t flags ) {
 
 VM_SIPC sysc_LAUNCH( TASK_PID pid, uint8_t flags ) {
    struct ADHD_TASK* task = &(g_tasks[pid]);
-   int16_t disk_id = 0,
-      part_id = 0,
-      offset = 0;
+   int16_t file_id = 0,
+      launch_pid = 0;
 
-   part_id = vm_op_POP( &(task->proc), flags, 0 );
-   if( VM_ERROR_STACK == part_id ) { return VM_ERROR_STACK; }
-   disk_id = vm_op_POP( &(task->proc), flags, 0 );
-   if( VM_ERROR_STACK == disk_id ) { return VM_ERROR_STACK; }
-   offset = vm_op_POP( &(task->proc), flags, 0 );
-   if( VM_ERROR_STACK == offset ) { return VM_ERROR_STACK; }
+   file_id = vm_op_POP( &(task->proc), flags, 0 );
+   if( VM_ERROR_STACK == file_id ) { return VM_ERROR_STACK; }
 
-   adhd_task_launch( disk_id, part_id, offset );
+   launch_pid = adhd_task_launch( file_id );
 
-   if( VM_ERROR_STACK == vm_op_SPUSH( &(task->proc), flags, offset ) ) {
+   if( VM_ERROR_STACK == vm_op_SPUSH( &(task->proc), flags, launch_pid ) ) {
       return VM_ERROR_STACK;
    }
 

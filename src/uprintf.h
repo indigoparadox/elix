@@ -3,7 +3,7 @@
 #define UPRINTF_H
 
 #ifndef DEBUG_THRESHOLD
-#define DEBUG_THRESHOLD 1
+#define DEBUG_THRESHOLD 0
 #endif /* !DEBUG_THRESHOLD */
 
 #ifdef MSP430
@@ -31,13 +31,13 @@
 
 #define elix_dprintf( lvl, ... ) \
    if( lvl >= DEBUG_THRESHOLD ) { \
-      printf( "(%d) " __FILE__ ": %d: ", lvl, __LINE__ ); \
+      printf( "(%d) : %d: ", lvl, __LINE__ ); \
       printf( __VA_ARGS__ ); \
       printf( "\n" ); \
    }
 
 #define elix_eprintf( ... ) \
-   printf( "(E) " __FILE__ ": %d: ", __LINE__ ); \
+   printf( "(E) : %d: ", __LINE__ ); \
    printf( __VA_ARGS__ ); \
    printf( "\n" ); \
 
