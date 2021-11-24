@@ -1,0 +1,4 @@
+<map id="ADHD_TASK" name="ADHD_TASK">
+<area shape="rect" id="node1" title="Task descriptor holding info on a running task." alt="" coords="5,95,107,121"/>
+<area shape="rect" id="node2" href="$structVM__PROC.html" title="The status of a currently executing process." alt="" coords="13,5,99,32"/>
+</map>

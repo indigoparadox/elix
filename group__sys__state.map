@@ -1,0 +1,5 @@
+<map id="System State" name="System State">
+<area shape="rect" id="node1" href="$group__con__share.html" title="(&lt;10 bytes) These globals handle how the console subsystem is shared." alt="" coords="153,5,269,31"/>
+<area shape="rect" id="node2" title="(1 byte) This system allows executing a major operation (like shutdown) based on the value of a globa..." alt="" coords="5,31,105,56"/>
+<area shape="rect" id="node3" href="$group__uart.html" title=" " alt="" coords="164,55,259,80"/>
+</map>

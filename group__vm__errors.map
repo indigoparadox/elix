@@ -1,0 +1,4 @@
+<map id="Virtual Machine Errors" name="Virtual Machine Errors">
+<area shape="rect" id="node1" href="$group__vm.html" title="Allows user applications to execute safely in an abstract environment that&#39;s consistent in differing ..." alt="" coords="5,5,116,31"/>
+<area shape="rect" id="node2" title="Error codes that may be returned from a VM_OP." alt="" coords="164,5,312,31"/>
+</map>

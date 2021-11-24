@@ -1,0 +1,8 @@
+<map id="globals.h" name="globals.h">
+<area shape="rect" id="node1" title=" " alt="" coords="80,5,153,32"/>
+<area shape="rect" id="node2" href="$i2c_8h.html" title=" " alt="" coords="21,80,71,107"/>
+<area shape="rect" id="node4" href="$io_8h_source.html" title=" " alt="" coords="95,80,138,107"/>
+<area shape="rect" id="node5" href="$kernel_8h.html" title="General definitions and types for internal OS processes." alt="" coords="162,80,229,107"/>
+<area shape="rect" id="node3" href="$ssd1306_8h.html" title="A platform&#45;independent driver for the SSD1306 OLED display. Requires I2C support." alt="" coords="5,155,87,181"/>
+<area shape="rect" id="node6" href="$mem_8h.html" title=" " alt="" coords="165,155,226,181"/>
+</map>
